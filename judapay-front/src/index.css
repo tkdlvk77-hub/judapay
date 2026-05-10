@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-stack: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif,
+                'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji',
+                'Twemoji Mozilla', 'Segoe UI Symbol';
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+html, body, button, input, textarea, select {
+  font-family: var(--font-stack);
+}
+
+body {
+  background: #E8EAF2;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.phone {
+  width: 390px;
+  height: 100vh;
+  background: #F4F6FB;
+  position: relative;
+  box-shadow: 0 0 60px rgba(0,0,0,0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.hero-grad {
+  background: linear-gradient(160deg, #1A1240 0%, #2D1F6E 60%, #3D2090 100%);
+}
+
+.brand-grad {
+  background: linear-gradient(135deg, #5B4FE8, #9333EA);
+}
+
+.pin-dot {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid #BABADA;
+  background: transparent;
+  transition: all 0.15s;
+}
+.pin-dot.filled {
+  background: #5B4FE8;
+  border-color: #5B4FE8;
+}
