@@ -490,7 +490,7 @@ export default function ExecuteRentLease() {
         <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
           <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
-              <button onClick={() => setScreen('detail')} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+              <button onClick={() => setScreen('detail')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
               <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>납부 로그</span>
@@ -572,13 +572,13 @@ export default function ExecuteRentLease() {
             <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
                 {/* 백버튼: 그냥 이전 화면으로 */}
-                <button onClick={() => setScreen('addType')} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+                <button onClick={() => setScreen('addType')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>{addType.icon} {addType.label} 등록</span>
                 {/* X버튼: 나가기 모달 */}
-                <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
               <div style={{ padding:'0 20px', display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:'12px', overflow:'hidden' }}>
@@ -726,7 +726,7 @@ export default function ExecuteRentLease() {
             <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
                 {/* 백버튼: 그냥 리스트로 */}
-                <button onClick={() => setScreen('list')} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+                <button onClick={() => setScreen('list')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>렌트&리스 자동 설정</span>
@@ -734,8 +734,8 @@ export default function ExecuteRentLease() {
                   납부 로그
                 </button>
                 {/* X버튼: 나가기 모달 */}
-                <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
               <div style={{ padding:'0 20px', display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:'12px', overflow:'hidden' }}>
@@ -878,13 +878,13 @@ export default function ExecuteRentLease() {
         {/* 헤더 */}
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 14px' }}>
-            <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+            <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <span style={{ fontSize:'15px', fontWeight:600, color:'#fff' }}>렌트&리스 자동 지급</span>
             <div style={{ flex:1 }}/>
-            <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={() => setShowExitModal(true)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
 

@@ -108,7 +108,7 @@ const TRANSLATIONS = {
   'businessMenu.toGoSub':         { ko: '급여·임대료 포함', en: 'Incl. payroll & rent' },
   'businessMenu.expectedTotal':   { ko: '예상 총 {amount}원', en: 'Est. total: {amount} KRW' },
   'businessMenu.dayProgress':     { ko: '{current}일차 / {total}일', en: 'Day {current} / {total}' },
-  'businessMenu.scheduled':       { ko: '지급 예정',       en: 'Upcoming Payments' },
+  'businessMenu.scheduled':       { ko: '자동 지급 예정',  en: 'Auto Payment Schedule' },
   'businessMenu.statusAuto':      { ko: '자동',           en: 'Auto' },
   'businessMenu.statusReview':    { ko: '검수 필요',       en: 'Review Needed' },
   'businessMenu.employees':       { ko: '직원',           en: 'Employees' },

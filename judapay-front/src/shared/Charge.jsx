@@ -205,16 +205,23 @@ export default function Charge() {
                     display:'flex', alignItems:'center', gap:'12px',
                     border:'none',
                     borderBottom: i < ACCOUNTS.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none',
-                    background: active ? '#F5F3FF' : COLORS.bgCard,
+                    background: active ? '#fff' : COLORS.bgMuted,
                     cursor:'pointer', textAlign:'left', fontFamily:'inherit',
+                    transition:'background .15s',
                   }}>
+                  {/* 라디오 버튼 */}
                   <div style={{
-                    width:'22px', height:'22px',
+                    width:'20px', height:'20px',
                     borderRadius:'50%',
-                    border: active ? `7px solid ${theme.brand}` : `2px solid ${COLORS.t5}`,
-                    background: COLORS.bgCard,
+                    border: active ? `2px solid ${theme.brandDark}` : `2px solid ${COLORS.t5}`,
+                    background: '#fff',
                     flexShrink:0, transition:'all .15s',
-                  }} />
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                  }}>
+                    {active && (
+                      <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: theme.brandDark }} />
+                    )}
+                  </div>
                   <div style={{
                     width:'34px', height:'34px',
                     borderRadius:'9px',
@@ -222,12 +229,14 @@ export default function Charge() {
                     display:'flex', alignItems:'center', justifyContent:'center',
                     fontSize:'10px', fontWeight:700, color:'#fff',
                     flexShrink:0,
+                    opacity: active ? 1 : 0.6,
+                    transition:'opacity .15s',
                   }}>
                     {a.bankCode}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'2px', flexWrap:'wrap' }}>
-                      <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>
+                      <span style={{ fontSize:'13px', fontWeight:700, color: active ? theme.brandDark : COLORS.t3 }}>
                         {a.bank} {a.num}
                       </span>
                       {a.primary && (
@@ -241,7 +250,7 @@ export default function Charge() {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize:'11px', color: COLORS.t4 }}>{a.name}</div>
+                    <div style={{ fontSize:'11px', color: active ? COLORS.t3 : COLORS.t5 }}>{a.name}</div>
                   </div>
                 </button>
               )

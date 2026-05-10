@@ -59,7 +59,8 @@ import ExecuteUtility from './business/execute/ExecuteUtility'
 import ExecuteInsurance4 from './business/execute/ExecuteInsurance4'
 import ExecuteTax from './business/execute/ExecuteTax'
 import ExecuteInsurancePremium from './business/execute/ExecuteInsurancePremium'
-import ExecuteMisc from './business/execute/ExecuteMisc'
+import ExecuteOtherExpense from './business/execute/ExecuteOtherExpense'
+import ExecuteAutoPayAll from './business/execute/ExecuteAutoPayAll'
 import ExecuteFreelanceBusiness from './business/execute/ExecuteFreelanceBusiness'
 import ExecuteBonusBusiness from './business/execute/ExecuteBonusBusiness'
 import ExecuteCondolenceBusiness from './business/execute/ExecuteCondolenceBusiness'
@@ -194,7 +195,10 @@ export default function App() {
           <Protected requireType="business"><ExecuteInsurancePremium /></Protected>
         } />
         <Route path="/execute/business/operations/misc" element={
-          <Protected requireType="business"><ExecuteMisc /></Protected>
+          <Protected requireType="business"><ExecuteOtherExpense /></Protected>
+        } />
+        <Route path="/execute/business/operations/auto-pay-all" element={
+          <Protected requireType="business"><ExecuteAutoPayAll /></Protected>
         } />
         <Route path="/execute/business/select-recipient" element={
           <Protected requireType="business"><SelectRecipientBusiness /></Protected>

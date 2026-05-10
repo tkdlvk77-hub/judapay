@@ -88,6 +88,7 @@ export default function BusinessMenu() {
       unit: t('businessMenu.employeesUnit'),
       label: t('businessMenu.employees'),
       subAction: t('businessMenu.payrollSetting'),
+      route: '/execute/business/operations/salary',
     },
     {
       id: 'autopayments',
@@ -95,6 +96,7 @@ export default function BusinessMenu() {
       unit: t('businessMenu.autoPaymentsUnit'),
       label: t('businessMenu.autoPayments'),
       subAction: t('businessMenu.opsExpense'),
+      route: '/execute/business/operations/auto-pay-all',
     },
     {
       id: 'cards',
@@ -102,6 +104,7 @@ export default function BusinessMenu() {
       unit: t('businessMenu.cardsUnit'),
       label: t('businessMenu.cards'),
       subAction: t('businessMenu.cardManagement'),
+      route: '/card-payment',
     },
   ]
 
@@ -248,10 +251,16 @@ export default function BusinessMenu() {
             </div>
           </div>
 
-          {/* 지급 예정 */}
+          {/* 자동 지급 예정 */}
           <div style={{ marginBottom:'14px' }}>
-            <div style={{ fontSize:'12px', fontWeight:'700', color: COLORS.t1, marginBottom:'8px', padding:'0 4px' }}>
-              {t('businessMenu.scheduled')}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'8px', padding:'0 4px' }}>
+              <span style={{ fontSize:'12px', fontWeight:'700', color: COLORS.t1 }}>
+                {t('businessMenu.scheduled')}
+              </span>
+              <button onClick={() => navigate('/execute/business/operations/auto-pay-all')}
+                style={{ fontSize:'11px', fontWeight:600, color:theme.brandDark, background:`${theme.brand}12`, border:`1px solid ${theme.brand}25`, borderRadius:'20px', padding:'4px 10px', cursor:'pointer', fontFamily:'inherit', outline:'none' }}>
+                전체보기
+              </button>
             </div>
             <div style={{ background: COLORS.bgCard, border:`0.5px solid ${COLORS.border}`, borderRadius:'14px', overflow:'hidden' }}>
               {scheduledItems.map((s, i, arr) => (
@@ -297,7 +306,7 @@ export default function BusinessMenu() {
             {STATS.map(stat => (
               <button
                 key={stat.id}
-                onClick={todo(stat.subAction)}
+                onClick={() => navigate(stat.route)}
                 style={{
                   flex:1, padding:'14px 12px',
                   background: COLORS.bgCard, border:`0.5px solid ${COLORS.border}`,

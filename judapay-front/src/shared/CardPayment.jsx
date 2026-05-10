@@ -36,16 +36,24 @@ const INITIAL_CARDS = [
 // 카드별 결제 내역
 const CARD_PAYMENTS = {
   card_1: [
-    { id:'p1', name:'이마트 역삼점',        meta:'5.5 14:32 · 서울시 교육비', amount:-32000, status:'normal' },
-    { id:'p2', name:'스타벅스',             meta:'5.5 09:15 · 엄마 용돈',     amount:-7500,  status:'normal' },
-    { id:'p3', name:'GS강남게임센터 (차단)', meta:'4.28 22:14 · MCC 7993 차단', amount:0,    status:'blocked' },
-    { id:'p4', name:'올리브영',             meta:'4.27 16:44 · MY 지갑',       amount:-23000, status:'normal' },
+    { id:'p1', name:'이마트 역삼점',        meta:'5.5 14:32 · 서울시 교육비',  amount:-32000,  status:'normal',  month:5 },
+    { id:'p2', name:'스타벅스',             meta:'5.5 09:15 · 엄마 용돈',      amount:-7500,   status:'normal',  month:5 },
+    { id:'p3', name:'AWS 서버비 (자동)',     meta:'5.1 00:01 · MY 지갑',        amount:-408000, status:'normal',  month:5 },
+    { id:'p4', name:'GS강남게임센터 (차단)', meta:'4.28 22:14 · MCC 7993 차단', amount:0,       status:'blocked', month:4 },
+    { id:'p5', name:'올리브영',             meta:'4.27 16:44 · MY 지갑',       amount:-23000,  status:'normal',  month:4 },
   ],
   card_2: [
-    { id:'p5', name:'인천공항 면세점',      meta:'5.1 10:22 · MY 지갑',        amount:-156000, status:'normal' },
-    { id:'p6', name:'싱가포르 Grab',        meta:'4.30 14:05 · MY 지갑',       amount:-18500,  status:'normal' },
-    { id:'p7', name:'카지노 (차단)',         meta:'4.29 23:11 · MCC 7011 차단', amount:0,       status:'blocked' },
+    { id:'p6', name:'인천공항 면세점',       meta:'5.1 10:22 · MY 지갑',        amount:-156000, status:'normal',  month:5 },
+    { id:'p7', name:'Adobe CC (자동)',       meta:'5.1 00:01 · MY 지갑',        amount:-145200, status:'normal',  month:5 },
+    { id:'p8', name:'싱가포르 Grab',         meta:'4.30 14:05 · MY 지갑',       amount:-18500,  status:'normal',  month:4 },
+    { id:'p9', name:'카지노 (차단)',          meta:'4.29 23:11 · MCC 7011 차단', amount:0,       status:'blocked', month:4 },
   ],
+}
+
+// 카드별 이번 달 한도
+const CARD_MONTHLY_LIMIT = {
+  card_1: 3000000,
+  card_2: 1000000,
 }
 
 const WALLET_PRIORITY = [
@@ -338,7 +346,15 @@ export default function CardPayment() {
     setShowIssue(false)
   }
 
-  const payments = CARD_PAYMENTS[card?.id] || []
+  const thisMonth = new Date().getMonth() + 1
+  const allPayments  = CARD_PAYMENTS[card?.id] || []
+  const payments     = allPayments  // 전체 표시 (최신순 이미 정렬됨)
+  const monthlyUsed  = allPayments
+    .filter(p => p.month === thisMonth && p.status !== 'blocked' && p.amount < 0)
+    .reduce((s, p) => s + Math.abs(p.amount), 0)
+  const monthlyCount = allPayments.filter(p => p.month === thisMonth && p.status !== 'blocked' && p.amount < 0).length
+  const monthlyLimit = CARD_MONTHLY_LIMIT[card?.id] || null
+  const usagePct     = monthlyLimit ? Math.min(100, Math.round(monthlyUsed / monthlyLimit * 100)) : null
 
   return (
     <PhoneShell>
@@ -362,8 +378,8 @@ export default function CardPayment() {
 
         <div style={{ padding:'18px 16px 32px' }}>
 
-          {/* ── 카드 스와이프 영역 ── */}
-          <div style={{ marginBottom:'14px' }}>
+          {/* ① 카드 이미지 */}
+          <div style={{ marginBottom:'12px' }}>
             <PhysicalCard
               card={card}
               paused={cs.paused}
@@ -372,42 +388,17 @@ export default function CardPayment() {
             />
           </div>
 
-          {/* 카드 선택 인디케이터 */}
+          {/* 카드 선택 인디케이터 dots */}
           {cards.length > 1 && (
-            <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'6px', marginBottom:'14px' }}>
+            <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'6px', marginBottom:'16px' }}>
               {cards.map((c, i) => (
                 <button key={c.id} onClick={() => setSelectedIdx(i)} style={{ width: i===selectedIdx ? '20px' : '7px', height:'7px', borderRadius:'4px', background: i===selectedIdx ? theme.brandDark : COLORS.border, border:'none', cursor:'pointer', padding:0, transition:'all .2s' }} />
               ))}
             </div>
           )}
 
-          {/* 카드 라벨 탭 (카드 여러 장일 때) */}
-          {cards.length > 1 && (
-            <div style={{ display:'flex', gap:'8px', marginBottom:'18px', overflowX:'auto', paddingBottom:'2px' }}>
-              {cards.map((c, i) => (
-                <button key={c.id} onClick={() => setSelectedIdx(i)} style={{ flexShrink:0, padding:'6px 14px', background: i===selectedIdx ? theme.brandDark : COLORS.bgCard, color: i===selectedIdx ? '#fff' : COLORS.t3, border: i===selectedIdx ? 'none' : `1px solid ${COLORS.border}`, borderRadius: RADIUS.pill, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow: i===selectedIdx ? SHADOWS.card : 'none', transition:'all .15s' }}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* 출금 지갑 — 한 줄 */}
-          {(() => {
-            const w = WALLET_PRIORITY.find(w => w.id === selectedWalletId) || WALLET_PRIORITY[0]
-            return (
-              <div style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'12px 14px', display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
-                <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t4, flexShrink:0 }}>출금 지갑</span>
-                <span style={{ width:'7px', height:'7px', borderRadius:'50%', background: w.dotColor, flexShrink:0 }} />
-                <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{w.label}</span>
-                <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flexShrink:0 }}>{fmt(w.amount)}원</span>
-                <button onClick={() => setShowWalletPicker(true)} style={{ flexShrink:0, padding:'5px 10px', background: `${theme.brandDark}12`, color: theme.brandDark, border:`1px solid ${theme.brandDark}25`, borderRadius: RADIUS.pill, fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>변경</button>
-              </div>
-            )
-          })()}
-
-          {/* 4개 액션 */}
-          <div style={{ marginBottom:'22px' }}>
+          {/* ② 액션 4버튼 */}
+          <div style={{ marginBottom:'14px' }}>
             <ActionGrid
               paused={cs.paused}
               onToggle={() => updateCardState(card.id, { paused: !cs.paused })}
@@ -417,12 +408,62 @@ export default function CardPayment() {
             />
           </div>
 
-          {/* 이 카드 결제 내역 */}
+          {/* ③ 출금 지갑 */}
+          {(() => {
+            const w = WALLET_PRIORITY.find(w => w.id === selectedWalletId) || WALLET_PRIORITY[0]
+            return (
+              <div style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'12px 14px', display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+                <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t4, flexShrink:0 }}>출금 지갑</span>
+                <span style={{ width:'7px', height:'7px', borderRadius:'50%', background: w.dotColor, flexShrink:0 }} />
+                <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{w.label}</span>
+                <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flexShrink:0 }}>{fmt(w.amount)}원</span>
+                <button onClick={() => setShowWalletPicker(true)} style={{ flexShrink:0, padding:'5px 10px', background: `${theme.brandDark}12`, color: theme.brandDark, border:`1px solid ${theme.brandDark}25`, borderRadius: RADIUS.pill, fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>변경</button>
+              </div>
+            )
+          })()}
+
+          {/* ④ 카드 라벨 필터 탭 */}
+          <div style={{ display:'flex', gap:'8px', marginBottom:'12px', overflowX:'auto', paddingBottom:'2px' }}>
+            {cards.map((c, i) => (
+              <button key={c.id} onClick={() => setSelectedIdx(i)}
+                style={{ flexShrink:0, padding:'6px 16px', background: i===selectedIdx ? theme.brandDark : COLORS.bgCard, color: i===selectedIdx ? '#fff' : COLORS.t3, border: i===selectedIdx ? 'none' : `1px solid ${COLORS.border}`, borderRadius: RADIUS.pill, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow: i===selectedIdx ? SHADOWS.card : 'none', transition:'all .15s' }}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ⑤ 이번 달 사용 요약 */}
+          <div onClick={() => navigate('/payments', { state: { cardLabel: card.label } })} style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'14px 16px', marginBottom:'14px', cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'10px' }}>
+              <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t4 }}>{thisMonth}월 카드 사용액</span>
+              <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t3 }}>{monthlyCount}건</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:'4px', marginBottom: usagePct !== null ? '10px' : 0 }}>
+              <span style={{ fontSize:'24px', fontWeight:800, color: COLORS.t1, letterSpacing:'-0.5px' }}>{fmt(monthlyUsed)}</span>
+              <span style={{ fontSize:'13px', fontWeight:600, color: COLORS.t3 }}>원</span>
+              {monthlyLimit && (
+                <span style={{ fontSize:'11px', color: COLORS.t4, marginLeft:'4px' }}>/ {fmt(monthlyLimit)}원 한도</span>
+              )}
+            </div>
+            {usagePct !== null && (
+              <>
+                <div style={{ height:'6px', background: COLORS.bgMuted, borderRadius:'3px', overflow:'hidden', marginBottom:'5px' }}>
+                  <div style={{ height:'100%', width:`${usagePct}%`, borderRadius:'3px', background: usagePct >= 90 ? '#EF4444' : usagePct >= 70 ? '#F59E0B' : theme.brand, transition:'width 0.4s' }}/>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color: usagePct >= 90 ? '#EF4444' : usagePct >= 70 ? '#B45309' : COLORS.t4, fontWeight:600 }}>
+                  <span>한도의 {usagePct}% 사용</span>
+                  <span>잔여 {fmt(monthlyLimit - monthlyUsed)}원</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ⑥ 결제 내역 헤더 */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'8px', padding:'0 4px' }}>
             <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>
               <span style={{ color: theme.brandDark }}>{card.label}</span> 결제 내역
             </span>
-            <button onClick={() => navigate('/payments')} style={{ fontSize:'11px', fontWeight:600, color: theme.brandDark, background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>전체 보기 ›</button>
+            <button onClick={() => navigate('/payments', { state: { cardLabel: card.label } })} style={{ fontSize:'11px', fontWeight:600, color: theme.brandDark, background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>전체 보기 ›</button>
           </div>
           {payments.length === 0 ? (
             <div style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'28px 16px', textAlign:'center', color: COLORS.t4, fontSize:'13px' }}>

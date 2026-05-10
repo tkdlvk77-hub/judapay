@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS, GRADIENTS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -53,8 +53,9 @@ const FILTER_TABS = [
 ]
 
 // ─── 다크 헤더 ─────────────────────────
-function DarkHeader({ smallTitle, count, onBack, onJustify, selectMode }) {
+function DarkHeader({ cardLabel, count, onBack, onJustify, selectMode }) {
   const theme = getAccountTheme()
+  const hasCard = !!cardLabel
   return (
     <div style={{
       background: theme.headerGrad,
@@ -78,7 +79,7 @@ function DarkHeader({ smallTitle, count, onBack, onJustify, selectMode }) {
           </svg>
         </button>
         <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>
-          {smallTitle}
+          {hasCard ? `${cardLabel} 결제 내역` : '결제 내역'}
         </span>
         <button onClick={onJustify}
           style={{
@@ -97,11 +98,30 @@ function DarkHeader({ smallTitle, count, onBack, onJustify, selectMode }) {
       </div>
 
       <div style={{ padding:'0 20px' }}>
+        {/* 카드 출처 배지 (카드 관리에서 진입한 경우) */}
+        {hasCard && (
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:'5px',
+            background:'rgba(255,255,255,0.15)',
+            border:'1px solid rgba(255,255,255,0.25)',
+            borderRadius:'20px',
+            padding:'3px 10px 3px 7px',
+            marginBottom:'8px',
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="13" rx="2"/>
+              <line x1="2" y1="11" x2="22" y2="11"/>
+            </svg>
+            <span style={{ fontSize:'11px', fontWeight:700, color:'#fff', letterSpacing:'0.2px' }}>
+              {cardLabel}
+            </span>
+          </div>
+        )}
         <div style={{
           fontSize:'28px', fontWeight:700, color:'#fff',
           lineHeight:1.25, letterSpacing:'-1px',
         }}>
-          결제 내역
+          {hasCard ? `${cardLabel} 결제 내역` : '결제 내역'}
         </div>
         <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)', marginTop:'4px' }}>
           전체 <strong style={{ color:'#fff' }}>{count}</strong>건
@@ -115,6 +135,8 @@ export default function PaymentLogs() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  const location = useLocation()
+  const cardLabel = location.state?.cardLabel || null
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [selectMode, setSelectMode] = useState(false)
@@ -164,7 +186,7 @@ export default function PaymentLogs() {
     <PhoneShell>
       <div style={{ flex:1, overflowY:'auto' }}>
         <DarkHeader
-          smallTitle="결제 내역"
+          cardLabel={cardLabel}
           count={ALL_LOGS.length}
           onBack={() => navigate(-1)}
           selectMode={selectMode}

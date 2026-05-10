@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -370,24 +370,45 @@ function MCCTab({ r, lang, theme }) {
 }
 
 // ─── 탭: 집행 로그 ────────────────────────────────────────
-function ExecLogTab({ r, lang, theme }) {
+function ExecLogTab({ r, lang, theme, onNavigate }) {
   const [justifyTarget, setJustifyTarget] = useState(null)
   const [justifySent, setJustifySent] = useState({})
   const [statusFilter, setStatusFilter] = useState('all')
+  const [period, setPeriod] = useState('이번달')
 
-  const filters = [
+  const statusFilters = [
     { key: 'all',     label: '전체' },
     { key: 'done',    label: t('done', lang) },
     { key: 'warning', label: t('warning', lang) },
     { key: 'risk',    label: t('risk', lang) },
   ]
+  const PERIODS = ['이번달', '3개월', '6개월', '1년']
+
   const filtered = statusFilter === 'all' ? r.execLogs : r.execLogs.filter(l => l.status === statusFilter)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* 필터 */}
+      {/* 기간 필터 */}
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {PERIODS.map(p => (
+          <button key={p} onClick={() => setPeriod(p)}
+            style={{
+              flex: 1, padding: '7px 4px', borderRadius: RADIUS.pill, border: 'none',
+              background: period === p ? theme.brandDark+'18' : COLORS.bgCard,
+              color: period === p ? theme.brandDark : COLORS.t3,
+              fontSize: '11px', fontWeight: period === p ? 700 : 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: SHADOWS.card,
+              outline: period === p ? `1.5px solid ${theme.brandDark}40` : 'none',
+            }}>
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* 상태 필터 */}
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
-        {filters.map(f => (
+        {statusFilters.map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
             style={{
               padding: '6px 14px', borderRadius: RADIUS.pill, border: 'none', flexShrink: 0,
@@ -402,11 +423,13 @@ function ExecLogTab({ r, lang, theme }) {
       </div>
 
       {filtered.map((log, i) => (
-        <div key={log.id} style={{
-          background: COLORS.bgCard, borderRadius: RADIUS.lg,
-          border: `1.5px solid ${log.status === 'risk' ? '#FECACA' : log.status === 'warning' ? '#FDE68A' : 'transparent'}`,
-          boxShadow: SHADOWS.card, overflow: 'hidden',
-        }}>
+        <div key={log.id}
+          onClick={() => onNavigate && onNavigate('/payments', { logId: log.id, merchant: log.merchant, amount: log.amount, date: log.date, mcc: log.mcc, status: log.status })}
+          style={{
+            background: COLORS.bgCard, borderRadius: RADIUS.lg,
+            border: `1.5px solid ${log.status === 'risk' ? '#FECACA' : log.status === 'warning' ? '#FDE68A' : 'transparent'}`,
+            boxShadow: SHADOWS.card, overflow: 'hidden', cursor: 'pointer',
+          }}>
           <div style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div style={{ flex: 1 }}>
@@ -433,7 +456,7 @@ function ExecLogTab({ r, lang, theme }) {
               </div>
               {(log.status === 'risk' || log.status === 'warning') && (
                 <button
-                  onClick={() => setJustifyTarget(log)}
+                  onClick={(e) => { e.stopPropagation(); setJustifyTarget(log) }}
                   style={{
                     padding: '8px 14px', borderRadius: '10px', border: 'none',
                     background: justifySent[log.id] ? '#D1FAE5' : theme.brandDark+'15',
@@ -531,31 +554,12 @@ function EvidenceTab({ r, lang, theme }) {
         ))}
       </div>
 
-      {/* 업로드 버튼 */}
-      <button style={{
-        width: '100%', padding: '14px', borderRadius: RADIUS.lg,
-        background: COLORS.bgCard, border: `1.5px dashed ${theme.brandDark}50`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-        cursor: 'pointer', fontFamily: 'inherit',
-        boxShadow: SHADOWS.card,
-      }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.brandDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: theme.brandDark }}>{t('upload', lang)} (영수증·계약서·청구서)</span>
-      </button>
     </div>
   )
 }
 
 // ─── 탭: 보고서 ───────────────────────────────────────────
 function ReportTab({ r, lang, theme }) {
-  const [generating, setGenerating] = useState(null)
-  const [generated, setGenerated] = useState({})
-
-  const TAX_CATEGORIES = ['외주비/지급수수료', '복리후생비', '광고선전비', '접대비', '교육훈련비', '기타경비']
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* 보고서 목록 */}
@@ -589,51 +593,6 @@ function ReportTab({ r, lang, theme }) {
         </div>
       )}
 
-      {/* 새 보고서 생성 */}
-      <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, padding: '16px', boxShadow: SHADOWS.card }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.t1, marginBottom: '14px' }}>새 보고서 생성</div>
-        <div style={{ fontSize: '11px', color: COLORS.t3, fontWeight: 600, marginBottom: '8px' }}>{t('taxCategory', lang)}</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-          {TAX_CATEGORIES.map((cat, i) => (
-            <button key={i}
-              onClick={() => setGenerating(cat)}
-              style={{
-                padding: '6px 12px', borderRadius: RADIUS.pill, border: 'none',
-                background: generating === cat ? theme.brandDark : COLORS.bg,
-                color: generating === cat ? '#fff' : COLORS.t2,
-                fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${generating === cat ? 'transparent' : COLORS.borderSoft}`,
-              }}>
-              {cat}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => { if (generating) setGenerated(p => ({...p, [generating]: true})) }}
-          disabled={!generating}
-          style={{
-            width: '100%', padding: '14px',
-            background: !generating ? COLORS.bgMuted : generated[generating] ? '#D1FAE5' : theme.activeBtnGrad,
-            border: 'none', borderRadius: '14px',
-            color: !generating ? COLORS.t4 : generated[generating] ? '#047857' : '#fff',
-            fontSize: '14px', fontWeight: 700, cursor: generating ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit',
-            boxShadow: generating && !generated[generating] ? theme.activeShadow : 'none',
-          }}>
-          {generated[generating] ? '✓ 보고서 생성 완료 (PDF 저장됨)' : `📊 ${generating ? generating+' ' : ''}${t('genReport', lang)}`}
-        </button>
-      </div>
-
-      {/* 공유 링크 */}
-      <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, padding: '14px 16px', boxShadow: SHADOWS.card, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.t1, marginBottom: '2px' }}>세무사 공유 링크</div>
-          <div style={{ fontSize: '11px', color: COLORS.t4 }}>읽기 전용 · 만료 30일</div>
-        </div>
-        <button style={{ padding: '8px 16px', background: theme.brandDark+'12', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 700, color: theme.brandDark, cursor: 'pointer', fontFamily: 'inherit' }}>
-          🔗 링크 생성
-        </button>
-      </div>
     </div>
   )
 }
@@ -641,10 +600,13 @@ function ReportTab({ r, lang, theme }) {
 // ─── 메인 ─────────────────────────────────────────────────
 export default function RecipientDetail() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { id } = useParams()
   const theme = getAccountTheme()
   const [lang, setLang] = useState(getLang())
   const [activeTab, setActiveTab] = useState('overview')
+
+  const fromStatsAuth = location.state?.from === 'stats-auth'
 
   useEffect(() => {
     const handler = () => setLang(getLang())
@@ -667,21 +629,26 @@ export default function RecipientDetail() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflowY: 'auto' }}>
 
-          {/* 다크 헤더 */}
-          <div style={{ background: theme.headerGrad, paddingTop: '20px', paddingBottom: '20px' }}>
+          {/* 앰버 헤더 */}
+          <div style={{ background: 'linear-gradient(135deg,#92400E 0%,#B45309 50%,#D97706 100%)', paddingTop: '20px', paddingBottom: '20px', position: 'relative', overflow: 'hidden' }}>
+            {/* 장식 원 */}
+            <div style={{ position:'absolute', top:'-30px', right:'-30px', width:'140px', height:'140px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
+            <div style={{ position:'absolute', bottom:'-20px', left:'-20px', width:'100px', height:'100px', borderRadius:'50%', background:'rgba(255,255,255,0.05)', pointerEvents:'none' }} />
             {/* 네비 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px 14px' }}>
-              <button onClick={() => navigate(-1)}
+              <button onClick={() => fromStatsAuth ? navigate('/stats', { state: { openDetail: 'auth' } }) : navigate(-1)}
                 style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
               </button>
-              <span style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', flex: 1 }}>집행 관제 센터</span>
-              <button style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="5" r="1.5" fill="#fff"/><circle cx="12" cy="12" r="1.5" fill="#fff"/><circle cx="12" cy="19" r="1.5" fill="#fff"/>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', flex: 1 }}>권한 자금</span>
+              <button onClick={() => navigate('/message', { state: { recipientId: r.id, recipientName: r.name } })}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: '20px', cursor: 'pointer', flexShrink: 0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>메세지하기</span>
               </button>
             </div>
 
@@ -702,18 +669,16 @@ export default function RecipientDetail() {
               </div>
             </div>
 
-            {/* KPI 3박스 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', padding: '0 16px 16px' }}>
-              {[
-                { label: t('totalExec', lang), value: (r.totalAmount/10000).toFixed(0)+'만원' },
-                { label: '집행 건수',          value: r.count+'건' },
-                { label: t('avgAmount', lang), value: (r.avg/10000).toFixed(1)+'만원' },
-              ].map((item, i) => (
-                <div key={i} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: '4px' }}>{item.label}</div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{item.value}</div>
-                </div>
-              ))}
+            {/* KPI 1박스 */}
+            <div style={{ display: 'flex', gap: '8px', padding: '0 16px 16px' }}>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: '4px' }}>{t('totalExec', lang)}</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>{(r.totalAmount/10000).toFixed(0)}만원</div>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: '4px' }}>{t('nextExec', lang)}</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#FDE68A' }}>{r.nextExpected}</div>
+              </div>
             </div>
 
             {/* 탭 */}
@@ -737,7 +702,7 @@ export default function RecipientDetail() {
           <div style={{ padding: '16px 16px 32px' }}>
             {activeTab === 'overview'  && <OverviewTab  r={r} lang={lang} theme={theme} />}
             {activeTab === 'mcc'       && <MCCTab       r={r} lang={lang} theme={theme} />}
-            {activeTab === 'log'       && <ExecLogTab   r={r} lang={lang} theme={theme} />}
+            {activeTab === 'log'       && <ExecLogTab   r={r} lang={lang} theme={theme} onNavigate={(path, state) => navigate(path, { state })} />}
             {activeTab === 'evidence'  && <EvidenceTab  r={r} lang={lang} theme={theme} />}
             {activeTab === 'report'    && <ReportTab    r={r} lang={lang} theme={theme} />}
           </div>

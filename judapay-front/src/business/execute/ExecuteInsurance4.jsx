@@ -4,16 +4,90 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 
-// ─── 4대보험 요율 (2026년 기준 근사치) ───────────────────
-const RATES = {
-  national: { emp: 0.045,   co: 0.045,   label: '국민연금',  icon: '🏛️', bg:'#EFF6FF' },
-  health:   { emp: 0.0354,  co: 0.0354,  label: '건강보험',  icon: '🏥', bg:'#F0FDF4' },
-  longterm: { emp: 0.00913, co: 0,        label: '장기요양',  icon: '♿', bg:'#FEF3C7' },
-  employ:   { emp: 0.009,   co: 0.015,   label: '고용보험',  icon: '💼', bg:'#F5F3FF' },
-  indust:   { emp: 0,       co: 0.009,   label: '산재보험',  icon: '⛑️', bg:'#FEE2E2' },
+// ─── 기관 메타 ─────────────────────────────────────────────
+const AGENCY_META = {
+  nhis:   { label:'건강보험공단', icon:'🏥', color:'#065F46', bg:'#D1FAE5', border:'#6EE7B7' },
+  nps:    { label:'국민연금공단', icon:'🏛️', color:'#1D4ED8', bg:'#DBEAFE', border:'#93C5FD' },
+  comwel: { label:'근로복지공단', icon:'⛑️', color:'#B45309', bg:'#FEF3C7', border:'#FCD34D' },
 }
 
-const PAY_DAYS = ['10','15','말일']
+// ─── 보험 종류 메타 ────────────────────────────────────────
+const INS_META = {
+  health:   { label:'건강보험',     icon:'🏥', color:'#065F46', bg:'#D1FAE5', border:'#6EE7B7', agency:'nhis' },
+  longterm: { label:'장기요양보험', icon:'♿', color:'#047857', bg:'#ECFDF5', border:'#A7F3D0', agency:'nhis' },
+  national: { label:'국민연금',     icon:'🏛️', color:'#1D4ED8', bg:'#DBEAFE', border:'#93C5FD', agency:'nps' },
+  employ:   { label:'고용보험',     icon:'💼', color:'#6D28D9', bg:'#EDE9FE', border:'#C4B5FD', agency:'comwel' },
+  indust:   { label:'산재보험',     icon:'⛑️', color:'#B45309', bg:'#FEF3C7', border:'#FCD34D', agency:'comwel' },
+}
+
+// ─── 고지서 상태 ───────────────────────────────────────────
+const NOTICE_STATUS = {
+  due_soon: { label:'납부 임박', color:'#B91C1C', bg:'#FEE2E2', border:'#FCA5A5', dot:'#EF4444' },
+  upcoming: { label:'납부 예정', color:'#065F46', bg:'#D1FAE5', border:'#6EE7B7', dot:'#10B981' },
+  overdue:  { label:'기한 초과', color:'#7F1D1D', bg:'#FEE2E2', border:'#DC2626', dot:'#DC2626' },
+  paid:     { label:'납부 완료', color:'#6B7280', bg:'#F3F4F6', border:'#E5E7EB', dot:'#9CA3AF' },
+}
+
+// ─── 데모 고지서 (실제: 쿠콘 스크래핑 자동 수집) ─────────
+const INIT_NOTICES = [
+  {
+    id:'i1', type:'health', period:'2026년 5월분',
+    coAmount:182300, empAmount:182300,
+    dueDate:'2026-06-10', paymentNo:'B2026051000123',
+    agency:'nhis', source:'건강보험공단',
+    autoOn:true, status:'due_soon', paid:false,
+    notifBefore:true, notifDone:true, notifFail:true,
+  },
+  {
+    id:'i2', type:'longterm', period:'2026년 5월분',
+    coAmount:23600, empAmount:23600,
+    dueDate:'2026-06-10', paymentNo:'B2026051000124',
+    agency:'nhis', source:'건강보험공단',
+    autoOn:true, status:'due_soon', paid:false,
+    notifBefore:true, notifDone:true, notifFail:true,
+  },
+  {
+    id:'i3', type:'national', period:'2026년 5월분',
+    coAmount:144000, empAmount:144000,
+    dueDate:'2026-06-10', paymentNo:'N2026051098765',
+    agency:'nps', source:'국민연금공단',
+    autoOn:true, status:'due_soon', paid:false,
+    notifBefore:true, notifDone:true, notifFail:false,
+  },
+  {
+    id:'i4', type:'employ', period:'2026년 5월분',
+    coAmount:22500, empAmount:13500,
+    dueDate:'2026-06-15', paymentNo:'W2026051055432',
+    agency:'comwel', source:'근로복지공단',
+    autoOn:true, status:'upcoming', paid:false,
+    notifBefore:true, notifDone:true, notifFail:true,
+  },
+  {
+    id:'i5', type:'indust', period:'2026년 5월분',
+    coAmount:40500, empAmount:0,
+    dueDate:'2026-06-15', paymentNo:'W2026051055433',
+    agency:'comwel', source:'근로복지공단',
+    autoOn:true, status:'upcoming', paid:false,
+    notifBefore:false, notifDone:true, notifFail:true,
+  },
+  // 납부 완료
+  {
+    id:'i6', type:'health', period:'2026년 4월분',
+    coAmount:182300, empAmount:182300,
+    dueDate:'2026-05-12', paymentNo:'B2026041000089',
+    agency:'nhis', source:'건강보험공단',
+    autoOn:true, status:'paid', paid:true, paidDate:'2026-05-12',
+    notifBefore:true, notifDone:true, notifFail:true,
+  },
+  {
+    id:'i7', type:'national', period:'2026년 4월분',
+    coAmount:144000, empAmount:144000,
+    dueDate:'2026-05-12', paymentNo:'N2026041098701',
+    agency:'nps', source:'국민연금공단',
+    autoOn:true, status:'paid', paid:true, paidDate:'2026-05-12',
+    notifBefore:true, notifDone:true, notifFail:false,
+  },
+]
 
 const DEMO_EMPLOYEES = [
   { id:'e1', name:'김지수', salary:3200000 },
@@ -21,330 +95,416 @@ const DEMO_EMPLOYEES = [
   { id:'e3', name:'이유진', salary:2800000 },
 ]
 
-const DEMO_LOGS = [
-  { date:'2026.05.10', status:'success' },
-  { date:'2026.04.10', status:'success' },
-  { date:'2026.03.10', status:'fail', note:'잔액 부족' },
-  { date:'2026.02.10', status:'success' },
-  { date:'2026.01.10', status:'success' },
-]
+function fmt(n) { return Number(Math.floor(n || 0)).toLocaleString('ko-KR') }
 
-function fmt(n) { return Number(Math.floor(n||0)).toLocaleString('ko-KR') }
-
-function calcContributions(totalSalary) {
-  return {
-    national: { emp: Math.floor(totalSalary * RATES.national.emp), co: Math.floor(totalSalary * RATES.national.co) },
-    health:   { emp: Math.floor(totalSalary * RATES.health.emp),   co: Math.floor(totalSalary * RATES.health.co)   },
-    longterm: { emp: Math.floor(totalSalary * RATES.longterm.emp), co: 0 },
-    employ:   { emp: Math.floor(totalSalary * RATES.employ.emp),   co: Math.floor(totalSalary * RATES.employ.co)   },
-    indust:   { emp: 0,                                             co: Math.floor(totalSalary * RATES.indust.co)   },
-  }
-}
-
-const BackBtn = ({ onClick }) => (
-  <button onClick={onClick} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, borderRadius:'10px' }}>
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-  </button>
-)
-const XBtn = ({ onClick }) => (
-  <button onClick={onClick} style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.15)', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, borderRadius:'10px' }}>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
-)
-
-function Toggle({ on, onToggle }) {
+// ─── UI 부품 ───────────────────────────────────────────────
+function Toggle({ on, onChange, brand }) {
   return (
-    <button onClick={onToggle} style={{ width:'40px', height:'22px', borderRadius:'11px', border:'none', cursor:'pointer', background: on ? '#059669' : COLORS.bgMuted, position:'relative', transition:'background 0.2s' }}>
-      <div style={{ position:'absolute', top:'3px', left: on ? '21px' : '3px', width:'16px', height:'16px', borderRadius:'50%', background:'#fff', transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
+    <button onClick={() => onChange(!on)} style={{
+      width:'40px', height:'22px', borderRadius:'11px', border:'none',
+      cursor:'pointer', background: on ? (brand || '#059669') : COLORS.bgMuted,
+      position:'relative', transition:'background 0.2s', flexShrink:0,
+    }}>
+      <div style={{
+        position:'absolute', top:'3px', left: on ? '21px' : '3px',
+        width:'16px', height:'16px', borderRadius:'50%', background:'#fff',
+        transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
+      }}/>
     </button>
   )
 }
 
+function BackBtn({ onClick }) {
+  return (
+    <button onClick={onClick} style={{ width:'32px', height:'32px', background:'none', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  )
+}
+
+function XBtn({ onClick }) {
+  return (
+    <button onClick={onClick} style={{ width:'32px', height:'32px', background:'none', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  )
+}
+
+function NoticeStatusBadge({ status }) {
+  const s = NOTICE_STATUS[status] || NOTICE_STATUS.upcoming
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'4px', background: s.bg, border:`1px solid ${s.border}`, borderRadius:'20px', padding:'3px 8px', flexShrink:0 }}>
+      <div style={{ width:'5px', height:'5px', borderRadius:'50%', background: s.dot }}/>
+      <span style={{ fontSize:'10px', fontWeight:700, color: s.color }}>{s.label}</span>
+    </div>
+  )
+}
+
+// ─── 메인 컴포넌트 ─────────────────────────────────────────
 export default function ExecuteInsurance4() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
 
-  const totalSalary = DEMO_EMPLOYEES.reduce((s,e) => s + e.salary, 0)
-  const contrib = calcContributions(totalSalary)
-  const totalCo  = Object.values(contrib).reduce((s,c) => s + c.co, 0)
-  const totalEmp = Object.values(contrib).reduce((s,c) => s + c.emp, 0)
+  const [notices, setNotices] = useState(INIT_NOTICES)
+  const [screen, setScreen] = useState('list')   // 'list' | 'paid' | 'detail'
+  const [selectedId, setSelectedId] = useState(null)
+  const [showEmployees, setShowEmployees] = useState(false)
 
-  const [screen, setScreen] = useState('list') // list | detail | log
-  const [selectedKey, setSelectedKey] = useState(null)
-  const [exitModal, setExitModal] = useState(false)
+  const pending  = notices.filter(n => !n.paid).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+  const paidList = notices.filter(n => n.paid).sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate))
+  const selected = notices.find(n => n.id === selectedId)
 
-  const [payDay, setPayDay] = useState('10')
-  const [autoPay, setAutoPay] = useState(true)
-  const [autoPayType, setAutoPayType] = useState('account')
-  const [needReceipt, setNeedReceipt] = useState(true)
-  const [notifyOnPay, setNotifyOnPay] = useState(true)
-  const [notifyBeforeDays, setNotifyBeforeDays] = useState('3')
-  const [saved, setSaved] = useState(false)
-  const [showEmp, setShowEmp] = useState(false)
+  const totalCo  = pending.reduce((s, n) => s + n.coAmount, 0)
+  const totalEmp = pending.reduce((s, n) => s + n.empAmount, 0)
+  const autoCount = pending.filter(n => n.autoOn).length
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  const updateNotice = (id, patch) => {
+    setNotices(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n))
+  }
 
-  const selectedRate = selectedKey ? RATES[selectedKey] : null
-  const selectedContrib = selectedKey ? contrib[selectedKey] : null
-  const logAmount = selectedContrib ? selectedContrib.co : 0
+  // ── 상세 화면 ─────────────────────────────────────────────
+  if (screen === 'detail' && selected) {
+    const meta   = INS_META[selected.type]
+    const agency = AGENCY_META[selected.agency]
+    const totalAmount = selected.coAmount + selected.empAmount
+    const prevScreen = selected.paid ? 'paid' : 'list'
 
-  // ── 로그 화면 ────────────────────────────────────────────
-  if (screen === 'log' && selectedKey) return (
-    <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', background: COLORS.bg }}>
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'24px', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
-            <BackBtn onClick={() => setScreen('detail')} />
-            <span style={{ fontSize:'15px', fontWeight:600, color:'#fff' }}>납부 로그</span>
-          </div>
-          <div style={{ padding:'0 20px' }}>
-            <div style={{ fontSize:'22px', fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>{selectedRate.label}</div>
-            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.6)', marginTop:'3px' }}>반복 납부 이력 · 매월 {fmt(logAmount)}원 (회사 부담분)</div>
-          </div>
-        </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
-          {DEMO_LOGS.map((log, i) => (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'13px 0', borderBottom: i < DEMO_LOGS.length - 1 ? `1px solid ${COLORS.borderSoft}` : 'none' }}>
-              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background: log.status === 'success' ? '#D1FAE5' : '#FEE2E2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', flexShrink:0 }}>
-                {log.status === 'success' ? '✓' : '✕'}
+    return (
+      <PhoneShell>
+        <div style={{ flex:1, display:'flex', flexDirection:'column', background: COLORS.bg }}>
+          <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0', flexShrink:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
+              <BackBtn onClick={() => setScreen(prevScreen)} />
+              <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>{meta.label}</span>
+              <NoticeStatusBadge status={selected.status} />
+              <XBtn onClick={() => navigate(-1)} />
+            </div>
+            <div style={{ margin:'0 16px 16px', padding:'16px 18px', background:'rgba(255,255,255,0.10)', border:'1px solid rgba(255,255,255,0.18)', borderRadius:'16px' }}>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', marginBottom:'3px' }}>{selected.period} · {agency.label}</div>
+              <div style={{ fontSize:'28px', fontWeight:800, color:'#fff', letterSpacing:'-1px', lineHeight:1.1 }}>
+                {fmt(totalAmount)}<span style={{ fontSize:'15px', fontWeight:500, opacity:0.7 }}>원</span>
               </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>{log.date}</div>
-                {log.note && <div style={{ fontSize:'11px', color:'#DC2626', marginTop:'2px' }}>{log.note}</div>}
-              </div>
-              <div style={{ textAlign:'right' }}>
-                {log.status === 'success'
-                  ? <span style={{ fontSize:'13px', fontWeight:700, color:'#059669' }}>{fmt(logAmount)}원</span>
-                  : <span style={{ fontSize:'13px', color: COLORS.t4 }}>—</span>
-                }
-                <div style={{ fontSize:'10px', color: log.status === 'success' ? '#059669' : '#DC2626', marginTop:'2px' }}>
-                  {log.status === 'success' ? '정상 납부' : '납부 실패'}
+              <div style={{ display:'flex', gap:'16px', marginTop:'10px' }}>
+                <div>
+                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)' }}>회사 부담</div>
+                  <div style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>{fmt(selected.coAmount)}원</div>
+                </div>
+                {selected.empAmount > 0 && (
+                  <div>
+                    <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)' }}>직원 공제</div>
+                    <div style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>{fmt(selected.empAmount)}원</div>
+                  </div>
+                )}
+                <div>
+                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)' }}>납부 기한</div>
+                  <div style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>{selected.dueDate}</div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </PhoneShell>
-  )
+          </div>
 
-  // ── 항목 상세 ────────────────────────────────────────────
-  if (screen === 'detail' && selectedKey) return (
-    <PhoneShell>
-      {exitModal && (
-        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:100, display:'flex', alignItems:'flex-end' }}>
-          <div style={{ width:'100%', background:'#fff', borderRadius:'20px 20px 0 0', padding:'24px 20px 32px' }}>
-            <div style={{ fontSize:'17px', fontWeight:700, color: COLORS.t1, marginBottom:'8px' }}>설정을 저장하지 않고 나가시겠어요?</div>
-            <div style={{ fontSize:'13px', color: COLORS.t3, marginBottom:'20px' }}>변경사항이 저장되지 않습니다.</div>
-            <div style={{ display:'flex', gap:'8px' }}>
-              <button onClick={() => setExitModal(false)} style={{ flex:1, padding:'14px', borderRadius: RADIUS.md, border:`1px solid ${COLORS.border}`, background:'#fff', fontSize:'14px', fontWeight:600, color: COLORS.t2, cursor:'pointer', fontFamily:'inherit' }}>계속 편집</button>
-              <button onClick={() => { setExitModal(false); setScreen('list') }} style={{ flex:1, padding:'14px', borderRadius: RADIUS.md, border:'none', background:'#DC2626', fontSize:'14px', fontWeight:700, color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>나가기</button>
-            </div>
-          </div>
-        </div>
-      )}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', background: COLORS.bg }}>
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
-            <BackBtn onClick={() => setScreen('list')} />
-            <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>{selectedRate.label}</span>
-            <button onClick={() => setScreen('log')} style={{ fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.85)', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'20px', padding:'5px 12px', cursor:'pointer', marginRight:'4px' }}>납부 로그</button>
-            <XBtn onClick={() => setExitModal(true)} />
-          </div>
-          <div style={{ margin:'0 16px 16px', padding:'16px 18px', background:'rgba(255,255,255,0.10)', border:'1px solid rgba(255,255,255,0.18)', borderRadius:'16px' }}>
-            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', marginBottom:'4px' }}>월 납부금 (회사 부담분)</div>
-            <div style={{ fontSize:'28px', fontWeight:800, color:'#fff', letterSpacing:'-1px', lineHeight:1.1 }}>
-              {fmt(selectedContrib.co)}<span style={{ fontSize:'15px', fontWeight:500, opacity:0.7 }}>원</span>
-            </div>
-            <div style={{ display:'flex', gap:'16px', marginTop:'10px' }}>
-              <div><div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>요율 (회사)</div><div style={{ fontSize:'12px', fontWeight:600, color:'#fff' }}>{(RATES[selectedKey].co * 100).toFixed(2)}%</div></div>
-              <div><div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>요율 (직원)</div><div style={{ fontSize:'12px', fontWeight:600, color:'#fff' }}>{(RATES[selectedKey].emp * 100).toFixed(2)}%</div></div>
-              <div><div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>직원 공제</div><div style={{ fontSize:'12px', fontWeight:600, color:'#fff' }}>{fmt(selectedContrib.emp)}원</div></div>
-            </div>
-          </div>
-        </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
-          {/* 직원별 내역 */}
-          <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
-            <div style={{ padding:'14px 16px' }}>
-              <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, marginBottom:'10px' }}>직원별 산출 내역</div>
-              {DEMO_EMPLOYEES.map((emp, i) => {
-                const empCo = Math.floor(emp.salary * RATES[selectedKey].co)
-                const empEmp = Math.floor(emp.salary * RATES[selectedKey].emp)
-                return (
-                  <div key={emp.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 0', borderTop: i > 0 ? `1px solid ${COLORS.borderSoft}` : 'none' }}>
-                    <div style={{ width:'32px', height:'32px', borderRadius:'50%', background: COLORS.bgMuted, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, color: COLORS.t3, flexShrink:0 }}>
-                      {emp.name[0]}
+          <div style={{ flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
+            {/* 납부 정보 */}
+            <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
+              <div style={{ padding:'14px 16px', borderBottom:`1px solid ${COLORS.borderSoft}` }}>
+                <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, marginBottom:'12px' }}>납부 정보</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                  {[
+                    ['수집 출처', selected.source],
+                    ['부과 기간', selected.period],
+                    ['납부 기한', selected.dueDate],
+                    ...(selected.paid ? [['납부 완료일', selected.paidDate]] : []),
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ display:'flex', justifyContent:'space-between' }}>
+                      <span style={{ fontSize:'12px', color: COLORS.t3 }}>{k}</span>
+                      <span style={{ fontSize:'12px', fontWeight:600, color: k === '납부 완료일' ? '#059669' : COLORS.t1 }}>{v}</span>
                     </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>{emp.name}</div>
-                      <div style={{ fontSize:'11px', color: COLORS.t4 }}>급여 {fmt(emp.salary)}원</div>
-                    </div>
-                    <div style={{ textAlign:'right' }}>
-                      <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t1 }}>회사 {fmt(empCo)}원</div>
-                      <div style={{ fontSize:'11px', color: COLORS.t4 }}>직원 {fmt(empEmp)}원</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-          {/* 납부 설정 */}
-          <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
-            <div style={{ padding:'14px 16px', borderBottom:`1px solid ${COLORS.borderSoft}` }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: autoPay ? '10px' : 0 }}>
-                <span style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>자동 납부</span>
-                <Toggle on={autoPay} onToggle={() => setAutoPay(!autoPay)} />
-              </div>
-              {autoPay && (
-                <div style={{ display:'flex', gap:'6px' }}>
-                  {[{id:'account',label:'계좌이체'},{id:'card',label:'카드결제'}].map(tp => (
-                    <button key={tp.id} onClick={() => setAutoPayType(tp.id)}
-                      style={{ flex:1, padding:'8px', borderRadius:'8px', fontSize:'11px', fontWeight:600, border:'none', cursor:'pointer', fontFamily:'inherit',
-                        background: autoPayType === tp.id ? '#059669' : COLORS.bgMuted, color: autoPayType === tp.id ? '#fff' : COLORS.t3 }}>
-                      {tp.label}
-                    </button>
                   ))}
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'8px' }}>
+                    <span style={{ fontSize:'12px', color: COLORS.t3, flexShrink:0 }}>납부 번호</span>
+                    <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t1, textAlign:'right', fontFamily:'monospace', letterSpacing:'0.5px' }}>{selected.paymentNo}</span>
+                  </div>
+                </div>
+              </div>
+              {selected.empAmount > 0 && (
+                <div style={{ padding:'11px 16px', background:'#F0FDF4' }}>
+                  <div style={{ fontSize:'11px', color:'#166534', lineHeight:1.6 }}>
+                    ✅ 회사 부담 {fmt(selected.coAmount)}원 + 직원 공제 {fmt(selected.empAmount)}원 자동 분리
+                  </div>
                 </div>
               )}
             </div>
-            <div style={{ padding:'14px 16px' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>증빙 자동 수집</span>
-                <Toggle on={needReceipt} onToggle={() => setNeedReceipt(!needReceipt)} />
+
+            {/* 직원별 산출 참고 */}
+            <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
+              <div style={{ padding:'14px 16px', borderBottom:`1px solid ${COLORS.borderSoft}` }}>
+                <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, marginBottom:'10px' }}>직원별 산출 참고</div>
+                {DEMO_EMPLOYEES.map((emp, i) => {
+                  const totalSalary = DEMO_EMPLOYEES.reduce((s, e) => s + e.salary, 0)
+                  const ratio = emp.salary / totalSalary
+                  const empCo  = selected.coAmount  > 0 ? Math.round(selected.coAmount  * ratio) : 0
+                  const empDed = selected.empAmount > 0 ? Math.round(selected.empAmount * ratio) : 0
+                  return (
+                    <div key={emp.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 0', borderTop: i > 0 ? `1px solid ${COLORS.borderSoft}` : 'none' }}>
+                      <div style={{ width:'32px', height:'32px', borderRadius:'50%', background: COLORS.bgMuted, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, color: COLORS.t3, flexShrink:0 }}>
+                        {emp.name[0]}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>{emp.name}</div>
+                        <div style={{ fontSize:'10px', color: COLORS.t4 }}>급여 {fmt(emp.salary)}원</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t1 }}>회사 ≈ {fmt(empCo)}원</div>
+                        {empDed > 0 && <div style={{ fontSize:'10px', color: COLORS.t4 }}>공제 ≈ {fmt(empDed)}원</div>}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          </div>
-          {/* 알림 설정 */}
-          <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
-            <div style={{ padding:'14px 16px', borderBottom:`1px solid ${COLORS.borderSoft}` }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <div>
-                  <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t2 }}>납부 완료 알림</div>
-                  <div style={{ fontSize:'11px', color: COLORS.t4, marginTop:'2px' }}>납부 처리 후 즉시 알림</div>
+              <div style={{ padding:'10px 14px', background:'#FFF7ED' }}>
+                <div style={{ fontSize:'10px', color:'#92400E', lineHeight:1.6 }}>
+                  ⚠️ 산출 참고용입니다. 실제 납부 금액은 {selected.source} 고지서 기준입니다.
                 </div>
-                <Toggle on={notifyOnPay} onToggle={() => setNotifyOnPay(!notifyOnPay)} />
               </div>
             </div>
-            <div style={{ padding:'14px 16px' }}>
-              <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t2, marginBottom:'8px' }}>사전 알림 (일 전)</div>
-              <div style={{ display:'flex', gap:'6px' }}>
-                {['1','3','7'].map(d => (
-                  <button key={d} onClick={() => setNotifyBeforeDays(d)}
-                    style={{ flex:1, padding:'8px', borderRadius:'8px', fontSize:'12px', fontWeight:600, border:'none', cursor:'pointer', fontFamily:'inherit',
-                      background: notifyBeforeDays === d ? '#059669' : COLORS.bgMuted, color: notifyBeforeDays === d ? '#fff' : COLORS.t3 }}>
-                    {d}일 전
-                  </button>
+
+            {/* 자동납부 설정 — 납부 예정만 */}
+            {!selected.paid && (
+              <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
+                <div style={{ padding:'14px 16px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                      <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>자동 납부</div>
+                      <div style={{ fontSize:'11px', color: COLORS.t3, marginTop:'2px' }}>납부 기한 당일 자동 처리</div>
+                    </div>
+                    <Toggle on={selected.autoOn} onChange={v => updateNotice(selected.id, { autoOn: v })} brand={theme.brand} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 알림 설정 — 납부 예정만 */}
+            {!selected.paid && (
+              <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
+                <div style={{ padding:'12px 16px', borderBottom:`1px solid ${COLORS.borderSoft}` }}>
+                  <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>알림 설정</div>
+                </div>
+                {[
+                  { key:'notifBefore', label:'납부 3일 전 알림',  sub:'기한 임박 사전 안내' },
+                  { key:'notifDone',   label:'납부 완료 알림',    sub:'처리 후 즉시 발송' },
+                  { key:'notifFail',   label:'납부 실패 알림',    sub:'잔액 부족 등 오류 발생 시' },
+                ].map((item, i, arr) => (
+                  <div key={item.key} style={{ padding:'12px 16px', borderBottom: i < arr.length - 1 ? `1px solid ${COLORS.borderSoft}` : 'none', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                      <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t2 }}>{item.label}</div>
+                      <div style={{ fontSize:'10px', color: COLORS.t4, marginTop:'2px' }}>{item.sub}</div>
+                    </div>
+                    <Toggle on={selected[item.key]} onChange={v => updateNotice(selected.id, { [item.key]: v })} brand={theme.brand} />
+                  </div>
                 ))}
               </div>
+            )}
+
+            {/* 증빙 연동 */}
+            <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, overflow:'hidden', boxShadow: SHADOWS.card }}>
+              <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div>
+                  <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>증빙 연동</div>
+                  <div style={{ fontSize:'11px', color: COLORS.t3, marginTop:'2px' }}>납부 후 {selected.source} 납부확인서 자동 수집</div>
+                </div>
+                <div style={{ background:'#D1FAE5', border:'1px solid #6EE7B7', borderRadius:'20px', padding:'3px 10px' }}>
+                  <span style={{ fontSize:'10px', fontWeight:700, color:'#065F46' }}>자동</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ padding:'10px 14px', background:'#EFF6FF', borderRadius: RADIUS.md, fontSize:'11px', color:'#1E40AF', lineHeight:1.65 }}>
-            ⓘ 회사 부담분은 비용 처리, 직원 공제분은 원천징수로 자동 분리됩니다.
+        </div>
+      </PhoneShell>
+    )
+  }
+
+  // ── 납부 완료 목록 화면 ───────────────────────────────────
+  if (screen === 'paid') {
+    return (
+      <PhoneShell>
+        <div style={{ flex:1, display:'flex', flexDirection:'column', background: COLORS.bg }}>
+          <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'16px', flexShrink:0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px' }}>
+              <BackBtn onClick={() => setScreen('list')} />
+              <span style={{ flex:1, fontSize:'15px', fontWeight:600, color:'#fff' }}>납부 완료</span>
+              <XBtn onClick={() => navigate(-1)} />
+            </div>
+          </div>
+          <div style={{ flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:'8px' }}>
+            {paidList.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'40px 0', color: COLORS.t4, fontSize:'13px' }}>납부 완료 내역이 없습니다</div>
+            ) : paidList.map(notice => {
+              const m = INS_META[notice.type]
+              const total = notice.coAmount + notice.empAmount
+              const ag = AGENCY_META[notice.agency]
+              return (
+                <button
+                  key={notice.id}
+                  onClick={() => { setSelectedId(notice.id); setScreen('detail') }}
+                  style={{ width:'100%', background: COLORS.bgCard, borderRadius: RADIUS.lg, padding:'14px 16px', boxShadow: SHADOWS.card, border:`1px solid ${COLORS.border}`, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'flex', alignItems:'center', gap:'12px' }}
+                >
+                  <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:'#F3F4F6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>
+                    {m.icon}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t2, marginBottom:'2px' }}>{m.label}</div>
+                    <div style={{ fontSize:'11px', color: COLORS.t3 }}>{notice.period} · {ag.label}</div>
+                    <div style={{ fontSize:'10px', color:'#059669', marginTop:'2px', fontWeight:600 }}>✓ {notice.paidDate} 납부</div>
+                  </div>
+                  <div style={{ textAlign:'right', flexShrink:0 }}>
+                    <div style={{ fontSize:'14px', fontWeight:700, color: COLORS.t2 }}>{fmt(total)}원</div>
+                    <div style={{ fontSize:'10px', color: COLORS.t4, marginTop:'2px' }}>회사 {fmt(notice.coAmount)}</div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
-        <div style={{ flexShrink:0, padding:'12px 16px 20px', background: COLORS.bg, borderTop:`1px solid ${COLORS.borderSoft}` }}>
-          <button onClick={handleSave} style={{ width:'100%', padding:'15px', background: saved ? '#059669' : (theme.activeBtnGrad || theme.brand), color:'#fff', border:'none', borderRadius: RADIUS.md, fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all .2s', boxShadow: saved ? 'none' : theme.activeShadow }}>
-            {saved ? '✓  저장 완료' : '자동 설정 저장'}
-          </button>
-        </div>
-      </div>
-    </PhoneShell>
-  )
+      </PhoneShell>
+    )
+  }
 
-  // ── 목록 (메인) ──────────────────────────────────────────
+  // ── 목록 화면 ─────────────────────────────────────────────
+  const agencyGroups = Object.entries(AGENCY_META).map(([agencyKey, agency]) => ({
+    agencyKey, agency,
+    items: pending.filter(n => n.agency === agencyKey),
+  })).filter(g => g.items.length > 0)
+
   return (
     <PhoneShell>
       <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
+        {/* 헤더 */}
+        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
             <BackBtn onClick={() => navigate(-1)} />
-            <span style={{ fontSize:'15px', fontWeight:600, color:'#fff' }}>4대보험</span>
+            <span style={{ flex:1, fontSize:'15px', fontWeight:600, color:'#fff' }}>4대보험</span>
+            {paidList.length > 0 && (
+              <button
+                onClick={() => setScreen('paid')}
+                style={{ fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.85)', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'20px', padding:'5px 12px', cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}
+              >
+                납부완료 {paidList.length}
+              </button>
+            )}
+            <XBtn onClick={() => navigate(-1)} />
           </div>
           <div style={{ margin:'0 16px', padding:'16px 18px', background:'rgba(255,255,255,0.10)', border:'1px solid rgba(255,255,255,0.18)', borderRadius:'16px' }}>
-            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', marginBottom:'4px' }}>이번 달 회사 부담 합계</div>
+            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', marginBottom:'4px' }}>이번 달 예정 납부 합계</div>
             <div style={{ fontSize:'28px', fontWeight:800, color:'#fff', letterSpacing:'-1px', lineHeight:1.1 }}>
-              {fmt(totalCo)}<span style={{ fontSize:'15px', fontWeight:500, opacity:0.7 }}>원</span>
+              {fmt(totalCo + totalEmp)}<span style={{ fontSize:'15px', fontWeight:500, opacity:0.7 }}>원</span>
             </div>
             <div style={{ display:'flex', gap:'16px', marginTop:'12px' }}>
               <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>{DEMO_EMPLOYEES.length}명</div>
-                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>등록 직원</div>
+                <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>{fmt(totalCo)}</div>
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>회사 부담</div>
               </div>
               <div style={{ width:'1px', background:'rgba(255,255,255,0.15)' }}/>
               <div style={{ flex:1, textAlign:'center' }}>
                 <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>{fmt(totalEmp)}</div>
-                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>직원 공제분</div>
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>직원 공제</div>
               </div>
               <div style={{ width:'1px', background:'rgba(255,255,255,0.15)' }}/>
               <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>매월 {payDay}일</div>
-                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>자동 납부일</div>
+                <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>{autoCount}/{pending.length}</div>
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>자동납부</div>
               </div>
             </div>
           </div>
         </div>
 
         <div style={{ padding:'16px 16px 32px' }}>
-          {/* 납부일 설정 */}
-          <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, padding:'14px 16px', boxShadow: SHADOWS.card, marginBottom:'12px' }}>
-            <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t3, marginBottom:'10px' }}>자동 납부일</div>
-            <div style={{ display:'flex', gap:'8px' }}>
-              {PAY_DAYS.map(d => (
-                <button key={d} onClick={() => setPayDay(d)}
-                  style={{ flex:1, padding:'10px', borderRadius:'8px', cursor:'pointer', fontFamily:'inherit', fontSize:'12px', fontWeight:600, border:'none',
-                    background: payDay === d ? theme.brand : COLORS.bgMuted, color: payDay === d ? '#fff' : COLORS.t3 }}>
-                  {d === '말일' ? '말일' : `매월 ${d}일`}
-                </button>
-              ))}
+          {/* 쿠콘 연동 상태 */}
+          <div style={{ background:'#F0FDF4', border:'1px solid #6EE7B7', borderRadius: RADIUS.lg, padding:'12px 16px', marginBottom:'16px', display:'flex', alignItems:'center', gap:'10px' }}>
+            <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:'#D1FAE5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', flexShrink:0 }}>🔐</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:'12px', fontWeight:700, color:'#065F46' }}>공동인증서 연동 완료</div>
+              <div style={{ fontSize:'11px', color:'#166534', marginTop:'2px' }}>건강보험공단 · 국민연금공단 · 근로복지공단 자동 수집 중</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
+              <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#10B981' }}/>
+              <span style={{ fontSize:'10px', color:'#059669', fontWeight:600 }}>자동 수집 중</span>
             </div>
           </div>
 
-          {/* 항목별 카드 */}
-          <div style={{ fontSize:'12px', fontWeight:600, color: COLORS.t3, marginBottom:'8px', marginTop:'4px' }}>항목별 내역 · 탭하여 설정</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'14px' }}>
-            {Object.entries(RATES).map(([key, rate]) => {
-              const c = contrib[key]
-              return (
-                <button key={key}
-                  onClick={() => { setSelectedKey(key); setScreen('detail') }}
-                  style={{ width:'100%', background: COLORS.bgCard, borderRadius: RADIUS.lg, padding:'14px 16px', boxShadow: SHADOWS.card,
-                    border:`1px solid ${COLORS.border}`, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'flex', alignItems:'center', gap:'12px' }}>
-                  <div style={{ width:'44px', height:'44px', borderRadius:'12px', background: rate.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px', flexShrink:0 }}>
-                    {rate.icon}
+          {/* 납부 예정 — 기관별 */}
+          {agencyGroups.length > 0 ? (
+            <>
+              <div style={{ fontSize:'11px', fontWeight:700, color: COLORS.t4, marginBottom:'10px' }}>납부 예정 · {pending.length}건</div>
+              {agencyGroups.map(({ agencyKey, agency, items }) => (
+                <div key={agencyKey} style={{ marginBottom:'14px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px', paddingLeft:'2px' }}>
+                    <div style={{ width:'20px', height:'20px', borderRadius:'6px', background: agency.bg, border:`1px solid ${agency.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px' }}>
+                      {agency.icon}
+                    </div>
+                    <span style={{ fontSize:'11px', fontWeight:700, color: agency.color }}>{agency.label}</span>
+                    <span style={{ fontSize:'10px', color: COLORS.t4 }}>· {fmt(items.reduce((s, n) => s + n.coAmount + n.empAmount, 0))}원</span>
                   </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:'14px', fontWeight:700, color: COLORS.t1, marginBottom:'3px' }}>{rate.label}</div>
-                    <div style={{ fontSize:'11px', color: COLORS.t4 }}>회사 {(rate.co*100).toFixed(2)}% · 직원 {(rate.emp*100).toFixed(2)}%</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                    {items.map(notice => {
+                      const m = INS_META[notice.type]
+                      const total = notice.coAmount + notice.empAmount
+                      return (
+                        <button
+                          key={notice.id}
+                          onClick={() => { setSelectedId(notice.id); setScreen('detail') }}
+                          style={{ width:'100%', background: COLORS.bgCard, borderRadius: RADIUS.md, padding:'13px 14px', boxShadow: SHADOWS.card, border:`1px solid ${COLORS.border}`, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'flex', alignItems:'center', gap:'10px' }}
+                        >
+                          <div style={{ width:'36px', height:'36px', borderRadius:'10px', background: m.bg, border:`1px solid ${m.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'17px', flexShrink:0 }}>
+                            {m.icon}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'3px', flexWrap:'wrap' }}>
+                              <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>{m.label}</span>
+                              <NoticeStatusBadge status={notice.status} />
+                            </div>
+                            <div style={{ fontSize:'10px', color: COLORS.t4 }}>{notice.period} · 기한 {notice.dueDate}</div>
+                          </div>
+                          <div style={{ textAlign:'right', flexShrink:0 }}>
+                            <div style={{ fontSize:'14px', fontWeight:700, color: COLORS.t1 }}>{fmt(total)}원</div>
+                            <div style={{ fontSize:'10px', color: notice.autoOn ? '#059669' : COLORS.t4, fontWeight: notice.autoOn ? 600 : 400 }}>
+                              {notice.autoOn ? '자동납부' : '수동납부'}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontSize:'14px', fontWeight:700, color: COLORS.t1 }}>{fmt(c.co)}원</div>
-                    <div style={{ fontSize:'11px', color: COLORS.t4 }}>공제 {fmt(c.emp)}원</div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <div style={{ background: COLORS.bgCard, borderRadius: RADIUS.lg, padding:'24px', textAlign:'center', boxShadow: SHADOWS.card, marginBottom:'14px' }}>
+              <div style={{ fontSize:'24px', marginBottom:'8px' }}>✅</div>
+              <div style={{ fontSize:'14px', fontWeight:600, color: COLORS.t1 }}>이번 달 납부 예정 고지서가 없습니다</div>
+            </div>
+          )}
 
           {/* 직원 목록 토글 */}
-          <button onClick={() => setShowEmp(!showEmp)}
-            style={{ width:'100%', padding:'13px 16px', background: COLORS.bgCard, border:`1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'flex', justifyContent:'space-between', alignItems:'center', boxShadow: SHADOWS.card }}>
-            <span style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>👥 등록 직원 ({DEMO_EMPLOYEES.length}명)</span>
-            <span style={{ fontSize:'12px', color: COLORS.t4 }}>{showEmp ? '▲ 접기' : '▼ 펼치기'}</span>
+          <button
+            onClick={() => setShowEmployees(!showEmployees)}
+            style={{ width:'100%', padding:'12px 14px', background: COLORS.bgCard, border:`1px solid ${COLORS.border}`, borderRadius: RADIUS.lg, cursor:'pointer', fontFamily:'inherit', textAlign:'left', display:'flex', justifyContent:'space-between', alignItems:'center', boxShadow: SHADOWS.card }}
+          >
+            <span style={{ fontSize:'12px', fontWeight:600, color: COLORS.t1 }}>👥 등록 직원 ({DEMO_EMPLOYEES.length}명)</span>
+            <span style={{ fontSize:'11px', color: COLORS.t4 }}>{showEmployees ? '▲ 접기' : '▼ 펼치기'}</span>
           </button>
-          {showEmp && (
-            <div style={{ background: COLORS.bgCard, borderRadius:`0 0 ${RADIUS.lg} ${RADIUS.lg}`, borderTop:'none', border:`1px solid ${COLORS.border}`, padding:'0 16px' }}>
+          {showEmployees && (
+            <div style={{ background: COLORS.bgCard, border:`1px solid ${COLORS.border}`, borderTop:'none', borderRadius:`0 0 ${RADIUS.lg} ${RADIUS.lg}`, padding:'0 16px', marginBottom:'12px' }}>
               {DEMO_EMPLOYEES.map((emp, i) => (
-                <div key={emp.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 0', borderTop: i > 0 ? `1px solid ${COLORS.borderSoft}` : 'none' }}>
+                <div key={emp.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderTop: i > 0 ? `1px solid ${COLORS.borderSoft}` : 'none' }}>
                   <span style={{ fontSize:'13px', fontWeight:600, color: COLORS.t1 }}>{emp.name}</span>
-                  <span style={{ fontSize:'13px', color: COLORS.t2 }}>{fmt(emp.salary)}원</span>
+                  <span style={{ fontSize:'12px', color: COLORS.t2 }}>{fmt(emp.salary)}원</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ marginTop:'12px', padding:'10px 14px', background:'#EFF6FF', borderRadius: RADIUS.md, fontSize:'11px', color:'#1E40AF', lineHeight:1.65 }}>
-            🏛️ 국민연금공단·건강보험공단·고용노동부와 연동되어 고지서 금액이 자동 반영됩니다. 백엔드 연결 시 활성화.
+          <div style={{ marginTop:'12px', padding:'11px 14px', background:'#EFF6FF', borderRadius: RADIUS.md, fontSize:'11px', color:'#1E40AF', lineHeight:1.7 }}>
+            🏛️ 고지서 기준으로 납부하며, 납부 완료 후 납부확인서가 자동 저장됩니다.
           </div>
         </div>
       </div>

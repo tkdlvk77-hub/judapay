@@ -61,7 +61,7 @@ export default function ExecuteBusiness() {
             <button onClick={() => navigate(-1)}
               style={{
                 width:'32px', height:'32px',
-                background:'transparent', border:'none',
+                background:'none', border:'none',
                 display:'flex', alignItems:'center', justifyContent:'center',
                 cursor:'pointer', padding:0,
               }}>
