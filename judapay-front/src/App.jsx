@@ -81,6 +81,7 @@ import AdminManagement from './shared/AdminManagement'
 import AdminManagementBiz from './shared/AdminManagementBiz'
 import CompanyProfile from './shared/CompanyProfile'
 import MonthlyReport from './shared/MonthlyReport'
+import ApprovalCenter from './shared/ApprovalCenter'
 
 // 가드: sessionStorage bizType 직접 확인 (Context 의존 제거)
 function Protected({ children, requireType }) {
@@ -294,6 +295,7 @@ export default function App() {
         <Route path="/dispute" element={<Protected><Dispute /></Protected>} />
         <Route path="/support" element={<Protected><Support /></Protected>} />
         <Route path="/control-center/recipient/:id" element={<Protected><RecipientDetail /></Protected>} />
+        <Route path="/approval-center" element={<Protected><ApprovalCenter /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

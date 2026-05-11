@@ -4,6 +4,360 @@
 
 ---
 
+## v3.0.0 — 승인 대기 센터 완성 + 결제 분류 시스템 전사 통일 (2026-05-11)
+
+### 핵심 변경 요약
+1. **ApprovalCenter — 승인 대기 센터 전면 완성**
+   - STATUS_TABS (전체/진행 중/반려/완료) 헤더 탭 복원
+   - TYPE_CHIPS 필터 (승인요청/검수요청/증빙요청/소명요청) — 다중 토글
+   - 버튼 4열 균등 그리드: 상세보기 → 추가요청 → 반려 → 승인
+   - DetailSheet z-index(500) + 소명모달 z-index(600) 레이어링 수정
+   - detailItem 동기화: 추가요청 확정 후 DetailSheet 내 즉시 반영
+2. **소명/증빙 요청 모달 공통화** — 3개 화면 동일 패턴
+3. **PaymentDetail — 결제 상세 분류 + 소명요청 완성**
+4. **PaymentAlerts — 소명요청 선택 모드 완성**
+5. **ExecutionStats 카테고리 통일** — 운영비 3개 항목 추가 + PURPOSE_OPTIONS 재편
+6. **전사 분류 기준 통일** — PURPOSE_OPTIONS 5개로 확정
+
+---
+
+### 변경 상세
+
+#### ApprovalCenter.jsx
+
+**STATUS_TABS 복원**
+```js
+// 삭제됐다가 복원
+const STATUS_TABS = [
+  { id:'all', label:'전체' }, { id:'inprogress', label:'진행 중' },
+  { id:'rejected', label:'반려' }, { id:'done', label:'완료' },
+]
+```
+헤더 하단 탭 형태로 복원 (라운드탑 스타일, 활성 탭 흰 배경 + 브랜드 컬러)
+
+**TYPE_CHIPS 추가 (기존 카드결제 필터 대체)**
+```js
+const TYPE_CHIPS = [
+  { id:'approval', label:'승인요청' }, { id:'review', label:'검수요청' },
+  { id:'evidence', label:'증빙요청' }, { id:'claim',  label:'소명요청'  },
+]
+```
+TYPE_CHIPS는 STATUS_TABS 아래 칩 형태로 별도 배치. 다중 선택 가능.
+
+**ApprovalCard 버튼 레이아웃**
+```jsx
+// 변경 전: 가변 너비 버튼들
+<button onClick={...}>상세보기</button>
+<button onClick={...}>승인</button>
+
+// 변경 후: 4열 균등 그리드
+<div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:'6px' }}>
+  <button onClick={() => onDetail(item)}>상세보기</button>
+  <button onClick={() => onRequest(item)}>추가요청</button>
+  <button onClick={() => onReject(item)}>반려</button>
+  <button onClick={() => onApprove(item)}>{item.type==='review' ? '검수 승인' : '승인'}</button>
+</div>
+```
+
+**DetailSheet 추가요청 버그 수정**
+```jsx
+// 수정 전: onRequest 호출 시 DetailSheet 닫힘 + 모달이 뒤에 렌더
+onRequest={(item) => { setDetailItem(null); handleRequest(item) }}
+
+// 수정 후: DetailSheet 유지, 모달(z:600)이 위에 렌더
+onRequest={(item) => { handleRequest(item) }}
+```
+
+**detailItem 동기화 (handleConfirm — request 모드)**
+```jsx
+// 추가요청 확정 후 detailItem 즉시 업데이트
+if (detailItem?.id === item.id) {
+  setDetailItem(prev => ({
+    ...prev, status:'inprogress',
+    claimStatus: claimRequest ? 'requested' : prev.claimStatus,
+    evidenceStatus: evidenceRequest ? 'requested' : prev.evidenceStatus,
+    history: [...prev.history, newHistEntry]
+  }))
+}
+```
+
+---
+
+#### 소명/증빙 요청 모달 — 공통 패턴 (3개 화면)
+
+ApprovalCenter · PaymentDetail · PaymentAlerts 동일 구조:
+
+```jsx
+// 공통 state
+const [claimRequest, setClaimRequest] = useState(true)
+const [evidenceRequest, setEvidRequest] = useState(false)
+const [message, setMessage] = useState('소명 부탁드립니다.')
+const [msgEdited, setMsgEdited] = useState(false)
+
+// 자동 메시지 생성
+function autoMsg(claim, evid) {
+  if (claim && evid) return '소명 및 증빙 서류 제출 부탁드립니다.'
+  if (claim) return '소명 부탁드립니다.'
+  if (evid)  return '증빙 서류 제출 부탁드립니다.'
+  return ''
+}
+
+// 토글 변경 시 메시지 자동 갱신 (직접 편집했으면 갱신 안 함)
+useEffect(() => {
+  if (!msgEdited) setMessage(autoMsg(claimRequest, evidenceRequest))
+}, [claimRequest, evidenceRequest])
+```
+
+---
+
+#### PaymentDetail.jsx
+
+**소명요청 버튼 동작 변경**
+```jsx
+// 변경 전
+onClick={() => navigate('/messages')}
+
+// 변경 후
+onClick={() => setShowClaimModal(true)}
+```
+
+**결제 목적 분류 (거래 정보 카드 내)**
+```jsx
+const effectiveCategory = purposeOverride ?? payment.category
+const effectiveCategoryAuto = purposeOverride ? false : payment.categoryAuto
+
+// 미분류: 주황 점선 박스 "⚠ 미분류 · 분류하기"
+// 자동분류: 파란 뱃지 "✦ {category}"
+// 수동분류: 초록 뱃지 "✓ {category}"
+```
+
+**ClassifySheet (bottom sheet)**
+```jsx
+// 5개 항목, 5번째(개인사용)는 전체 너비
+const PURPOSE_OPTIONS = ['운영', '출장식대', '복리후생', '기타', '개인사용']
+gridColumn: i === 4 ? 'span 2' : undefined
+```
+
+---
+
+#### PaymentAlerts.jsx
+
+**소명요청 선택 모드**
+```jsx
+// 헤더 우상단 소명요청 버튼 → 선택 모드 활성화
+const [selectMode, setSelectMode] = useState(false)
+const [selected, setSelected] = useState([])
+
+// 선택 모드 활성 시 행 클릭 → 체크박스 토글
+const handleClick = () => {
+  if (selectMode) { onToggle(item.id); return }
+  onClick()
+}
+
+// 선택 바 (탭 아래 고정)
+[전체선택] ··· [소명요청 N건] (파란 버튼)
+```
+
+**소명요청 모달 + 토스트**
+```jsx
+const openJustify = () => {
+  setJustifyMsg(`[소명요청] 아래 ${selItems.length}건에 대해 소명 부탁드립니다.`)
+  setJustifyModal(true)
+}
+const handleJustifySend = () => {
+  setJustifyModal(false); setSelectMode(false); setSelected([])
+  setToast('💬 소명요청 메시지 발송 완료')
+}
+```
+
+---
+
+#### ExecutionStats.jsx — 카테고리 통일
+
+**CATEGORY_GROUPS 운영비 세부항목 추가 (3개 유저타입 모두)**
+```js
+// business 기준 (personal/public도 동일 항목, 금액만 다름)
+{ id:'travel_meal', label:'출장식대', icon:'✈️', color:'#0891B2' }
+{ id:'welfare',     label:'복리후생', icon:'🎁', color:'#10B981' }
+{ id:'personal_use',label:'개인사용', icon:'👤', color:'#6B7280' }
+```
+
+**PURPOSE_OPTIONS 재편 (9개 → 5개)**
+```js
+// 변경 전 (9개 — 산발적)
+['운영비','서버비','구독료','출장비','접대비','복리후생','공과금','교육비','기타']
+
+// 변경 후 (5개 — 운영비 세부항목 기준)
+['운영', '출장식대', '복리후생', '기타', '개인사용']
+```
+
+**CARD_TXNS purpose 정정**
+```js
+// 변경 전 → 변경 후
+purpose: '서버비'  → '구독료'
+purpose: '출장비'  → '출장식대'
+```
+
+---
+
+### 버그 수정
+
+- **DetailSheet 위에 추가요청 모달 렌더**: `setDetailItem(null)` 제거로 해결
+- **STATUS_TABS 누락**: TYPE_CHIPS 추가 과정에서 실수로 삭제됨 → 복원
+- **detailItem stale state**: 추가요청 확정 후 DetailSheet가 이전 상태 표시 → `setDetailItem` 동기화
+
+---
+
+## v2.9.0 — 집행 통계 권한자금 화면 고도화 + RecipientDetail aurora 연동 (2026-05-11)
+
+### 핵심 변경 요약
+1. **AuthFundsDetail 아코디언 완전 삭제** — 펼치기/접기 기능 제거, 기본 카드 뷰만 유지
+2. **권한자금 리스트 클릭 → RecipientDetail/aurora 화면 이동** — `navigate('/control-center/recipient/aurora', { state: { from: 'stats-auth' } })`
+3. **권한자금 헤더 앰버 그라디언트 적용** — `#92400E → #B45309 → #D97706` + 배경 장식 원
+4. **진행 바 라벨 `회수` → `소비` 변경** — 투자 자금 소비량 표시로 의미 명확화
+5. **헤더 금액 레이아웃 수정** — `flex:'0 0 auto'` + `fmtM()` 함수 적용, 숫자 깨짐 해소
+6. **RecipientDetail aurora 헤더 전면 재설계** — 앰버 그라디언트, 타이틀 `집행 관제 센터` → `권한 자금`
+7. **RecipientDetail KPI 재구성** — `집행 건수` 제거, `총 집행액` + `다음 예정` 2박스로 교체
+8. **백버튼 네비게이션 수정** — aurora → 권한자금 화면 정확 복원 (state 기반 라우팅)
+
+---
+
+### 변경 상세
+
+#### ExecutionStats.jsx — AuthFundsDetail 컴포넌트
+
+**아코디언 제거**
+```jsx
+// 삭제된 state
+const [openItems, setOpenItems] = useState({})
+const toggleItem = (id) => ...
+const listExpanded = openItems[id]
+
+// 삭제된 JSX
+{listExpanded && <div>...펼쳐진 상세 내용...</div>}
+```
+
+**리스트 → 버튼으로 교체**
+```jsx
+// 변경 전: div + 아코디언
+<div key={item.id} onClick={() => toggleItem(item.id)}>
+
+// 변경 후: button + 화면 이동
+<button key={item.id}
+  onClick={() => navigate('/control-center/recipient/aurora', { state: { from: 'stats-auth' } })}
+  style={{ ... }}>
+```
+
+**진행 바 라벨**
+```jsx
+// 변경 전
+<div>{repaidPct}% 회수</div>
+
+// 변경 후
+<div>{repaidPct}% 소비</div>
+```
+
+**헤더 금액 레이아웃 수정**
+```jsx
+// 변경 전: fontSize만 조정, 깨짐 발생
+<div style={{ fontSize:'26px', fontWeight:800 }}>{totalAuth/100000000}억원</div>
+
+// 변경 후: flex 레이아웃 + fmtM 함수 적용
+<div style={{ flex:'0 0 auto' }}>
+  <div>{fmtM(totalAuth)}원</div>   // 총 집행
+</div>
+<div style={{ flex:1, minWidth:0 }}>
+  <div>{fmtM(totalAuth - totalReturn)}원</div>  // 현재 잔액
+</div>
+```
+
+**백버튼 state 복원 (ExecutionStats 메인)**
+```jsx
+// import 추가
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+
+// useEffect 추가 (aurora 화면에서 돌아왔을 때 권한자금 자동 복원)
+useEffect(() => {
+  if (location.state?.openDetail === 'auth') {
+    setDetail({ type: 'auth' })
+  }
+}, [])
+```
+
+---
+
+#### RecipientDetail.jsx — aurora 화면
+
+**import 추가**
+```jsx
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+```
+
+**헤더 그라디언트 교체**
+```jsx
+// 변경 전
+<div style={{ background: theme.headerGrad }}>
+
+// 변경 후 — 앰버 그라디언트 + 장식 원
+<div style={{ background: 'linear-gradient(135deg,#92400E 0%,#B45309 50%,#D97706 100%)', position:'relative', overflow:'hidden' }}>
+  <div style={{ position:'absolute', top:'-30px', right:'-30px', width:'140px', ... }} /> {/* 장식 원 1 */}
+  <div style={{ position:'absolute', bottom:'-20px', left:'-20px', width:'100px', ... }} /> {/* 장식 원 2 */}
+```
+
+**타이틀 변경**
+```jsx
+// 변경 전
+<span>집행 관제 센터</span>
+
+// 변경 후
+<span>권한 자금</span>
+```
+
+**KPI 재구성**
+```jsx
+// 변경 전: 총 집행액 + 집행 건수
+[
+  { label: t('totalExec', lang), value: (r.totalAmount/10000).toFixed(0)+'만원' },
+  { label: '집행 건수',          value: r.count+'건' },
+]
+
+// 변경 후: 총 집행액 + 다음 예정 (집행 건수 제거)
+<div>총 집행액 — {(r.totalAmount/10000).toFixed(0)}만원</div>
+<div>다음 예정 — {r.nextExpected}  (앰버 강조색 #FDE68A)</div>
+```
+
+**백버튼 수정**
+```jsx
+// 변경 전
+<button onClick={() => navigate(-1)}>
+
+// 변경 후 — 출처에 따라 분기
+const fromStatsAuth = location.state?.from === 'stats-auth'
+
+<button onClick={() =>
+  fromStatsAuth
+    ? navigate('/stats', { state: { openDetail: 'auth' } })
+    : navigate(-1)
+}>
+```
+
+---
+
+### 화면 이동 플로우 (완성)
+
+```
+집행 통계 메인 (/stats)
+  └─ [권한 자금 버튼] → AuthFundsDetail (React state)
+       └─ [리스트 클릭] → RecipientDetail/aurora (/control-center/recipient/aurora)
+                          state: { from: 'stats-auth' }
+            └─ [백버튼] → /stats + state: { openDetail: 'auth' }
+                           → useEffect 감지 → setDetail({ type: 'auth' })
+                           → AuthFundsDetail 자동 복원 ✅
+```
+
+---
+
 ## v2.8.0 — 자동지급 완성 + 쿠콘 API 확정 (2026-05-10)
 
 ### 핵심 변경 요약

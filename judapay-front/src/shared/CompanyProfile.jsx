@@ -795,9 +795,8 @@ export default function CompanyProfile() {
   return (
     <PhoneShell>
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
-        <div style={{ flex:1, overflowY:'auto' }}>
 
-          {/* 헤더 */}
+          {/* 헤더 — 고정 */}
           <div style={{ background:theme.headerGrad, flexShrink:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'24px 16px 14px' }}>
               <button onClick={() => navigate(-1)}
@@ -826,6 +825,8 @@ export default function CompanyProfile() {
             </div>
           </div>
 
+        {/* 탭 콘텐츠 — 스크롤 영역 */}
+        <div style={{ flex:1, overflowY:'auto' }}>
           {/* 미리보기 오버레이 */}
           {showPreview && <PublicPreview theme={theme} onClose={() => setShowPreview(false)} />}
 

@@ -17,6 +17,161 @@
 | 회계 처리 | 안내 텍스트만 | 자동 분개 + 세무사 연동 |
 | 세금 고지 수집 | 없음 | 쿠콘 홈택스/위택스 스크래핑 |
 | 4대보험 고지 | 없음 | 쿠콘 3종 스크래핑 |
+| 결제 목적 분류 | 인메모리 purposeOverride | DB 영구 저장 + 집계 반영 |
+| 소명/증빙 요청 | toast만 표시 (메시지 미발송) | 실제 메시지 채널 발송 |
+| 승인 워크플로우 | 인메모리 상태 변경 | DB 트랜잭션 + 감사 로그 |
+
+---
+
+---
+
+## 💳 결제 목적 분류 API (v3.0 신규)
+
+### 결제 건 분류 저장
+
+```
+현재: purposeOverride state — 새로고침 시 초기화, 집계 미반영
+백엔드: 카드 결제 건별 분류값 DB 영구 저장 + 집행 통계 자동 집계
+
+POST /api/payments/:id/classify
+  body: {
+    purpose: '운영' | '출장식대' | '복리후생' | '기타' | '개인사용',
+    classifiedBy: 'user' | 'system',
+    memo?: string
+  }
+  response: {
+    paymentId,
+    purpose,
+    classifiedAt,
+    classifiedBy,
+  }
+```
+
+### 자동 분류 (AI)
+
+```
+카드 결제 발생 시 시스템 자동 분류:
+
+POST /api/payments/auto-classify
+  body: { paymentId, merchantName, mccCode, amount }
+  → ML 모델 기반 추론
+  → purposeAuto: true로 저장
+  → 신뢰도 낮을 경우 purposeAuto: false (미분류 처리)
+```
+
+### 분류 집계 → 집행 통계 반영
+
+```
+GET /api/stats/execution?period=monthly&type=card
+  response: {
+    categories: [
+      { purpose: '운영',    total: 3200000, count: 12 },
+      { purpose: '출장식대', total: 840000,  count: 8  },
+      { purpose: '복리후생', total: 520000,  count: 5  },
+      { purpose: '기타',    total: 180000,  count: 4  },
+      { purpose: '개인사용', total: 95000,   count: 2  },
+    ],
+    unclassified: { total: 432000, count: 6 }
+  }
+```
+
+### 미분류 알림
+
+```
+[일 1회 스케줄러]
+  → 미분류(purpose: null) 건수 집계
+  → 관리자 알림: "미분류 결제 OO건 — 분류 필요"
+
+API: GET /api/payments/unclassified-count
+```
+
+---
+
+## ✅ 승인 워크플로우 API (v3.0 신규)
+
+### 승인 대기 목록
+
+```
+현재: DEMO_APPROVALS 하드코딩
+백엔드: DB 조회 + 실시간 상태 반영
+
+GET /api/approvals?status=all|inprogress|rejected|done&type=approval|review|evidence|claim
+  response: {
+    items: [{
+      id, type, status, amount, name, purpose, date, dept,
+      claimStatus: null | 'requested' | 'submitted',
+      evidenceStatus: null | 'requested' | 'submitted',
+      history: [{ action, actor, time, note }],
+    }],
+    total, counts: { all, inprogress, rejected, done }
+  }
+```
+
+### 승인 처리
+
+```
+POST /api/approvals/:id/approve
+  body: { note?: string }
+  → status: 'done'
+  → 양측 알림 발송
+  → 집행 확인서 자동 생성
+
+POST /api/approvals/:id/reject
+  body: { reason: string }
+  → status: 'rejected'
+  → 요청자에게 반려 사유 알림
+
+POST /api/approvals/:id/request
+  body: {
+    claimRequest: boolean,
+    evidenceRequest: boolean,
+    message: string
+  }
+  → claimStatus / evidenceStatus: 'requested'
+  → 메시지 채널로 요청 발송
+  → history 항목 추가
+```
+
+### 소명/증빙 제출
+
+```
+POST /api/approvals/:id/claim/submit
+  body: { content: string, attachments?: file[] }
+  → claimStatus: 'submitted'
+  → 승인자에게 알림
+
+POST /api/approvals/:id/evidence/submit
+  body: { attachments: file[] }
+  → evidenceStatus: 'submitted'
+  → 승인자에게 알림
+```
+
+---
+
+## 💬 소명요청 메시지 발송 API (v3.0 신규)
+
+```
+현재: toast만 표시, 실제 메시지 채널 미연결
+백엔드: 내부 메시지 시스템 + Push 알림 실제 발송
+
+POST /api/claim-requests/bulk
+  body: {
+    paymentIds: string[],
+    message: string,
+    requestedBy: userId
+  }
+  response: {
+    sent: number,
+    failed: number,
+    threadIds: string[]   // 생성된 메시지 스레드
+  }
+
+흐름:
+  PaymentAlerts 선택 N건 → 소명요청 모달 → 전송
+  → 각 결제 건의 수신자별 메시지 스레드 생성
+  → FCM / 앱 내 알림 발송
+  → Messages 탭에 스레드 자동 노출
+```
 
 ---
 
@@ -404,12 +559,16 @@ POST /api/real-estate/:id/tax-clearance
 - store → DB (PostgreSQL / MongoDB)
 - 사용자 인증 (JWT + Refresh Token)
 - 기본 CRUD API
+- **결제 목적 분류 DB 저장** (`payments.purpose`, `classifiedBy`, `classifiedAt`)
+- **승인 워크플로우 테이블** (`approvals`, `approval_history`)
 
 ### Phase 2 — 자동 처리 (핵심)
 - 만기 알림 스케줄러 (cron)
 - 외부 이벤트 핸들러 (서명/검수/인증)
 - 비가입자 매칭 흐름
 - 자동지급 실행 스케줄러 (급여/임대료/통신비)
+- **소명/증빙 요청 → 메시지 스레드 자동 생성**
+- **미분류 결제 일일 알림 스케줄러**
 
 ### Phase 3 — 쿠콘 API 연동
 - 공동인증서 모듈 등록/관리
@@ -428,9 +587,11 @@ POST /api/real-estate/:id/tax-clearance
 - 자동 분개 생성
 - 원천세 자동 신고
 - 4대보험 납부 자동화
+- **결제 분류 → 집행 통계 자동 집계 연동**
 
-### Phase 6 — 권한 자금 고도화
+### Phase 6 — 권한 자금 + AI 고도화
 - MCC 통제 실시간 적용 (카드사 API)
 - 자금 사용 내역 실시간 모니터링
 - 분기별 보고서 PDF 자동 생성
+- **AI 기반 결제 목적 자동 분류** (merchantName + MCC 학습 모델)
 - AI 기반 이상 거래 탐지

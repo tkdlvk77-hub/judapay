@@ -45,6 +45,20 @@ const ALL_ITEMS = [
   { id:'m3', cat:'misc', name:'노무 자문료', vendor:'노무법인 동행', amount:420000, payDay:'15', cycle:'매월', payMethod:'account', autoOn:false, endDate:'' },
 ]
 
+// ─── 필터 옵션 ────────────────────────────────────────────
+const FILTER_OPTIONS = ['전체', '급여', '4대보험', '임대료', '렌트리스', '구독료', '통신비', '공과금', '세금', '보험료', '기타 정기지출']
+
+const FILTER_TO_CAT = {
+  '임대료':      'rent',
+  '렌트리스':    'rentlease',
+  '구독료':      'subscription',
+  '통신비':      'telecom',
+  '공과금':      'utility',
+  '보험료':      'insurance',
+  '세금':        'tax',
+  '기타 정기지출':'misc',
+}
+
 // ─── 유틸 ─────────────────────────────────────────────────
 function fmt(n) { return Number(Math.floor(n||0)).toLocaleString('ko-KR') }
 
@@ -97,7 +111,8 @@ export default function ExecuteAutoPayAll() {
   const [items, setItems]     = useState(ALL_ITEMS)
   const [showExitModal, setShowExitModal] = useState(false)
   const [saved, setSaved]     = useState(false)
-  const [filterCat, setFilterCat] = useState('all')
+  const [filterLabel, setFilterLabel]     = useState('전체')
+  const [showFilterSheet, setShowFilterSheet] = useState(false)
 
   // 수정 상태
   const [editAmount, setEditAmount]   = useState('')
@@ -130,7 +145,12 @@ export default function ExecuteAutoPayAll() {
 
   // 정렬: autoOn 항목 먼저, 지급일 빠른 순
   const sortedItems = [...items]
-    .filter(it => filterCat === 'all' || it.cat === filterCat)
+    .filter(it => {
+      if (filterLabel === '전체') return true
+      const catKey = FILTER_TO_CAT[filterLabel]
+      if (!catKey) return false
+      return it.cat === catKey
+    })
     .map(it => ({
       ...it,
       _nextDate: nextPayDate(it.payDay),
@@ -141,9 +161,39 @@ export default function ExecuteAutoPayAll() {
       return a._daysUntil - b._daysUntil
     })
 
-  const totalMonthly = items.filter(i => i.autoOn).reduce((s, it) => s + it.amount, 0)
-  const autoCount    = items.filter(i => i.autoOn).length
-  const expiringSoon = items.filter(it => { const d=daysLeft(it.endDate); return d!==null && d>=0 && d<=30 }).length
+  const totalMonthly  = items.filter(i => i.autoOn).reduce((s, it) => s + it.amount, 0)
+  const expiringSoon  = items.filter(it => { const d=daysLeft(it.endDate); return d!==null && d>=0 && d<=30 }).length
+
+  // 이번 주 / 이후 금액 집계 (autoOn 항목 기준, 정렬된 리스트 기준)
+  const allWithDays = items.map(it => ({ ...it, _du: daysUntil(nextPayDate(it.payDay)) }))
+  const thisWeekAmt = allWithDays.filter(it => it.autoOn && it._du <= 7).reduce((s, it) => s + it.amount, 0)
+  const laterAmt    = allWithDays.filter(it => it.autoOn && it._du > 7).reduce((s, it) => s + it.amount, 0)
+  const thisWeekCount = allWithDays.filter(it => it.autoOn && it._du <= 7).length
+  const laterCount    = allWithDays.filter(it => it.autoOn && it._du > 7).length
+
+  function FilterSheet() {
+    if (!showFilterSheet) return null
+    return (
+      <div onClick={() => setShowFilterSheet(false)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', flexDirection:'column', justifyContent:'flex-end', zIndex:900 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'24px 24px 0 0', padding:'20px 16px 32px' }}>
+          <div style={{ width:'36px', height:'4px', background:'#E5E7EB', borderRadius:'2px', margin:'0 auto 16px' }}/>
+          <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'14px' }}>카테고리 필터</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+            {FILTER_OPTIONS.map((opt, i) => {
+              const isSelected = filterLabel === opt
+              const isLast = i === FILTER_OPTIONS.length - 1 && FILTER_OPTIONS.length % 2 !== 0
+              return (
+                <button key={opt} onClick={() => { setFilterLabel(opt); setShowFilterSheet(false) }}
+                  style={{ gridColumn: isLast ? 'span 2' : undefined, padding:'12px', borderRadius:'12px', cursor:'pointer', fontFamily:'inherit', fontSize:'13px', fontWeight:600, border:'none', outline:'none', textAlign:'center', background: isSelected ? theme.brand : COLORS.bgMuted, color: isSelected ? '#fff' : COLORS.t2, boxShadow: isSelected ? `0 2px 8px ${theme.brand}40` : 'none', transition:'all 0.15s' }}>
+                  {opt}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   function ExitModal() {
     return showExitModal ? (
@@ -299,8 +349,6 @@ export default function ExecuteAutoPayAll() {
   }
 
   // ── 목록 화면 ──────────────────────────────────────────
-  const catKeys = Object.keys(CATEGORIES)
-
   return (
     <PhoneShell>
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -317,42 +365,71 @@ export default function ExecuteAutoPayAll() {
               </button>
             </div>
             {/* 요약 */}
-            <div style={{ padding:'0 20px 16px' }}>
-              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)', marginBottom:'4px' }}>이번 달 자동 지급 합계</div>
-              <div style={{ fontSize:'28px', fontWeight:800, color:'#fff', letterSpacing:'-1px', marginBottom:'12px' }}>
-                {fmt(totalMonthly)}<span style={{ fontSize:'14px', fontWeight:600, opacity:0.7 }}>원</span>
+            <div style={{ padding:'0 20px 20px' }}>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', marginBottom:'4px', letterSpacing:'0.2px' }}>이번 달 자동 지급 합계</div>
+              <div style={{ fontSize:'30px', fontWeight:800, color:'#fff', letterSpacing:'-1px', marginBottom:'16px' }}>
+                {fmt(totalMonthly)}<span style={{ fontSize:'14px', fontWeight:600, opacity:0.65, marginLeft:'3px' }}>원</span>
               </div>
+              {/* 이번 주 / 이후 카드 */}
               <div style={{ display:'flex', gap:'8px' }}>
-                <div style={{ flex:1, background:'rgba(255,255,255,0.14)', borderRadius:'12px', padding:'10px 12px', border:'1px solid rgba(255,255,255,0.12)' }}>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginBottom:'3px' }}>자동 지급</div>
-                  <div style={{ fontSize:'17px', fontWeight:800, color:'#fff' }}>{autoCount}<span style={{ fontSize:'11px', opacity:0.7 }}>건</span></div>
+                {/* 이번 주 */}
+                <div style={{ flex:1, background:'rgba(255,255,255,0.13)', borderRadius:'14px', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.18)', backdropFilter:'blur(4px)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'6px' }}>
+                    <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#FCD34D', flexShrink:0 }}/>
+                    <span style={{ fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.6)', letterSpacing:'0.2px' }}>이번 주</span>
+                    <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.38)', marginLeft:'auto' }}>{thisWeekCount}건</span>
+                  </div>
+                  <div style={{ fontSize:'16px', fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>
+                    {fmt(thisWeekAmt)}<span style={{ fontSize:'11px', fontWeight:500, opacity:0.6, marginLeft:'2px' }}>원</span>
+                  </div>
                 </div>
-                <div style={{ flex:1, background:'rgba(255,255,255,0.14)', borderRadius:'12px', padding:'10px 12px', border:'1px solid rgba(255,255,255,0.12)' }}>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.55)', marginBottom:'3px' }}>전체 항목</div>
-                  <div style={{ fontSize:'17px', fontWeight:800, color:'#fff' }}>{items.length}<span style={{ fontSize:'11px', opacity:0.7 }}>건</span></div>
+                {/* 이후 */}
+                <div style={{ flex:1, background:'rgba(255,255,255,0.08)', borderRadius:'14px', padding:'12px 14px', border:'1px solid rgba(255,255,255,0.12)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'6px' }}>
+                    <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
+                    <span style={{ fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.5)', letterSpacing:'0.2px' }}>이후</span>
+                    <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginLeft:'auto' }}>{laterCount}건</span>
+                  </div>
+                  <div style={{ fontSize:'16px', fontWeight:800, color:'rgba(255,255,255,0.75)', letterSpacing:'-0.5px' }}>
+                    {fmt(laterAmt)}<span style={{ fontSize:'11px', fontWeight:500, opacity:0.6, marginLeft:'2px' }}>원</span>
+                  </div>
                 </div>
+                {/* 만료 임박 */}
                 {expiringSoon > 0 && (
-                  <div style={{ flex:1, background:'rgba(245,158,11,0.25)', borderRadius:'12px', padding:'10px 12px', border:'1px solid rgba(245,158,11,0.4)' }}>
-                    <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.65)', marginBottom:'3px' }}>만료 임박</div>
-                    <div style={{ fontSize:'17px', fontWeight:800, color:'#FCD34D' }}>{expiringSoon}<span style={{ fontSize:'11px', opacity:0.8 }}>건</span></div>
+                  <div style={{ flex:1, background:'rgba(245,158,11,0.22)', borderRadius:'14px', padding:'12px 14px', border:'1px solid rgba(245,158,11,0.38)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'6px' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#FCD34D', flexShrink:0 }}/>
+                      <span style={{ fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.6)' }}>만료 임박</span>
+                    </div>
+                    <div style={{ fontSize:'16px', fontWeight:800, color:'#FCD34D', letterSpacing:'-0.5px' }}>
+                      {expiringSoon}<span style={{ fontSize:'11px', fontWeight:500, opacity:0.8, marginLeft:'2px' }}>건</span>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* 카테고리 필터 칩 */}
-          <div style={{ padding:'12px 16px 4px', overflowX:'auto', display:'flex', gap:'6px', scrollbarWidth:'none' }}>
-            <button onClick={() => setFilterCat('all')}
-              style={{ padding:'6px 14px', borderRadius:'20px', cursor:'pointer', fontFamily:'inherit', fontSize:'11px', fontWeight:600, border:'none', outline:'none', whiteSpace:'nowrap', flexShrink:0, background: filterCat==='all' ? theme.brand : COLORS.bgCard, color: filterCat==='all' ? '#fff' : COLORS.t3, boxShadow: filterCat==='all' ? `0 2px 8px ${theme.brand}40` : SHADOWS.card, transition:'all 0.15s' }}>
-              전체
+          {/* 필터 바 - 항상 표시 */}
+          <div style={{ margin:'14px 16px 0', background:COLORS.bgCard, borderRadius:'14px', padding:'11px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:SHADOWS.card, border:`1px solid ${COLORS.borderSoft}` }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:'5px' }}>
+              <span style={{ fontSize:'20px', fontWeight:800, color:COLORS.t1, letterSpacing:'-0.5px' }}>{sortedItems.length}</span>
+              <span style={{ fontSize:'12px', fontWeight:600, color:COLORS.t3 }}>건</span>
+              {filterLabel !== '전체' && (
+                <span style={{ fontSize:'11px', color:theme.brand, fontWeight:700, background:`${theme.brand}12`, padding:'2px 7px', borderRadius:'6px', marginLeft:'4px' }}>{filterLabel}</span>
+              )}
+            </div>
+            <button onClick={() => setShowFilterSheet(true)}
+              style={{ display:'flex', alignItems:'center', gap:'5px', padding:'7px 13px', borderRadius:'20px', background: filterLabel !== '전체' ? theme.brand : COLORS.bgMuted, border:'none', cursor:'pointer', fontFamily:'inherit', outline:'none', boxShadow: filterLabel !== '전체' ? `0 2px 10px ${theme.brand}40` : 'none', transition:'all 0.15s' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={filterLabel !== '전체' ? '#fff' : COLORS.t3} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              <span style={{ fontSize:'12px', fontWeight:700, color: filterLabel !== '전체' ? '#fff' : COLORS.t3 }}>
+                {filterLabel === '전체' ? '필터' : filterLabel}
+              </span>
+              {filterLabel !== '전체' && (
+                <span onClick={e => { e.stopPropagation(); setFilterLabel('전체') }}
+                  style={{ fontSize:'12px', color:'rgba(255,255,255,0.75)', fontWeight:700, marginLeft:'1px' }}>✕</span>
+              )}
             </button>
-            {catKeys.map(k => (
-              <button key={k} onClick={() => setFilterCat(k)}
-                style={{ padding:'6px 14px', borderRadius:'20px', cursor:'pointer', fontFamily:'inherit', fontSize:'11px', fontWeight:600, border:'none', outline:'none', whiteSpace:'nowrap', flexShrink:0, background: filterCat===k ? theme.brand : COLORS.bgCard, color: filterCat===k ? '#fff' : COLORS.t3, boxShadow: filterCat===k ? `0 2px 8px ${theme.brand}40` : SHADOWS.card, transition:'all 0.15s' }}>
-                {CATEGORIES[k].icon} {CATEGORIES[k].label}
-              </button>
-            ))}
           </div>
 
           {/* 리스트 */}
@@ -360,7 +437,11 @@ export default function ExecuteAutoPayAll() {
             {sortedItems.length === 0 && (
               <div style={{ textAlign:'center', padding:'48px 0', color:COLORS.t3 }}>
                 <div style={{ fontSize:'32px', marginBottom:'12px' }}>📋</div>
-                <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1 }}>해당 카테고리 항목이 없습니다</div>
+                <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'8px' }}>해당 카테고리 항목이 없습니다</div>
+                <button onClick={() => setFilterLabel('전체')}
+                  style={{ padding:'8px 18px', borderRadius:'20px', background:COLORS.bgMuted, border:'none', outline:'none', cursor:'pointer', fontFamily:'inherit', fontSize:'12px', fontWeight:600, color:COLORS.t3 }}>
+                  필터 초기화
+                </button>
               </div>
             )}
             {sortedItems.map((item, idx) => {
@@ -377,12 +458,12 @@ export default function ExecuteAutoPayAll() {
               return (
                 <div key={item.id}>
                   {showDivider && (
-                    <div style={{ display:'flex', alignItems:'center', gap:'8px', margin:'4px 4px 6px' }}>
-                      <span style={{ fontSize:'11px', fontWeight:700, color: isUrgent ? '#EF4444' : isSoon ? '#D97706' : COLORS.t3 }}>{dividerLabel}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', margin:`${idx === 0 ? '6px' : '16px'} 4px 8px` }}>
+                      <span style={{ fontSize:'13px', fontWeight:700, color: isUrgent ? '#EF4444' : isSoon ? '#D97706' : COLORS.t3 }}>{dividerLabel}</span>
                       <div style={{ flex:1, height:'1px', background:COLORS.borderSoft }}/>
                     </div>
                   )}
-                  <button onClick={() => openDetail(item.id)} style={{ width:'100%', padding:0, background:'none', border:'none', outline:'none', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+                  <button onClick={() => navigate(cat.route || '/execute/business/operations')} style={{ width:'100%', padding:0, background:'none', border:'none', outline:'none', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
                     <div style={{ background:COLORS.bgCard, border:`1px solid ${isUrgent ? '#FCA5A5' : COLORS.borderSoft}`, borderRadius:'16px', padding:'13px 14px', boxShadow: isUrgent ? '0 2px 12px rgba(239,68,68,0.12)' : SHADOWS.card }}>
                       <div style={{ display:'flex', alignItems:'center', gap:'11px' }}>
                         {/* 아이콘 */}
@@ -422,6 +503,7 @@ export default function ExecuteAutoPayAll() {
           </div>
         </div>
       </div>
+      <FilterSheet/>
       <ExitModal/>
     </PhoneShell>
   )

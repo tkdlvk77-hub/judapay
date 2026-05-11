@@ -1,7 +1,7 @@
 # 주다페이 (JudaPay) 마스터 문서
 
-**버전**: v2.8
-**최초 작성**: 2026.05.05 (v1.0) / **최종 개정**: 2026.05.10 (v2.8)
+**버전**: v3.0
+**최초 작성**: 2026.05.05 (v1.0) / **최종 개정**: 2026.05.11 (v3.0)
 **범위**: 1차 MVP 기획 + 구현 현황 통합
 **목적**: 개발팀 온보딩 · 라이센스 신청서 백본 · 변호사 검토 자료 · 화면 설계 일관성 기준 · AI 개발 컨텍스트
 **현재 단계**: High-Fidelity Wireframe 완료 + 디자인 시스템 확정 + **구현 95% 진행 중**
@@ -30,7 +30,9 @@
 | v2.5 | 2026.05.07 | **브랜드 색상 시스템 전 화면 적용** · **accountTokens 시스템** · **i18n 다국어** · **하단 탭 5개 확장** |
 | v2.6 | 2026.05.08 | **통합 거래 store 도입** · store 기반 알림/메시지/홈 자동 연동 · ExecuteLendBusiness · ExecuteSupportBusiness |
 | v2.7 | 2026.05.08 | **사업자 메뉴 5개 완성** · SelectVendor + SelectBusiness 미가입자 처리 · StoreTransactionDetail 풍부화 · 모든 거래형 메뉴 pushToStore 풍부화 · ExecuteVendorInvestBusiness 3단계 재작성 |
-| **v2.8** | **2026.05.10** | **자동지급 화면 완성** · ExecuteSalary 전면 재구조화 + 엑셀 업로드 · 알림 설정 통일 (3파일) · **쿠콘 API 파트너십 확정 + 연동 범위 결정** · **증빙 자체 생성 전략 확정** · 통지형 4개 pushToStore 완료 · 관리자관리 화면 6모듈 완성 |
+| v2.8 | 2026.05.10 | **자동지급 화면 완성** · ExecuteSalary 전면 재구조화 + 엑셀 업로드 · 알림 설정 통일 (3파일) · **쿠콘 API 파트너십 확정 + 연동 범위 결정** · **증빙 자체 생성 전략 확정** · 통지형 4개 pushToStore 완료 · 관리자관리 화면 6모듈 완성 |
+| v2.9 | 2026.05.11 | **집행 통계 권한자금 화면 고도화** · AuthFundsDetail 아코디언 삭제 + 카드 클릭 시 RecipientDetail/aurora 이동 · 앰버 그라디언트 헤더 적용 · 진행 바 `회수→소비` 변경 · 헤더 금액 레이아웃 수정 · **RecipientDetail aurora 화면 재설계** — 타이틀 `집행 관제 센터→권한 자금` · 앰버 헤더 통일 · `집행 건수` KPI 제거 · **백버튼 state 기반 라우팅 완성** (aurora→권한자금 정확 복원) |
+| **v3.0** | **2026.05.11** | **승인 대기 센터(ApprovalCenter) 완성** · STATUS_TABS(전체/진행 중/반려/완료) + TYPE_CHIPS(승인/검수/증빙/소명) · 버튼 4열 균등 그리드 · DetailSheet z-index 수정 · **소명/증빙 요청 모달 공통화** — ApprovalCenter·PaymentDetail·PaymentAlerts 3개 화면 통일 · **결제 목적 분류 시스템 통일** — ExecutionStats 운영비 세부항목 기준 · PURPOSE_OPTIONS 전 화면 5개로 통일(운영/출장식대/복리후생/기타/개인사용) · CATEGORY_GROUPS 3개 유저타입 모두 출장식대·복리후생·개인사용 추가 · CARD_TXNS purpose 정정(서버비→구독료, 출장비→출장식대) · PaymentAlerts 소명요청 선택 모드 + 모달 완성 · PaymentDetail 결제 목적 분류 카드 + ClassifySheet 완성 |
 
 ---
 
@@ -691,7 +693,7 @@ recipient 전달:
 
 ---
 
-## 16. 라우트 현황 (v2.8)
+## 16. 라우트 현황 (v3.0)
 
 ```
 /home-business                         → HomeBusiness
@@ -723,6 +725,12 @@ recipient 전달:
 /auto/rent                             → ExecuteRent
 /auto/rent-lease                       → ExecuteRentLease
 /auto/telecom                          → ExecuteTelecom
+
+/payments                              → PaymentLogs (결제 내역 + 소명요청 선택 모드)
+/payment-alerts                        → PaymentAlerts (결제 알림 + 소명요청 선택 모드)
+/payment/:id                           → PaymentDetail (결제 상세 + 분류 + 소명요청 모달)
+/approval-center                       → ApprovalCenter (승인 대기 센터)
+/stats                                 → ExecutionStats (집행 통계)
 ```
 
 ---
@@ -774,11 +782,17 @@ src/
 │   ├── ExecuteLend.jsx
 │   ├── ExecuteInvest.jsx          자금 지원 (type='support')
 │   └── ExecuteInvestBusiness.jsx  개인→사업자 투자 4가지 유형
-└── business/auto/                 ⭐ v2.8 완성
-    ├── ExecuteSalary.jsx          급여 차트 + 엑셀 업로드
-    ├── ExecuteRent.jsx            임대료 자동납부
-    ├── ExecuteRentLease.jsx       렌트리스 자동납부
-    └── ExecuteTelecom.jsx         통신비 자동납부
+├── business/auto/                 ⭐ v2.8 완성
+│   ├── ExecuteSalary.jsx          급여 차트 + 엑셀 업로드
+│   ├── ExecuteRent.jsx            임대료 자동납부
+│   ├── ExecuteRentLease.jsx       렌트리스 자동납부
+│   └── ExecuteTelecom.jsx         통신비 자동납부
+└── shared/                        ⭐ v3.0 추가
+    ├── ApprovalCenter.jsx         승인 대기 센터 (status tabs + type chips)
+    ├── PaymentAlerts.jsx          결제 알림 (소명요청 선택 모드)
+    ├── PaymentDetail.jsx          결제 상세 (분류 + 소명요청 모달)
+    ├── PaymentLogs.jsx            결제 내역 (소명요청 선택 모드)
+    └── ExecutionStats.jsx         집행 통계 (카테고리 통일 기준)
 ```
 
 ---
@@ -895,14 +909,171 @@ src/
 
 ---
 
-## 23. 미완료 작업
+## 23. 카드 결제 분류 통일 시스템 (v3.0)
+
+### 23.1 설계 원칙
+
+> **모든 카드 결제 분류는 ExecutionStats.jsx의 CATEGORY_GROUPS → 운영비 세부항목을 단일 기준으로 사용한다.**
+
+운영비 세부항목이 전사 카드 결제 분류의 source of truth. 분류 UI가 있는 모든 화면은 이 상수를 따른다.
+
+### 23.2 통일된 PURPOSE_OPTIONS (5개)
+
+```js
+const PURPOSE_OPTIONS = ['운영', '출장식대', '복리후생', '기타', '개인사용']
+```
+
+| 항목 | 대상 | 비고 |
+|---|---|---|
+| 운영 | 임대료/렌트&리스/구독료/통신비/공과금/보험료/기타정기지출 | 운영비 일반 |
+| 출장식대 | 출장 중 식비/교통/숙박 | 법인카드 주요 사용처 |
+| 복리후생 | 직원 복지 관련 지출 | 법인카드 주요 사용처 |
+| 기타 | 위 분류 외 업무 관련 지출 | |
+| 개인사용 | 업무 무관 개인 사용 | 이상 거래 플래그 가능 |
+
+### 23.3 분류 적용 화면
+
+| 화면 | 분류 방식 | 적용 여부 |
+|---|---|---|
+| ExecutionStats (집행 통계) | CATEGORY_GROUPS 운영비 subs | ✅ (단일 기준) |
+| PaymentDetail (결제 상세) | PURPOSE_OPTIONS ClassifySheet | ✅ |
+| PaymentAlerts (결제 알림) | PURPOSE_OPTIONS ClassifySheet | ✅ |
+| PaymentLogs (결제 내역) | PURPOSE_OPTIONS ClassifySheet | ✅ |
+
+### 23.4 ExecutionStats CATEGORY_GROUPS — 운영비 최종 항목
+
+모든 유저 타입(business/personal/public)에 공통 적용:
+
+```
+임대료 · 렌트&리스 · 구독료 · 통신비 · 공과금 · 보험료 · 기타정기지출
++ 출장식대 (✈️) · 복리후생 (🎁) · 개인사용 (👤)
+```
+
+### 23.5 ClassifySheet UX
+
+```jsx
+// 5개 항목 — 2×2 그리드, 5번째(개인사용)만 전체 너비
+<div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'8px' }}>
+  {PURPOSE_OPTIONS.map((opt, i) => (
+    <button
+      style={{ gridColumn: i === 4 ? 'span 2' : undefined }}>
+      {opt}
+    </button>
+  ))}
+</div>
+
+// 분류 표시 로직
+const effectiveCategory = purposeOverride ?? payment.category
+const effectiveCategoryAuto = purposeOverride ? false : payment.categoryAuto
+
+// 미분류: category === null → "⚠ 미분류 · 분류하기" (주황 점선 박스)
+// 자동분류: categoryAuto === true → "✦ 자동분류명" (파란 뱃지)
+// 수동분류: → "✓ 분류명" (초록 뱃지)
+```
+
+---
+
+## 24. 승인 대기 센터 (ApprovalCenter) — v3.0
+
+### 24.1 화면 구조
+
+```
+헤더 (다크 그라디언트)
+  타이틀: "승인 대기 센터"
+  ──────────────────────
+  STATUS_TABS (탭 네비게이션)
+  [ 전체 ] [ 진행 중 ] [ 반려 ] [ 완료 ]
+  ──────────────────────
+  TYPE_CHIPS (필터 칩, 다중 선택)
+  [승인요청] [검수요청] [증빙요청] [소명요청]
+  ──────────────────────
+  ApprovalCard 리스트
+    카드 하단 버튼 (4열 균등 그리드):
+    [ 상세보기 ] [ 추가요청 ] [ 반려 ] [ 승인 ]
+```
+
+### 24.2 주요 상태 및 요청 타입
+
+```js
+// STATUS_TABS
+const STATUS_TABS = [
+  { id:'all', label:'전체' }, { id:'inprogress', label:'진행 중' },
+  { id:'rejected', label:'반려' }, { id:'done', label:'완료' },
+]
+
+// TYPE_CHIPS (다중 토글, 미선택 = 전체)
+const TYPE_CHIPS = [
+  { id:'approval', label:'승인요청' }, { id:'review', label:'검수요청' },
+  { id:'evidence', label:'증빙요청' }, { id:'claim',  label:'소명요청'  },
+]
+
+// 승인 항목 데이터 모델
+{
+  id, type, status, amount, name, purpose, date, dept,
+  history: [{ action, actor, time, note }],
+  claimStatus: null | 'requested' | 'submitted',
+  evidenceStatus: null | 'requested' | 'submitted',
+}
+```
+
+### 24.3 소명/증빙 요청 모달 (공통)
+
+ApprovalCenter · PaymentDetail · PaymentAlerts 3개 화면에 동일 모달 패턴 적용:
+
+```jsx
+// 토글 상태
+const [claimRequest, setClaimRequest] = useState(true)   // 소명요청
+const [evidenceRequest, setEvidRequest] = useState(false) // 증빙요청
+
+// 자동 메시지 생성
+function autoMsg(claim, evid) {
+  if (claim && evid) return '소명 및 증빙 서류 제출 부탁드립니다.'
+  if (claim) return '소명 부탁드립니다.'
+  if (evid)  return '증빙 서류 제출 부탁드립니다.'
+  return ''
+}
+
+// 모달 레이아웃
+소명 요청 ON/OFF 토글
+증빙 요청 ON/OFF 토글
+────────────────────
+전송 메시지 textarea (자동완성, 직접 편집 가능)
+────────────────────
+[ 전송하기 ] 버튼
+```
+
+### 24.4 DetailSheet z-index 레이어링
+
+```
+DetailSheet:     z-index: 500
+소명/증빙 모달:  z-index: 600   ← 반드시 DetailSheet보다 위
+```
+
+### 24.5 확정 동작 흐름
+
+```
+[추가요청 클릭]
+  → handleRequest(item) (DetailSheet 닫지 않음)
+  → 모달 열기 (z:600)
+
+[전송 확인]
+  → approvals 상태 업데이트 (status: inprogress)
+  → detailItem 동기화 (DetailSheet 내 즉시 반영)
+  → 토스트 "요청 메시지 발송 완료"
+```
+
+---
+
+## 25. 미완료 작업
 
 ### 구현 잔여
 ```
-⏳ HomeBusiness 기업 홈 화면 고도화 (task #2)
+⏳ HomeBusiness 기업 홈 화면 고도화
 ⏳ 단계 F: 비가입자 → 가입자 매칭 흐름
 ⏳ 기관 홈 화면 고도화
 ⏳ 백엔드 시뮬레이터 (마일스톤 진행)
+⏳ PaymentLogs ClassifySheet 5번째 항목(개인사용) 확인
+⏳ 결제 목적 분류 → ExecutionStats 집계 반영 연동
 ```
 
 ### 외부 API 연동 (쿠콘 계약 후)

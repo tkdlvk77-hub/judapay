@@ -185,7 +185,13 @@ export default function MyWallet() {
               </div>
             </div>
 
-            {wallets.map((w, i) => (
+            {wallets.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#9CA3AF', lineHeight: 1.7 }}>
+                  활성화된 지갑이 없습니다.
+                </div>
+              </div>
+            ) : wallets.map((w, i) => (
               <WalletCard
                 key={w.id} wallet={w}
                 onClick={() => navigate('/wallet/' + w.id)}

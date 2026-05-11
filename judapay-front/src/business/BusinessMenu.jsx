@@ -30,6 +30,13 @@ const SCHEDULED = [
 const SPENT_SO_FAR = 32400000
 const PREV_DIFF_PCT = 8
 
+// 카드 현황
+const CARDS = [
+  { id: 'c1', name: '주 카드 (운영비)',    used: 3200000, limit: 5000000, color: '#0EA5E9' },
+  { id: 'c2', name: '법인카드 B (마케팅)', used: 1850000, limit: 3000000, color: '#6366F1' },
+  { id: 'c3', name: '임직원 카드 (복지)',  used: 420000,  limit: 1000000, color: '#10B981' },
+]
+
 // 통계 3단
 const EMPLOYEE_COUNT = 12
 const AUTO_PAYMENT_COUNT = 12
@@ -193,7 +200,7 @@ export default function BusinessMenu() {
             <div style={{ display:'flex' }}>
               {/* 지금까지 */}
               <button
-                onClick={todo('이번 달 지출 상세')}
+                onClick={() => navigate('/stats')}
                 style={{
                   flex:1, padding:'14px',
                   background:'transparent', border:'none',
@@ -217,7 +224,7 @@ export default function BusinessMenu() {
 
               {/* 월말까지 추가 */}
               <button
-                onClick={todo('지급 예정 상세')}
+                onClick={() => navigate('/execute/business/operations/auto-pay-all')}
                 style={{
                   flex:1, padding:'14px',
                   background:'transparent', border:'none',
@@ -330,10 +337,58 @@ export default function BusinessMenu() {
             ))}
           </div>
 
+          {/* 카드 현황 */}
+          <div style={{ marginBottom:'14px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'8px', padding:'0 4px' }}>
+              <span style={{ fontSize:'12px', fontWeight:'700', color: COLORS.t1 }}>카드 현황</span>
+              <button onClick={() => navigate('/card-payment')}
+                style={{ fontSize:'11px', fontWeight:600, color: theme.brandDark, background:`${theme.brand}12`, border:`1px solid ${theme.brand}25`, borderRadius:'20px', padding:'4px 10px', cursor:'pointer', fontFamily:'inherit' }}>
+                관리
+              </button>
+            </div>
+            <div style={{ background: COLORS.bgCard, border:`0.5px solid ${COLORS.border}`, borderRadius:'14px', overflow:'hidden' }}>
+              {CARDS.map((card, i, arr) => {
+                const pct = Math.round(card.used / card.limit * 100)
+                return (
+                  <button key={card.id} onClick={() => navigate('/card-payment')}
+                    style={{ width:'100%', padding:'12px 14px', background:'transparent', border:'none',
+                      borderBottom: i < arr.length-1 ? `0.5px solid ${COLORS.border}` : 'none',
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+                    {/* 카드명 + 사용률 */}
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'7px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                        <div style={{ width:'3px', height:'14px', borderRadius:'2px', background: card.color, flexShrink:0 }} />
+                        <span style={{ fontSize:'12px', fontWeight:'600', color: COLORS.t1 }}>{card.name}</span>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                        <span style={{ fontSize:'12px', fontWeight:'700',
+                          color: pct>=80?COLORS.danger : pct>=60?'#C8821A' : COLORS.t1 }}>{pct}%</span>
+                        <span style={{ fontSize:'10px', color: COLORS.t3 }}>
+                          {fmt(card.used/10000)}만 / {fmt(card.limit/10000)}만원
+                        </span>
+                      </div>
+                    </div>
+                    {/* 프로그레스 바 */}
+                    <div style={{ height:'3px', borderRadius:'2px', background: COLORS.bgMuted, overflow:'hidden' }}>
+                      <div style={{ width:pct+'%', height:'100%', borderRadius:'2px', transition:'width 0.5s',
+                        background: pct>=80?COLORS.danger : pct>=60?'#C8821A' : card.color }} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* 카테고리별 지출 */}
           <div>
-            <div style={{ fontSize:'12px', fontWeight:'700', color: COLORS.t1, marginBottom:'8px', padding:'0 4px' }}>
-              {t('businessMenu.byCategory')}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'8px', padding:'0 4px' }}>
+              <span style={{ fontSize:'12px', fontWeight:'700', color: COLORS.t1 }}>
+                {t('businessMenu.byCategory')}
+              </span>
+              <button onClick={() => navigate('/stats')}
+                style={{ fontSize:'11px', fontWeight:600, color:theme.brandDark, background:`${theme.brand}12`, border:`1px solid ${theme.brand}25`, borderRadius:'20px', padding:'4px 10px', cursor:'pointer', fontFamily:'inherit', outline:'none' }}>
+                전체보기
+              </button>
             </div>
             <div style={{
               background: COLORS.bgCard, border:`0.5px solid ${COLORS.border}`,
@@ -370,6 +425,7 @@ export default function BusinessMenu() {
               ))}
             </div>
           </div>
+
         </div>
 
       </div>

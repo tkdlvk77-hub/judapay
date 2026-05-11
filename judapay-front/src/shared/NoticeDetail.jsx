@@ -85,6 +85,7 @@ function Header({ onBack, notice }) {
 
 // ─── 본문 블록 렌더러 ────────────────────────────────
 function BodyBlock({ block }) {
+  const theme = getAccountTheme()
   if (block.type === 'h2') {
     return (
       <div style={{

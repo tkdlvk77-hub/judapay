@@ -9,28 +9,30 @@ import { useT } from '../design/i18n'
 // id가 PaymentDetail의 PAYMENTS 키와 일치해야 상세 매핑 됨
 const ALL_LOGS = [
   // 오늘
-  { id:'l1', name:'스타벅스 강남점', meta:'09:12', date:'2026-05-06', amount:-4500, type:'normal', emoji:'☕', mcc:'카페' },
-  { id:'log_today_2', name:'CU 역삼점', meta:'07:45', date:'2026-05-06', amount:-3200, type:'normal', emoji:'🏪', mcc:'편의점' },
+  { id:'l1',         name:'스타벅스 강남점',   meta:'09:12',        date:'2026-05-06', amount:-4500,    type:'normal',  mcc:'카페',      category:null,        categoryAuto:false },
+  { id:'log_today_2',name:'CU 역삼점',          meta:'07:45',        date:'2026-05-06', amount:-3200,    type:'normal',  mcc:'편의점',    category:null,        categoryAuto:false },
 
   // 어제
-  { id:'l2', name:'서울시 교육비 지원', meta:'14:00', date:'2026-05-05', amount:200000, type:'plus', tag:'받은 자금', emoji:'↙', mcc:'정부 지원' },
-  { id:'p1', name:'이마트 역삼점', meta:'14:32', date:'2026-05-05', amount:-32000, type:'normal', emoji:'🛒', mcc:'식료품' },
-  { id:'log_y_3', name:'택시 카드결제', meta:'08:20', date:'2026-05-05', amount:-12500, type:'normal', emoji:'🚕', mcc:'교통' },
+  { id:'l2',         name:'서울시 교육비 지원', meta:'14:00',        date:'2026-05-05', amount:200000,   type:'plus',    mcc:'정부 지원', category:null,        categoryAuto:false, tag:'받은 자금' },
+  { id:'p1',         name:'이마트 역삼점',       meta:'14:32',        date:'2026-05-05', amount:-32000,   type:'normal',  mcc:'식료품',    category:'운영',      categoryAuto:true  },
+  { id:'log_y_3',    name:'택시 카드결제',       meta:'08:20',        date:'2026-05-05', amount:-12500,   type:'normal',  mcc:'교통',      category:'출장식대',  categoryAuto:true  },
 
   // 이번 주
-  { id:'log_w_1', name:'박민준에게 빌려줌', meta:'5월 4일', date:'2026-05-04', amount:-1000000, type:'normal', emoji:'↗', mcc:'개인 송금', tag:'빌려주기' },
-  { id:'log_w_2', name:'올리브영 강남점', meta:'5월 3일', date:'2026-05-03', amount:-28900, type:'normal', emoji:'🧴', mcc:'생활' },
+  { id:'log_w_1',    name:'박민준에게 빌려줌',   meta:'5월 4일',      date:'2026-05-04', amount:-1000000, type:'normal',  mcc:'개인 송금', category:null,        categoryAuto:false, tag:'빌려주기' },
+  { id:'log_w_2',    name:'올리브영 강남점',     meta:'5월 3일',      date:'2026-05-03', amount:-28900,   type:'normal',  mcc:'생활',      category:'개인사용',  categoryAuto:false },
 
   // 지난 주 - 차단 케이스
-  { id:'p2', name:'GS강남게임센터', meta:'4월 28일', date:'2026-04-28', amount:-150000, type:'blocked', emoji:'🎮', mcc:'오락/게임' },
-  { id:'r1', name:'강남 룸살롱', meta:'4월 27일 23:41', date:'2026-04-27', amount:-89000, type:'risk', emoji:'🚨', mcc:'유흥/오락', riskReason:'MCC 차단 카테고리' },
-  { id:'r2', name:'강원랜드 카지노', meta:'4월 26일 22:15', date:'2026-04-26', amount:-320000, type:'risk', emoji:'🚨', mcc:'도박', riskReason:'절대 차단 카테고리' },
-  { id:'log_lw_2', name:'쿠팡 정기결제', meta:'4월 27일', date:'2026-04-27', amount:-29900, type:'normal', emoji:'📦', mcc:'쇼핑' },
+  { id:'p2',         name:'GS강남게임센터',      meta:'4월 28일',     date:'2026-04-28', amount:-150000,  type:'blocked', mcc:'오락/게임', category:null,        categoryAuto:false },
+  { id:'r1',         name:'강남 룸살롱',          meta:'4월 27일 23:41',date:'2026-04-27',amount:-89000,   type:'risk',    mcc:'유흥/오락', category:null,        categoryAuto:false },
+  { id:'r2',         name:'강원랜드 카지노',      meta:'4월 26일 22:15',date:'2026-04-26',amount:-320000,  type:'risk',    mcc:'도박',      category:null,        categoryAuto:false },
+  { id:'log_lw_2',   name:'쿠팡 정기결제',        meta:'4월 27일',     date:'2026-04-27', amount:-29900,   type:'normal',  mcc:'쇼핑',      category:'구독료',    categoryAuto:true  },
 
   // 더 전
-  { id:'log_old_1', name:'박철수 외주비 입금', meta:'4월 20일', date:'2026-04-20', amount:1500000, type:'plus', tag:'받은 자금', emoji:'↙', mcc:'외주비' },
-  { id:'log_old_2', name:'이호형에게 송금', meta:'4월 18일', date:'2026-04-18', amount:-50000, type:'normal', emoji:'↗', mcc:'개인 송금', tag:'선물' },
+  { id:'log_old_1',  name:'박철수 외주비 입금',   meta:'4월 20일',     date:'2026-04-20', amount:1500000,  type:'plus',    mcc:'외주비',    category:null,        categoryAuto:false, tag:'받은 자금' },
+  { id:'log_old_2',  name:'이호형에게 송금',       meta:'4월 18일',     date:'2026-04-18', amount:-50000,   type:'normal',  mcc:'개인 송금', category:'개인사용',  categoryAuto:false, tag:'선물' },
 ]
+
+const PURPOSE_OPTIONS = ['운영', '출장식대', '복리후생', '기타', '개인사용']
 
 // 날짜 그룹핑 헬퍼
 function getGroup(dateStr) {
@@ -51,6 +53,74 @@ const FILTER_TABS = [
   { id:'normal',  label:'정상' },
   { id:'plus',    label:'입금' },
 ]
+
+// ─── 카테고리 태그 ────────────────────────────────────────
+function CategoryTag({ log, override, onClassify }) {
+  const cat = override ?? log.category
+  const isAuto = !override && log.categoryAuto
+  const isUnclassified = cat === null
+  const isBlocked = log.type === 'blocked' || log.type === 'risk'
+  if (isBlocked) return null
+
+  if (isUnclassified) {
+    return (
+      <button onClick={e => { e.stopPropagation(); onClassify(log) }}
+        style={{ display:'inline-flex', alignItems:'center', gap:'4px',
+          padding:'2px 8px', borderRadius:'5px',
+          background:'#FFFBEB', border:'1px solid #FDE68A',
+          fontSize:'10px', fontWeight:700, color:'#92400E',
+          cursor:'pointer', fontFamily:'inherit', flexShrink:0 }}>
+        ⚠ 미분류 · 분류하기
+      </button>
+    )
+  }
+  if (isAuto) {
+    return (
+      <span style={{ display:'inline-flex', alignItems:'center', gap:'3px',
+        padding:'2px 8px', borderRadius:'5px',
+        background:'#F0FDF4', border:'1px solid #BBF7D0',
+        fontSize:'10px', fontWeight:700, color:'#047857', flexShrink:0 }}>
+        ✦ {cat} · 자동
+      </span>
+    )
+  }
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:'3px',
+      padding:'2px 8px', borderRadius:'5px',
+      background:'#EFF6FF', border:'1px solid #BFDBFE',
+      fontSize:'10px', fontWeight:700, color:'#1D4ED8', flexShrink:0 }}>
+      ✓ {cat}
+    </span>
+  )
+}
+
+// ─── 분류 바텀시트 ────────────────────────────────────────
+function ClassifySheet({ target, onSelect, onClose }) {
+  if (!target) return null
+  return (
+    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', zIndex:300,
+      display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
+      onClick={onClose}>
+      <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'20px 16px 36px' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ width:'36px', height:'4px', background:'#E9EAEC', borderRadius:'2px', margin:'0 auto 18px' }} />
+        <div style={{ fontSize:'15px', fontWeight:700, color:'#111827', marginBottom:'4px' }}>결제 목적 분류</div>
+        <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'16px' }}>{target.name}</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'8px' }}>
+          {PURPOSE_OPTIONS.map((opt, i) => (
+            <button key={opt} onClick={() => onSelect(target.id, opt)}
+              style={{ padding:'14px 0', background:'#F4F5F7', border:'1px solid #E9EAEC',
+                borderRadius:'10px', fontSize:'14px', fontWeight:600, color:'#374151',
+                cursor:'pointer', fontFamily:'inherit', textAlign:'center',
+                gridColumn: i === PURPOSE_OPTIONS.length - 1 && PURPOSE_OPTIONS.length % 2 === 1 ? 'span 2' : undefined }}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── 다크 헤더 ─────────────────────────
 function DarkHeader({ cardLabel, count, onBack, onJustify, selectMode }) {
@@ -138,26 +208,25 @@ export default function PaymentLogs() {
   const location = useLocation()
   const cardLabel = location.state?.cardLabel || null
   const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState([])
   const [justifyModal, setJustifyModal] = useState(false)
+  const [purposeOverrides, setPurposeOverrides] = useState({})
+  const [classifyTarget, setClassifyTarget] = useState(null)
+
+  const handleClassify = (log) => setClassifyTarget(log)
+  const handleClassifySelect = (id, purpose) => {
+    setPurposeOverrides(prev => ({ ...prev, [id]: purpose }))
+    setClassifyTarget(null)
+  }
 
   // 필터 + 검색 적용
   const filtered = useMemo(() => {
     return ALL_LOGS.filter(log => {
-      // 필터
       if (filter !== 'all' && log.type !== filter) return false
-      // 검색
-      if (search.trim()) {
-        const q = search.trim().toLowerCase()
-        if (!log.name.toLowerCase().includes(q) && !log.mcc?.toLowerCase().includes(q)) {
-          return false
-        }
-      }
       return true
     })
-  }, [filter, search])
+  }, [filter])
 
   // 날짜 그룹핑
   const grouped = useMemo(() => {
@@ -239,46 +308,6 @@ export default function PaymentLogs() {
               )}
             </div>
           )}
-
-          {/* 검색 input */}
-          <div style={{
-            background: COLORS.bgCard,
-            boxShadow: SHADOWS.card,
-            borderRadius: RADIUS.lg,
-            padding:'12px 14px',
-            display:'flex', alignItems:'center', gap:'10px',
-            marginBottom:'14px',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.t4} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="가맹점·카테고리 검색"
-              style={{
-                flex:1, fontSize:'13px',
-                color: COLORS.t1,
-                background:'transparent', border:'none', outline:'none', fontFamily:'inherit',
-              }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')}
-                style={{
-                  width:'18px', height:'18px',
-                  background: COLORS.bgMuted, border:'none', borderRadius:'50%',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor:'pointer', padding:0, flexShrink:0,
-                }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={COLORS.t4} strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            )}
-          </div>
 
           {/* 필터 탭 (가로 스크롤) */}
           <div style={{
@@ -369,8 +398,16 @@ export default function PaymentLogs() {
                   overflow:'hidden',
                 }}>
                   {grouped[groupName].map((log, i, arr) => {
-                    const blocked = log.type === 'blocked'
+                    const blocked  = log.type === 'blocked' || log.type === 'risk'
                     const incoming = log.type === 'plus'
+                    const isSelected = selected.includes(log.id)
+
+                    const dotColor    = blocked ? '#EF4444' : incoming ? '#10B981' : '#D1D5DB'
+                    const amountColor = blocked ? '#DC2626' : incoming ? '#047857' : '#111827'
+                    const amountText  = blocked
+                      ? 'MCC 차단'
+                      : `${incoming ? '+' : '-'}${Math.abs(log.amount).toLocaleString()}원`
+
                     return (
                       <button key={log.id}
                         onClick={() => {
@@ -381,109 +418,74 @@ export default function PaymentLogs() {
                           }
                         }}
                         style={{
-                          width:'100%', padding:'14px',
-                          background: selectMode && selected.includes(log.id) ? theme.brandDark+'08' : 'transparent',
+                          width:'100%', padding:'12px 16px',
+                          background: isSelected ? '#F0F6FF' : 'transparent',
                           border:'none',
-                          borderBottom: i < arr.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none',
-                          display:'flex', alignItems:'center', gap:'12px',
+                          borderBottom: i < arr.length-1 ? `1px solid #F0F1F3` : 'none',
+                          display:'flex', alignItems:'center', gap:'10px',
                           cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-                          transition:'background .1s',
+                          transition:'background 0.1s',
                         }}>
+
+                        {/* 선택 체크박스 */}
                         {selectMode && (
-                          <div style={{
-                            width:'20px', height:'20px', borderRadius:'6px', flexShrink:0,
-                            border:`2px solid ${selected.includes(log.id) ? theme.brandDark : COLORS.borderSoft}`,
-                            background: selected.includes(log.id) ? theme.brandDark : '#fff',
-                            display:'flex', alignItems:'center', justifyContent:'center',
-                          }}>
-                            {selected.includes(log.id) && (
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <div style={{ width:'22px', height:'22px', borderRadius:'7px', flexShrink:0,
+                            border:`2px solid ${isSelected ? theme.brandDark : '#D1D5DB'}`,
+                            background: isSelected ? theme.brandDark : '#fff',
+                            display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            {isSelected && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="20 6 9 17 4 12"/>
                               </svg>
                             )}
                           </div>
                         )}
-                        <div style={{
-                          width:'40px', height:'40px',
-                          background: log.type==='risk' ? '#FEE2E2'
-                                    : blocked ? COLORS.dangerBg
-                                    : incoming ? '#D1FAE5'
-                                    : COLORS.bgMuted,
-                          borderRadius: RADIUS.md,
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:'17px',
-                          color: log.type==='risk' ? '#DC2626'
-                               : blocked ? '#B91C1C'
-                               : incoming ? '#059669'
-                               : COLORS.t3,
-                          flexShrink:0,
-                          position:'relative',
-                        }}>
-                          {log.emoji}
-                          {blocked && (
-                            <div style={{
-                              position:'absolute',
-                              right:'-3px', bottom:'-3px',
-                              width:'18px', height:'18px',
-                              borderRadius:'50%',
-                              background: COLORS.danger,
-                              display:'flex', alignItems:'center', justifyContent:'center',
-                              border:`2px solid ${COLORS.bgCard}`,
-                            }}>
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                              </svg>
-                            </div>
-                          )}
-                        </div>
+
+                        {/* 상태 도트 */}
+                        <div style={{ width:'6px', height:'6px', borderRadius:'50%', flexShrink:0,
+                          background: dotColor }} />
+
+                        {/* 메인 콘텐츠 — 2줄 레이아웃 */}
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{
-                            display:'flex', alignItems:'center', gap:'6px',
-                            marginBottom:'3px', flexWrap:'wrap',
-                          }}>
-                            <span style={{
-                              fontSize:'13px', fontWeight:700,
-                              color: blocked ? '#B91C1C' : COLORS.t1,
-                            }}>
+                          {/* 1줄: 가맹점명(좌) + 금액(우) */}
+                          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:'8px', marginBottom:'4px' }}>
+                            <span style={{ fontSize:'13px', fontWeight:600,
+                              color: blocked ? '#DC2626' : '#111827',
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
                               {log.name}
                             </span>
-                            {log.tag && (
-                              <span style={{
-                                padding:'1px 6px',
-                                background: incoming ? '#D1FAE5' : `${theme.brandDark}18`,
-                                color: incoming ? '#047857' : '#7C3AED',
-                                borderRadius:'3px',
-                                fontSize:'9px', fontWeight:700,
-                              }}>
-                                {log.tag}
-                              </span>
-                            )}
-                            {blocked && (
-                              <span style={{
-                                padding:'1px 6px',
-                                background: COLORS.danger,
-                                color:'#fff',
-                                borderRadius:'3px',
-                                fontSize:'9px', fontWeight:700,
-                              }}>
-                                차단됨
-                              </span>
-                            )}
+                            <span style={{ fontSize:'13px', fontWeight:700, color: amountColor, flexShrink:0 }}>
+                              {amountText}
+                            </span>
                           </div>
-                          <div style={{ fontSize:'11px', color: COLORS.t4 }}>
-                            {log.meta} · {log.mcc}
+                          {/* 2줄: 서브정보(좌) + 분류 태그(우) */}
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px' }}>
+                            <span style={{ fontSize:'11px', color:'#9CA3AF',
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {log.meta} · {log.mcc}
+                              {log.tag && !incoming && (
+                                <span style={{ marginLeft:'4px', padding:'1px 6px', borderRadius:'3px',
+                                  background:`${theme.brandDark}18`, color: theme.brandDark,
+                                  fontSize:'9px', fontWeight:700 }}>
+                                  {log.tag}
+                                </span>
+                              )}
+                            </span>
+                            {blocked ? (
+                              <span style={{ flexShrink:0, padding:'2px 8px', borderRadius:'5px',
+                                background:'#FEE2E2', color:'#DC2626',
+                                fontSize:'10px', fontWeight:700 }}>
+                                MCC 차단
+                              </span>
+                            ) : (
+                              <CategoryTag
+                                log={log}
+                                override={purposeOverrides[log.id]}
+                                onClassify={handleClassify}
+                              />
+                            )}
                           </div>
                         </div>
-                        <span style={{
-                          fontSize:'14px', fontWeight:700,
-                          color: blocked ? COLORS.danger
-                               : incoming ? '#10B981'
-                               : COLORS.t2,
-                          flexShrink:0,
-                        }}>
-                          {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}원
-                        </span>
                       </button>
                     )
                   })}
@@ -533,6 +535,13 @@ export default function PaymentLogs() {
           </div>
         )
       })()}
+
+      {/* 분류 바텀시트 */}
+      <ClassifySheet
+        target={classifyTarget}
+        onSelect={handleClassifySelect}
+        onClose={() => setClassifyTarget(null)}
+      />
     </PhoneShell>
   )
 }

@@ -5,6 +5,15 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import MccBlock, { DEFAULT_MCC } from './execute/MccBlock'
 
+// ─── 카드별 색상 팔레트 (순환 사용) ─────────────────────
+const CARD_PALETTES = [
+  { grad: 'linear-gradient(135deg,#0A1628 0%,#0F2035 40%,#1E3A5F 70%,#0A1628 100%)', glow:'rgba(30,90,160,0.45)', tint:'#EFF6FF', tintBorder:'#BFDBFE' },  // 네이비 (주 카드)
+  { grad: 'linear-gradient(135deg,#0D2018 0%,#0F3020 40%,#1A4D30 70%,#0D2018 100%)', glow:'rgba(20,120,60,0.40)', tint:'#F0FDF4', tintBorder:'#BBF7D0' },  // 딥그린 (법인)
+  { grad: 'linear-gradient(135deg,#1A0A28 0%,#2D1245 40%,#3D1A5E 70%,#1A0A28 100%)', glow:'rgba(100,50,180,0.45)', tint:'#F5F3FF', tintBorder:'#DDD6FE' },  // 퍼플 (임직원)
+  { grad: 'linear-gradient(135deg,#1A1000 0%,#2D2000 40%,#4A3500 70%,#1A1000 100%)', glow:'rgba(160,110,0,0.40)',  tint:'#FFFBEB', tintBorder:'#FDE68A' },  // 골드 (여행)
+  { grad: 'linear-gradient(135deg,#1A0A0A 0%,#2D1010 40%,#4A1A1A 70%,#1A0A0A 100%)', glow:'rgba(160,30,30,0.40)', tint:'#FEF2F2', tintBorder:'#FECACA' },  // 레드 (추가)
+]
+
 // ─────────────────────────────────────────────────────────
 // 데모 카드 데이터
 // ─────────────────────────────────────────────────────────
@@ -67,19 +76,16 @@ function fmt(n) { return Number(n || 0).toLocaleString('ko-KR') }
 // ─────────────────────────────────────────────────────────
 // 카드 비주얼
 // ─────────────────────────────────────────────────────────
-function PhysicalCard({ card, paused, revealed, onDetailClick }) {
+function PhysicalCard({ card, paused, revealed, onDetailClick, palette }) {
   const theme = getAccountTheme()
-  // 계정 타입별 카드 그라데이션
-  const userType = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizType') : null
-  const cardGrad = userType === 'business'
-    ? `linear-gradient(135deg, #0A1628 0%, #0F2035 40%, #1E3A5F 70%, #0A1628 100%)`
-    : `linear-gradient(135deg, #0A0A12 0%, #1A1238 35%, #2D1B5E 70%, #0A0A12 100%)`
-  const glowColor = userType === 'business' ? `${theme.brandDark}55` : `${theme.brandDark}45`
-  const shineColor = userType === 'business' ? 'rgba(56,189,248,0.18)' : 'rgba(168,139,255,0.22)'
+  const cardGrad  = palette?.grad  || 'linear-gradient(135deg,#0A1628 0%,#0F2035 40%,#1E3A5F 70%,#0A1628 100%)'
+  const glowColor = palette?.glow  || `${theme.brandDark}55`
+  const shineColor = 'rgba(255,255,255,0.10)'
 
   return (
     <div style={{
       background: cardGrad,
+      transition: 'background 0.4s ease',
       borderRadius: RADIUS.lg,
       padding: '20px',
       position: 'relative',
@@ -282,9 +288,14 @@ function MCCSheet({ mccItems, onChange, onClose }) {
         </div>
         <div style={{ fontSize:'12px', color: COLORS.t4, marginBottom:'16px' }}>차단 항목은 이 카드로 결제 불가합니다.</div>
         <MccBlock items={mccItems} onChange={onChange} theme={theme} />
-        <button onClick={onClose} style={{ width:'100%', height:'50px', marginTop:'16px', background: theme.brandDark, color:'#fff', border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-          저장
-        </button>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginTop:'16px' }}>
+          <button onClick={onClose} style={{ height:'50px', background: COLORS.bgMuted, color: COLORS.t2, border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+            취소
+          </button>
+          <button onClick={onClose} style={{ height:'50px', background: theme.brandDark, color:'#fff', border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            저장
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -301,12 +312,13 @@ export default function CardPayment() {
   const [cards, setCards] = useState(INITIAL_CARDS)
   const [selectedIdx, setSelectedIdx] = useState(0)
 
-  // 카드별 독립 state (paused, revealed, mccItems)
+  // 카드별 독립 state (paused, revealed, mccItems, walletId)
   const [cardStates, setCardStates] = useState(() =>
     Object.fromEntries(INITIAL_CARDS.map(c => [c.id, {
       paused: false,
       revealed: false,
       mccItems: DEFAULT_MCC.map(m => ({ ...m })),
+      walletId: 'my',
     }]))
   )
 
@@ -314,11 +326,11 @@ export default function CardPayment() {
   const [showFaceID, setShowFaceID] = useState(false)
   const [showIssue, setShowIssue] = useState(false)
   const [showMCC, setShowMCC] = useState(false)
+
   const [showWalletPicker, setShowWalletPicker] = useState(false)
-  const [selectedWalletId, setSelectedWalletId] = useState('my')
 
   const card = cards[selectedIdx]
-  const cs = cardStates[card?.id] || { paused:false, revealed:false, mccItems: DEFAULT_MCC }
+  const cs = cardStates[card?.id] || { paused:false, revealed:false, mccItems: DEFAULT_MCC, walletId:'my' }
 
   const updateCardState = (cardId, patch) =>
     setCardStates(prev => ({ ...prev, [cardId]: { ...prev[cardId], ...patch } }))
@@ -341,10 +353,13 @@ export default function CardPayment() {
       balance: 0,
     }
     setCards(prev => [...prev, newCard])
-    setCardStates(prev => ({ ...prev, [newCard.id]: { paused:false, revealed:false, mccItems: DEFAULT_MCC.map(m=>({...m})) } }))
+    setCardStates(prev => ({ ...prev, [newCard.id]: { paused:false, revealed:false, mccItems: DEFAULT_MCC.map(m=>({...m})), walletId:'my' } }))
     setSelectedIdx(cards.length)
     setShowIssue(false)
   }
+
+  // 카드별 색상 팔레트 (인덱스 기준 순환)
+  const palette = CARD_PALETTES[selectedIdx % CARD_PALETTES.length]
 
   const thisMonth = new Date().getMonth() + 1
   const allPayments  = CARD_PAYMENTS[card?.id] || []
@@ -385,6 +400,7 @@ export default function CardPayment() {
               paused={cs.paused}
               revealed={cs.revealed}
               onDetailClick={handleDetailClick}
+              palette={palette}
             />
           </div>
 
@@ -410,7 +426,7 @@ export default function CardPayment() {
 
           {/* ③ 출금 지갑 */}
           {(() => {
-            const w = WALLET_PRIORITY.find(w => w.id === selectedWalletId) || WALLET_PRIORITY[0]
+            const w = WALLET_PRIORITY.find(w => w.id === cs.walletId) || WALLET_PRIORITY[0]
             return (
               <div style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'12px 14px', display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
                 <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t4, flexShrink:0 }}>출금 지갑</span>
@@ -433,7 +449,7 @@ export default function CardPayment() {
           </div>
 
           {/* ⑤ 이번 달 사용 요약 */}
-          <div onClick={() => navigate('/payments', { state: { cardLabel: card.label } })} style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding:'14px 16px', marginBottom:'14px', cursor:'pointer' }}>
+          <div onClick={() => navigate('/payments', { state: { cardLabel: card.label } })} style={{ background: palette.tint, border:`1px solid ${palette.tintBorder}`, borderRadius: RADIUS.lg, padding:'14px 16px', marginBottom:'14px', cursor:'pointer', transition:'background 0.4s ease, border-color 0.4s ease' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'10px' }}>
               <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t4 }}>{thisMonth}월 카드 사용액</span>
               <span style={{ fontSize:'11px', fontWeight:600, color: COLORS.t3 }}>{monthlyCount}건</span>
@@ -530,9 +546,9 @@ export default function CardPayment() {
             <div style={{ fontSize:'12px', color: COLORS.t4, marginBottom:'16px' }}>선택한 지갑에서 카드 결제가 차감됩니다.</div>
             <div style={{ background: COLORS.bg, borderRadius: RADIUS.lg, overflow:'hidden', marginBottom:'16px' }}>
               {WALLET_PRIORITY.map((w, i, arr) => {
-                const isSelected = selectedWalletId === w.id
+                const isSelected = cs.walletId === w.id
                 return (
-                  <button key={w.id} onClick={() => { setSelectedWalletId(w.id); setShowWalletPicker(false) }} style={{ width:'100%', padding:'14px 16px', background: isSelected ? `${theme.brandDark}10` : 'transparent', border:'none', borderBottom: i<arr.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none', display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+                  <button key={w.id} onClick={() => { updateCardState(card.id, { walletId: w.id }); setShowWalletPicker(false) }} style={{ width:'100%', padding:'14px 16px', background: isSelected ? '#fff' : 'transparent', border:'none', borderBottom: i<arr.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none', display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
                     <span style={{ width:'8px', height:'8px', borderRadius:'50%', background: w.dotColor, flexShrink:0 }} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:'13px', fontWeight:700, color: isSelected ? theme.brandDark : COLORS.t1, marginBottom:'2px' }}>{w.label}</div>

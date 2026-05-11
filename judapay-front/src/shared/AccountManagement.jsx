@@ -492,7 +492,13 @@ export default function AccountManagement() {
             marginBottom: '20px',
             paddingTop: '8px', // 대표 배지 공간
           }}>
-            {accounts.map(acc => (
+            {accounts.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#9CA3AF', lineHeight: 1.7 }}>
+                  등록된 계좌가 없습니다.
+                </div>
+              </div>
+            ) : accounts.map(acc => (
               <AccountCard key={acc.id}
                 account={acc}
                 onMore={() => setSheetAccount(acc)}

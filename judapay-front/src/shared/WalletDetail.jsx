@@ -171,7 +171,13 @@ export default function WalletDetail() {
 
           {/* 거래 내역 */}
           <div style={{ padding: '0 16px 32px' }}>
-            {Object.entries(groups).map(([group, txns]) => (
+            {Object.entries(groups).length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#9CA3AF', lineHeight: 1.7 }}>
+                  해당 거래 내역이 없습니다.
+                </div>
+              </div>
+            ) : Object.entries(groups).map(([group, txns]) => (
               <div key={group} style={{ marginBottom: '16px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.t4, marginBottom: '8px', padding: '0 4px' }}>
                   {group}

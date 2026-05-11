@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import BottomTab from '../components/BottomTab'
 import {
   PhoneShell, GradientHeader, PageTitle, Card, ProgressBar, Badge, FilterChips,
@@ -332,6 +332,15 @@ const CHATS = {
         milestone: { text: 'UI 시안 1차 납품', done: true, code: 'SC_001' }
       },
       { id:9, from:'other', text:'검수 확인 후 잔금 부탁드립니다', time:'14:22', date:'2026.05.06' },
+      { id:10, from:'system', type:'reviewRequest', time:'15:30', date:'2026.05.12',
+        reviewRequest: {
+          reworkRequest: true,
+          deadlineExtension: true,
+          newDeadline: '2026.05.30',
+          message: '알림 모듈 미구현 항목을 수정하여 재제출해 주세요. 마감일을 5월 30일로 연장합니다.',
+          itemTitle: '앱 기능 개발 외주 결과물 검수',
+        }
+      },
     ],
     fdsAlert: { text: '박철수 · GS강남게임센터 결제 시도 차단됨 · MCC 7993', level: 'block' },
   },
@@ -1138,6 +1147,87 @@ function ChatRoom({ thread, chat, onBack, onOpenDetail }) {
                   </div>
                 </div>
 
+              ) : msg.from === 'system' && msg.type === 'reviewRequest' ? (
+                /* ── 검수 추가 요청 카드 ── */
+                (() => {
+                  const rr = msg.reviewRequest
+                  return (
+                    <div style={{ margin:'6px 0' }}>
+                      <div style={{
+                        background:'#FAF5FF',
+                        border:'1.5px solid #C4B5FD',
+                        borderRadius:'14px',
+                        overflow:'hidden',
+                      }}>
+                        {/* 헤더 */}
+                        <div style={{
+                          background:'linear-gradient(135deg,#7C3AED 0%,#6D28D9 100%)',
+                          padding:'10px 14px',
+                          display:'flex', alignItems:'center', gap:'8px',
+                        }}>
+                          <span style={{ fontSize:'16px' }}>🔄</span>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:'12px', fontWeight:800, color:'#fff' }}>검수 추가 요청</div>
+                            <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.7)', marginTop:'1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {rr.itemTitle}
+                            </div>
+                          </div>
+                        </div>
+                        {/* 요청 태그 */}
+                        <div style={{ padding:'10px 14px 0', display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                          {rr.reworkRequest && (
+                            <span style={{
+                              display:'inline-flex', alignItems:'center', gap:'4px',
+                              padding:'3px 9px', borderRadius:'20px',
+                              background:'#EDE9FE', color:'#6D28D9',
+                              fontSize:'11px', fontWeight:700,
+                            }}>
+                              🔄 결과물 재요청
+                            </span>
+                          )}
+                          {rr.deadlineExtension && (
+                            <span style={{
+                              display:'inline-flex', alignItems:'center', gap:'4px',
+                              padding:'3px 9px', borderRadius:'20px',
+                              background:'#FEF3C7', color:'#92400E',
+                              fontSize:'11px', fontWeight:700,
+                            }}>
+                              📅 마감일 연장{rr.newDeadline ? ` · ${rr.newDeadline}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        {/* 메시지 본문 */}
+                        <div style={{ padding:'8px 14px 12px' }}>
+                          <div style={{
+                            fontSize:'12px', color:'#374151', lineHeight:1.65,
+                            background:'#F5F3FF', borderRadius:'8px',
+                            padding:'8px 10px', borderLeft:'3px solid #7C3AED',
+                          }}>
+                            {rr.message}
+                          </div>
+                        </div>
+                        {/* 하단 액션 */}
+                        <div style={{
+                          borderTop:'1px solid #EDE9FE',
+                          padding:'8px 14px',
+                          display:'flex', justifyContent:'flex-end',
+                        }}>
+                          <button style={{
+                            padding:'5px 14px', borderRadius:'20px',
+                            background:'#7C3AED', color:'#fff', border:'none',
+                            fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                          }}>
+                            확인
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ textAlign:'center', marginTop:'3px' }}>
+                        <span style={{ fontSize:'10px', color: COLORS.t5 }}>{msg.time}</span>
+                      </div>
+                    </div>
+                  )
+                })()
+
               ) : msg.from === 'system' && msg.type === 'storeNotification' ? (
                 /* ── store 통지형 카드 (메뉴별 색상) ── */
                 (() => {
@@ -1421,11 +1511,20 @@ function ChatRoom({ thread, chat, onBack, onOpenDetail }) {
 export default function Messages() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const { userType } = useUser()
   const currentUserId = getCurrentUserId(userType)
   const [activeThread, setActiveThread] = useState(null)  // null | string
   const [showDetail, setShowDetail]   = useState(false)
   const [filter, setFilter] = useState('전체')
+
+  // 외부에서 특정 스레드 자동 진입 (e.g. ApprovalCenter 검수 요청 전송 후)
+  useEffect(() => {
+    if (location.state?.threadId) {
+      setActiveThread(location.state.threadId)
+      setShowDetail(false)
+    }
+  }, [location.state?.threadId])
 
   // store에서 본인 스레드 구독
   const storeThreadGroups = useStoreData(
