@@ -163,7 +163,7 @@ function DarkHeader({ cardLabel, count, onBack, onJustify, selectMode }) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          소명요청
+          내역확인요청
         </button>
       </div>
 
@@ -211,6 +211,9 @@ export default function PaymentLogs() {
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState([])
   const [justifyModal, setJustifyModal] = useState(false)
+  const [justifyMsg, setJustifyMsg] = useState('')
+  const [claimReq, setClaimReq] = useState(true)
+  const [evidReq, setEvidReq] = useState(false)
   const [purposeOverrides, setPurposeOverrides] = useState({})
   const [classifyTarget, setClassifyTarget] = useState(null)
 
@@ -303,7 +306,7 @@ export default function PaymentLogs() {
                     cursor:'pointer', fontFamily:'inherit',
                     boxShadow: theme.activeShadow,
                   }}>
-                  💬 소명요청 {selected.length}건
+                  💳 사용내역확인 {selected.length}건
                 </button>
               )}
             </div>
@@ -496,20 +499,21 @@ export default function PaymentLogs() {
         </div>
       </div>
 
-      {/* 소명요청 모달 */}
+      {/* 사용내역확인 모달 */}
       {justifyModal && (() => {
         const selLogs = filtered.filter(l => selected.includes(l.id))
-        const recipients = [...new Set(selLogs.map(l => l.name))].slice(0,3).join(', ')
+        const canSend = (claimReq || evidReq) && justifyMsg.trim().length >= 1
         return (
           <div style={{ position:'absolute', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
             <div onClick={() => setJustifyModal(false)} style={{ flex:1, background:'rgba(0,0,0,0.5)' }} />
-            <div style={{ background:'#fff', borderRadius:'24px 24px 0 0', padding:'20px 20px 36px' }}>
-              <div style={{ width:'36px', height:'4px', borderRadius:'2px', background:'#E5E7EB', margin:'0 auto 18px' }} />
-              <div style={{ fontSize:'17px', fontWeight:700, color:COLORS.t1, marginBottom:'4px' }}>소명요청 메시지</div>
+            <div style={{ background:'#fff', borderRadius:'24px 24px 0 0', padding:'20px 20px 36px', maxHeight:'85vh', overflowY:'auto' }}>
+              <div style={{ width:'36px', height:'4px', borderRadius:'2px', background:'#E5E7EB', margin:'0 auto 16px' }} />
+              <div style={{ fontSize:'16px', fontWeight:700, color:COLORS.t1, marginBottom:'3px' }}>사용내역확인 요청</div>
               <div style={{ fontSize:'12px', color:COLORS.t4, marginBottom:'14px' }}>
-                {recipients} 외 · 플랫폼 메시지로 전송
+                {selLogs.length}건 선택 · 플랫폼 메시지로 전송
               </div>
-              <div style={{ background:COLORS.bg, borderRadius:RADIUS.md, padding:'10px 12px', marginBottom:'12px', maxHeight:'100px', overflowY:'auto' }}>
+              {/* 선택 항목 */}
+              <div style={{ background:COLORS.bg, borderRadius:RADIUS.md, padding:'10px 12px', marginBottom:'14px', maxHeight:'90px', overflowY:'auto' }}>
                 {selLogs.map((l,i) => (
                   <div key={i} style={{ fontSize:'11px', color:COLORS.t2, padding:'2px 0', display:'flex', justifyContent:'space-between' }}>
                     <span>{l.name}</span>
@@ -517,18 +521,55 @@ export default function PaymentLogs() {
                   </div>
                 ))}
               </div>
-              <textarea
-                defaultValue={`[소명요청] 아래 ${selLogs.length}건의 결제에 대한 사용 목적 및 영수증을 소명해 주세요.`}
-                style={{ width:'100%', height:'90px', padding:'12px', borderRadius:'12px', border:`1.5px solid ${COLORS.borderSoft}`, fontSize:'13px', color:COLORS.t1, fontFamily:'inherit', resize:'none', outline:'none', boxSizing:'border-box', lineHeight:1.6 }}
-              />
-              <div style={{ display:'flex', gap:'10px', marginTop:'12px' }}>
+              {/* 요청 유형 */}
+              <div style={{ fontSize:'11px', fontWeight:700, color:COLORS.t2, marginBottom:'8px' }}>요청 유형</div>
+              {[
+                { key:'claim', label:'소명 요청', sub:'결제 목적·사유 소명 요청', on: claimReq, set: setClaimReq, color:'#4F46E5', activeBg:'#EEF2FF', activeBorder:'#A5B4FC' },
+                { key:'evid',  label:'증빙 요청', sub:'영수증·서류 첨부 요청',     on: evidReq,  set: setEvidReq,  color:'#0891B2', activeBg:'#ECFEFF', activeBorder:'#A5F3FC' },
+              ].map(opt => (
+                <div key={opt.key} onClick={() => opt.set(v => !v)}
+                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                    padding:'10px 13px', borderRadius:'12px', marginBottom:'7px', cursor:'pointer',
+                    background: opt.on ? opt.activeBg : COLORS.bgMuted,
+                    border: `1.5px solid ${opt.on ? opt.activeBorder : COLORS.borderSoft}`,
+                    transition:'all 0.15s' }}>
+                  <div>
+                    <div style={{ fontSize:'13px', fontWeight:700, color: opt.on ? opt.color : COLORS.t1 }}>{opt.label}</div>
+                    <div style={{ fontSize:'11px', color:COLORS.t4, marginTop:'1px' }}>{opt.sub}</div>
+                  </div>
+                  <div style={{ width:'22px', height:'22px', borderRadius:'6px', flexShrink:0,
+                    background: opt.on ? opt.color : COLORS.borderSoft,
+                    display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s' }}>
+                    {opt.on && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {/* 메시지 */}
+              <div style={{ fontSize:'11px', fontWeight:700, color:COLORS.t2, margin:'12px 0 8px' }}>요청 메시지</div>
+              <textarea value={justifyMsg} onChange={e => setJustifyMsg(e.target.value)}
+                rows={3} placeholder="확인을 요청할 내용을 입력하세요"
+                style={{ width:'100%', borderRadius:'10px', border:`1px solid ${COLORS.borderSoft}`,
+                  padding:'10px 12px', fontSize:'12px', color:COLORS.t1, fontFamily:'inherit',
+                  resize:'none', outline:'none', background:COLORS.bg, marginBottom:'12px',
+                  boxSizing:'border-box', lineHeight:1.6 }} />
+              {/* 버튼 */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:'8px' }}>
                 <button onClick={() => setJustifyModal(false)}
-                  style={{ flex:1, padding:'14px', background:COLORS.bgMuted, border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:600, color:COLORS.t2, cursor:'pointer', fontFamily:'inherit' }}>
-                  취소
-                </button>
-                <button onClick={() => { setJustifyModal(false); setSelectMode(false); setSelected([]) }}
-                  style={{ flex:2, padding:'14px', background:theme.activeBtnGrad, border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, color:'#fff', cursor:'pointer', fontFamily:'inherit', boxShadow:theme.activeShadow }}>
-                  💬 메시지 발송
+                  style={{ height:'46px', borderRadius:'13px', fontSize:'13px', fontWeight:600,
+                    background:COLORS.bgMuted, color:COLORS.t2, border:`1px solid ${COLORS.borderSoft}`,
+                    cursor:'pointer', fontFamily:'inherit' }}>취소</button>
+                <button onClick={() => { if(canSend){ setJustifyModal(false); setSelectMode(false); setSelected([]); setJustifyMsg(''); setClaimReq(true); setEvidReq(false) } }}
+                  disabled={!canSend}
+                  style={{ height:'46px', borderRadius:'13px', fontSize:'13px', fontWeight:700,
+                    background: canSend ? theme.activeBtnGrad : COLORS.borderSoft,
+                    color: canSend ? '#fff' : COLORS.t4, border:'none',
+                    cursor: canSend ? 'pointer' : 'default', fontFamily:'inherit',
+                    boxShadow: canSend ? theme.activeShadow : 'none' }}>
+                  💬 메시지로 전송
                 </button>
               </div>
             </div>

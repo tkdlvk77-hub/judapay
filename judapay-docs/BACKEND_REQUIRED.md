@@ -25,9 +25,65 @@
 
 ---
 
-## 💳 결제 목적 분류 API (v3.0 신규)
+## 💳 카드 결제 자동 카테고리 분류 (v3.1 신규)
 
-### 결제 건 분류 저장
+### 프론트엔드 구현 현황 (데모)
+```
+파일: src/shared/merchantCategoryMapper.js
+
+구조:
+  MCC_RANGES   — Visa/Mastercard MCC 코드 범위 50개 → mainCat/subCat 매핑
+  KEYWORD_RULES — 가맹점명 키워드 → mainCat/subCat 매핑 (브랜드명 직접 매칭)
+  autoClassify(merchant, mcc?) — 분류 함수
+
+분류 우선순위:
+  1. 가맹점명 키워드 매핑  (스타벅스 → 출장식대, AWS → 구독료 등)
+  2. MCC 코드 범위 매핑   (5812~5814 음식점 → 출장식대 등)
+  3. 미분류               (mainCat: '미분류', subCat: '미분류')
+
+현재 PaymentAlerts.jsx:
+  → PROCESSED_PAYMENTS = ALL_PAYMENTS.map(p => autoClassify 적용)
+  → 데모용: 표시 직전 런타임에서 분류 실행 (mock data 처리용)
+```
+
+### ⚠️ 프로덕션 전환 시 핵심 변경점
+```
+현재 (데모):
+  PaymentAlerts.jsx 렌더 시점에 autoClassify() 호출
+
+프로덕션:
+  카드사/쿠콘 결제 웹훅 수신 → autoClassify() 호출 → DB 저장
+  PaymentAlerts는 이미 분류된 데이터를 읽어서 표시만 함
+
+흐름:
+  카드사 웹훅 수신
+    ↓
+  POST /api/webhooks/card-payment
+    body: { merchantName, mccCode, amount, cardId, ... }
+    ↓
+  autoClassify(merchantName, mccCode) 호출
+    → matched: true  → mainCat/subCat DB 저장, categoryAuto: true
+    → matched: false → mainCat: '미분류', subCat: '미분류', categoryAuto: false
+    ↓
+  transaction 저장 + 실시간 알림 (WebSocket / FCM)
+    ↓
+  PaymentAlerts: DB에서 읽어 표시 (autoClassify 재호출 없음)
+```
+
+### 카테고리 체계 (ExecutionStats CATEGORY_GROUPS 동일)
+```
+대분류(mainCat) → 중분류(subCat)
+
+인건비: 급여, 외주비, 상여금, 경조사비, 기타소득, 4대보험
+운영비: 임대료, 렌트&리스, 구독료, 통신비, 공과금, 보험료,
+        출장식대, 복리후생, 기타 정기지출, 개인사용
+사업비: 마케팅비
+금융:   투자, 대여금
+세금:   세금
+미분류: 미분류  ← MCC/키워드 불일치 시, 세무사가 수동 분류
+```
+
+### 결제 건 분류 저장 API
 
 ```
 현재: purposeOverride state — 새로고침 시 초기화, 집계 미반영
@@ -35,28 +91,42 @@
 
 POST /api/payments/:id/classify
   body: {
-    purpose: '운영' | '출장식대' | '복리후생' | '기타' | '개인사용',
+    mainCat: '운영비' | '인건비' | '사업비' | '금융' | '세금' | '미분류',
+    subCat:  '출장식대' | '구독료' | '복리후생' | ... (중분류),
     classifiedBy: 'user' | 'system',
     memo?: string
   }
   response: {
     paymentId,
-    purpose,
+    mainCat, subCat,
     classifiedAt,
     classifiedBy,
   }
+
+※ 분류하기 바텀시트(ClassifySheet): 대분류 선택 → 중분류 선택 2단계 UI
+   선택 결과가 이 API로 전달됨
 ```
 
-### 자동 분류 (AI)
+### 카드 결제 웹훅 수신 API (신규)
 
 ```
-카드 결제 발생 시 시스템 자동 분류:
+POST /api/webhooks/card-payment
+  body: {
+    merchantName: string,  // 가맹점명
+    mccCode: number,       // MCC 코드 (카드사/VAN 제공)
+    amount: number,
+    cardId: string,
+    approvalNo: string,
+    approvedAt: string,
+  }
 
-POST /api/payments/auto-classify
-  body: { paymentId, merchantName, mccCode, amount }
-  → ML 모델 기반 추론
-  → purposeAuto: true로 저장
-  → 신뢰도 낮을 경우 purposeAuto: false (미분류 처리)
+처리 흐름:
+  1. autoClassify(merchantName, mccCode) 호출
+  2. matched: true  → categoryAuto: true, mainCat/subCat 자동 저장
+     matched: false → categoryAuto: false, mainCat: '미분류' 저장
+  3. transactions 테이블 INSERT
+  4. WebSocket 실시간 Push → PaymentAlerts 즉시 갱신
+  5. 미분류 건 발생 시 관리자 알림 발송
 ```
 
 ### 분류 집계 → 집행 통계 반영
@@ -65,11 +135,11 @@ POST /api/payments/auto-classify
 GET /api/stats/execution?period=monthly&type=card
   response: {
     categories: [
-      { purpose: '운영',    total: 3200000, count: 12 },
-      { purpose: '출장식대', total: 840000,  count: 8  },
-      { purpose: '복리후생', total: 520000,  count: 5  },
-      { purpose: '기타',    total: 180000,  count: 4  },
-      { purpose: '개인사용', total: 95000,   count: 2  },
+      { mainCat: '운영비', subCat: '출장식대', total: 840000,  count: 8  },
+      { mainCat: '운영비', subCat: '구독료',   total: 876900,  count: 3  },
+      { mainCat: '운영비', subCat: '복리후생', total: 520000,  count: 5  },
+      { mainCat: '운영비', subCat: '임대료',   total: 5800000, count: 1  },
+      ...
     ],
     unclassified: { total: 432000, count: 6 }
   }
@@ -79,10 +149,31 @@ GET /api/stats/execution?period=monthly&type=card
 
 ```
 [일 1회 스케줄러]
-  → 미분류(purpose: null) 건수 집계
-  → 관리자 알림: "미분류 결제 OO건 — 분류 필요"
+  → 미분류(mainCat: '미분류') 건수 집계
+  → 관리자 알림: "미분류 결제 OO건 — 세무사 분류 필요"
 
 API: GET /api/payments/unclassified-count
+```
+
+---
+
+## 📂 미분류 항목 처리 (기타 정기지출 / 기타지출)
+
+```
+대상 화면:
+  ExecuteMisc.jsx        — 기타 정기지출 관리 (세무사 자문료 등 미분류 항목 등록)
+  ExecuteOtherExpense.jsx — 기타 지출 상세 설정
+
+현재:
+  submit() / handleAdd() 호출 시 addTransaction 실행
+  mainCat: '미분류', subCat: '미분류' 로 저장됨
+
+백엔드 처리:
+  → 세무사 연동 화면에서 미분류 건 목록 노출
+  → 세무사가 수동으로 대분류/중분류 지정
+  → POST /api/transactions/:id/reclassify
+       body: { mainCat, subCat, classifiedBy: 'accountant', memo? }
+  → 집행 통계 실시간 반영
 ```
 
 ---
@@ -266,6 +357,12 @@ POST /api/coocon/nps/fetch
 근로복지공단 (고용보험 + 산재보험):
 POST /api/coocon/kwf/fetch
   → 고용보험 + 산재보험 고지 [{ type, month, amount, dueDate }]
+
+쿠콘 연동 완료 시 카테고리 자동 주입:
+  → mainCat: '인건비', subCat: '4대보험'
+  → addTransaction() 호출 시 TYPE_TO_CATEGORY['insurance4'] 자동 매핑
+  → ExecuteInsurance4.jsx는 쿠콘 고지 수집 데이터 표시 + 납부 처리로 전환
+     (현재: 납부 완료 시 수동 addTransaction 없음 → 쿠콘 웹훅 수신 시 자동 처리)
 ```
 
 ### 제외 항목 (설계 결정)
@@ -574,8 +671,9 @@ POST /api/real-estate/:id/tax-clearance
 - 공동인증서 모듈 등록/관리
 - 홈택스 스크래핑 → 세금 고지 자동 수집
 - 위택스 스크래핑 → 지방세 자동 수집
-- 4대보험 3종 스크래핑
+- 4대보험 3종 스크래핑 → **ExecuteInsurance4 연동 + mainCat:'인건비'/subCat:'4대보험' 자동 주입**
 - 사업자번호 조회 API
+- **카드 결제 웹훅 수신 → autoClassify(merchant, mcc) → mainCat/subCat DB 저장**
 
 ### Phase 4 — 전자서명 + 증빙
 - 전자서명 서비스 (모두싸인 등)
@@ -593,5 +691,9 @@ POST /api/real-estate/:id/tax-clearance
 - MCC 통제 실시간 적용 (카드사 API)
 - 자금 사용 내역 실시간 모니터링
 - 분기별 보고서 PDF 자동 생성
-- **AI 기반 결제 목적 자동 분류** (merchantName + MCC 학습 모델)
+- **AI 기반 결제 목적 자동 분류 고도화**
+  - Phase 3의 MCC + 키워드 룰 기반 → ML 모델로 전환
+  - merchantName + MCC + 금액 + 시간대 학습
+  - 미분류율 목표: 5% 이하
+  - 분류 신뢰도 낮은 건만 세무사에게 노출
 - AI 기반 이상 거래 탐지

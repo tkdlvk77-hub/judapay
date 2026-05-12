@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 const TAX_META = {
   vat:         { icon:'🧾', label:'부가가치세',    color:'#1D4ED8', bg:'#EFF6FF',  border:'#BFDBFE' },
@@ -141,6 +142,19 @@ export default function ExecuteTax() {
       ? { ...n, autoOn:detailAutoOn, notifBefore:detailNotifBefore, notifDone:detailNotifDone, notifFail:detailNotifFail }
       : n
     ))
+    if (sel && sel.amount > 0) {
+      addTransaction({
+        type: 'tax',
+        fromUserId: 'biz_juda',
+        fromUserName: '㈜주다컴퍼니',
+        fromUserType: 'business',
+        recipient: { id: null, name: sel.office || sel.source || '세무서', phone: '', verified: true, isBusiness: true },
+        amount: sel.amount,
+        reason: `${sel.source || ''} ${sel.period || ''}`.trim(),
+        walletId: 'my', walletLabel: 'MY 지갑',
+        payDateMode: 'immediate', status: 'completed',
+      })
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 1800)
   }

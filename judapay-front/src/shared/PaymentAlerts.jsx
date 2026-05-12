@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { autoClassify } from './merchantCategoryMapper'
 import BottomTab from '../components/BottomTab'
 
 // ─── 데이터 ───────────────────────────────────────────────
@@ -10,23 +11,31 @@ import BottomTab from '../components/BottomTab'
 // category: string | null (null = 미분류)
 // categoryAuto: true = 자동추천
 const ALL_PAYMENTS = [
-  { id:'a1',   type:'anomaly',  status:'blocked',  merchant:'㈜오로라 · MCC 차단',    amount:0,        time:'방금',       user:'㈜오로라', wallet:'투자 자금',    card:'-',     category:null,    categoryAuto:false },
-  { id:'pay7', type:'external', status:'normal',   merchant:'카페 결제',               amount:-4500,    time:'오늘 09:05', user:'박민준',   wallet:'외주비',       card:'-',     category:'카페',   categoryAuto:true  },
-  { id:'a2',   type:'auto',     status:'normal',   merchant:'강남 임대료',             amount:-5800000, time:'오늘 09:00', user:'자동',     wallet:'법인 자금',    card:'주 카드', category:'임대료',  categoryAuto:true  },
-  { id:'pay3', type:'mine',     status:'normal',   merchant:'스타벅스 강남점',         amount:-4500,    time:'오늘 09:12', user:'나',       wallet:'MY 지갑',      card:'주 카드', category:null,    categoryAuto:false },
-  { id:'pay8', type:'external', status:'normal',   merchant:'사무용품 구매',           amount:-89000,   time:'오늘 11:30', user:'㈜오로라', wallet:'투자',         card:'-',     category:'사무용품', categoryAuto:true  },
-  { id:'pay4', type:'mine',     status:'normal',   merchant:'이마트 역삼점',           amount:-32000,   time:'어제 14:32', user:'나',       wallet:'MY 지갑',      card:'주 카드', category:null,    categoryAuto:false },
-  { id:'pay2', type:'auto',     status:'normal',   merchant:'AWS 클라우드',            amount:-847000,  time:'어제 15:22', user:'자동',     wallet:'법인 자금',    card:'법인카드B', category:'서버비', categoryAuto:true  },
-  { id:'pay9', type:'external', status:'normal',   merchant:'편의점 결제',             amount:-3200,    time:'어제 18:44', user:'이민형',   wallet:'대여금',       card:'-',     category:'편의점',  categoryAuto:true  },
-  { id:'pay5', type:'anomaly',  status:'blocked',  merchant:'GS강남게임센터',          amount:0,        time:'4.28 22:14', user:'나',       wallet:'MY 지갑',      card:'주 카드', category:null,    categoryAuto:false },
-  { id:'a3',   type:'anomaly',  status:'blocked',  merchant:'카지노 결제 시도',        amount:0,        time:'4.29 23:11', user:'㈜오로라', wallet:'투자',         card:'-',     category:null,    categoryAuto:false },
-  { id:'pay11',type:'external', status:'normal',   merchant:'마트 결제',               amount:-52000,   time:'4.29 10:20', user:'박민준',   wallet:'외주비',       card:'-',     category:'식료품',  categoryAuto:true  },
-  { id:'pay6', type:'mine',     status:'normal',   merchant:'올리브영 강남점',         amount:-23000,   time:'4.27 16:44', user:'나',       wallet:'MY 지갑',      card:'주 카드', category:'생활비',  categoryAuto:false },
-  { id:'pay12',type:'external', status:'normal',   merchant:'의료 결제',               amount:-18000,   time:'4.27 11:00', user:'서울시청', wallet:'자금 지원',    card:'-',     category:'의료비',  categoryAuto:true  },
-  { id:'a4',   type:'anomaly',  status:'blocked',  merchant:'주류 구매 시도',          amount:0,        time:'4.28 01:33', user:'이민형',   wallet:'대여금',       card:'-',     category:null,    categoryAuto:false },
-  { id:'pay14',type:'external', status:'normal',   merchant:'장비 구매',               amount:-450000,  time:'4.27 15:00', user:'㈜오로라', wallet:'투자',         card:'-',     category:'장비',    categoryAuto:true  },
-  { id:'pay13',type:'auto',     status:'normal',   merchant:'쿠팡 구독 자동결제',      amount:-29900,   time:'4.27 03:00', user:'자동',     wallet:'법인 자금',    card:'법인카드B', category:'구독료', categoryAuto:true  },
+  { id:'a1',   type:'anomaly',  status:'blocked',  merchant:'㈜오로라 · MCC 차단',    amount:0,        time:'방금',       user:'㈜오로라', wallet:'투자 자금',    card:'-',     mainCat:null,     category:null,         categoryAuto:false },
+  { id:'pay7', type:'external', status:'normal',   merchant:'카페 결제',               amount:-4500,    time:'오늘 09:05', user:'박민준',   wallet:'외주비',       card:'-',     mainCat:'운영비', category:'출장식대',   categoryAuto:true  },
+  { id:'a2',   type:'auto',     status:'normal',   merchant:'강남 임대료',             amount:-5800000, time:'오늘 09:00', user:'자동',     wallet:'법인 자금',    card:'주 카드', mainCat:'운영비', category:'임대료',    categoryAuto:true  },
+  { id:'pay3', type:'mine',     status:'normal',   merchant:'스타벅스 강남점',         amount:-4500,    time:'오늘 09:12', user:'나',       wallet:'MY 지갑',      card:'주 카드', mainCat:null,     category:null,         categoryAuto:false },
+  { id:'pay8', type:'external', status:'normal',   merchant:'사무용품 구매',           amount:-89000,   time:'오늘 11:30', user:'㈜오로라', wallet:'투자',         card:'-',     mainCat:'운영비', category:'기타 정기지출', categoryAuto:true },
+  { id:'pay4', type:'mine',     status:'normal',   merchant:'이마트 역삼점',           amount:-32000,   time:'어제 14:32', user:'나',       wallet:'MY 지갑',      card:'주 카드', mainCat:null,     category:null,         categoryAuto:false },
+  { id:'pay2', type:'auto',     status:'normal',   merchant:'AWS 클라우드',            amount:-847000,  time:'어제 15:22', user:'자동',     wallet:'법인 자금',    card:'법인카드B', mainCat:'운영비', category:'구독료',  categoryAuto:true  },
+  { id:'pay9', type:'external', status:'normal',   merchant:'편의점 결제',             amount:-3200,    time:'어제 18:44', user:'이민형',   wallet:'대여금',       card:'-',     mainCat:'운영비', category:'출장식대',   categoryAuto:true  },
+  { id:'pay5', type:'anomaly',  status:'blocked',  merchant:'GS강남게임센터',          amount:0,        time:'4.28 22:14', user:'나',       wallet:'MY 지갑',      card:'주 카드', mainCat:null,     category:null,         categoryAuto:false },
+  { id:'a3',   type:'anomaly',  status:'blocked',  merchant:'카지노 결제 시도',        amount:0,        time:'4.29 23:11', user:'㈜오로라', wallet:'투자',         card:'-',     mainCat:null,     category:null,         categoryAuto:false },
+  { id:'pay11',type:'external', status:'normal',   merchant:'마트 결제',               amount:-52000,   time:'4.29 10:20', user:'박민준',   wallet:'외주비',       card:'-',     mainCat:'운영비', category:'출장식대',   categoryAuto:true  },
+  { id:'pay6', type:'mine',     status:'normal',   merchant:'올리브영 강남점',         amount:-23000,   time:'4.27 16:44', user:'나',       wallet:'MY 지갑',      card:'주 카드', mainCat:'운영비', category:'복리후생',   categoryAuto:false },
+  { id:'pay12',type:'external', status:'normal',   merchant:'의료 결제',               amount:-18000,   time:'4.27 11:00', user:'서울시청', wallet:'자금 지원',    card:'-',     mainCat:'운영비', category:'복리후생',   categoryAuto:true  },
+  { id:'a4',   type:'anomaly',  status:'blocked',  merchant:'주류 구매 시도',          amount:0,        time:'4.28 01:33', user:'이민형',   wallet:'대여금',       card:'-',     mainCat:null,     category:null,         categoryAuto:false },
+  { id:'pay14',type:'external', status:'normal',   merchant:'장비 구매',               amount:-450000,  time:'4.27 15:00', user:'㈜오로라', wallet:'투자',         card:'-',     mainCat:'운영비', category:'기타 정기지출', categoryAuto:true },
+  { id:'pay13',type:'auto',     status:'normal',   merchant:'쿠팡 구독 자동결제',      amount:-29900,   time:'4.27 03:00', user:'자동',     wallet:'법인 자금',    card:'법인카드B', mainCat:'운영비', category:'구독료',  categoryAuto:true  },
 ]
+
+// ─── 가맹점명 기반 자동 분류 적용 ─────────────────────────
+const PROCESSED_PAYMENTS = ALL_PAYMENTS.map(p => {
+  // 이미 수동 분류된 것 or 차단건은 그대로
+  if (!p.categoryAuto || p.status === 'blocked') return p
+  const { mainCat, subCat, matched } = autoClassify(p.merchant, p.mcc ?? null)
+  return { ...p, mainCat, category: subCat, categoryAuto: matched }
+})
 
 const TABS = [
   { key:'all',      label:'전체' },
@@ -36,7 +45,15 @@ const TABS = [
   { key:'anomaly',  label:'이상 거래' },
 ]
 
-const PURPOSE_OPTIONS = ['운영', '출장식대', '복리후생', '기타', '개인사용']
+// 대분류 → 중분류 그룹 (우리 카테고리 체계 동일)
+const CATEGORY_GROUPS = [
+  { main:'인건비', subs:['급여','외주비','상여금','경조사비','기타소득','4대보험'] },
+  { main:'운영비', subs:['임대료','렌트&리스','구독료','통신비','공과금','보험료','출장식대','복리후생','기타 정기지출','개인사용'] },
+  { main:'사업비', subs:['마케팅비'] },
+  { main:'금융',   subs:['투자','대여금'] },
+  { main:'세금',   subs:['세금'] },
+  { main:'미분류', subs:['미분류'] },
+]
 
 const CARD_STYLE = {
   background:'#FFFFFF',
@@ -186,29 +203,67 @@ function PaymentRow({ item, override, onClassify, onClick, theme, selectMode, is
   )
 }
 
-// ─── 분류 바텀시트 ────────────────────────────────────────
-function ClassifySheet({ target, onSelect, onClose }) {
+// ─── 분류 바텀시트 (대분류 섹션 + 중분류 선택) ──────────────
+function ClassifySheet({ target, onSelect, onClose, theme }) {
+  const [selMain, setSelMain] = useState(null)
   if (!target) return null
+  const subs = selMain ? (CATEGORY_GROUPS.find(g => g.main === selMain)?.subs || []) : null
   return (
     <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', zIndex:300,
       display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
       onClick={onClose}>
-      <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'20px 16px 36px' }}
+      <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'20px 16px 36px', maxHeight:'80%', overflowY:'auto' }}
         onClick={e => e.stopPropagation()}>
         <div style={{ width:'36px', height:'4px', background:'#E9EAEC', borderRadius:'2px', margin:'0 auto 18px' }} />
-        <div style={{ fontSize:'15px', fontWeight:700, color:'#111827', marginBottom:'4px' }}>결제 목적 분류</div>
-        <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'16px' }}>{target.merchant}</div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'8px' }}>
-          {PURPOSE_OPTIONS.map((opt, i) => (
-            <button key={opt} onClick={() => onSelect(target.id, opt)}
-              style={{ padding:'14px 0', background:'#F4F5F7', border:'1px solid #E9EAEC',
-                borderRadius:'10px', fontSize:'14px', fontWeight:600, color:'#374151',
-                cursor:'pointer', fontFamily:'inherit', textAlign:'center',
-                gridColumn: i === PURPOSE_OPTIONS.length - 1 && PURPOSE_OPTIONS.length % 2 === 1 ? 'span 2' : undefined }}>
-              {opt}
-            </button>
-          ))}
-        </div>
+        {selMain ? (
+          <>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+              <button onClick={() => setSelMain(null)}
+                style={{ background:'none', border:'none', cursor:'pointer', padding:'0 4px 0 0', display:'flex', alignItems:'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span style={{ fontSize:'15px', fontWeight:700, color:'#111827' }}>{selMain} · 중분류 선택</span>
+            </div>
+            <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'16px', paddingLeft:'26px' }}>{target.merchant}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'8px' }}>
+              {subs.map((sub, i) => {
+                const isLast = i === subs.length - 1 && subs.length % 2 !== 0
+                return (
+                  <button key={sub} onClick={() => onSelect(target.id, sub, selMain)}
+                    style={{ padding:'14px 0', gridColumn: isLast ? 'span 2' : undefined,
+                      background: theme?.brandDark || '#1E3A5F', border:'none',
+                      borderRadius:'10px', fontSize:'14px', fontWeight:600, color:'#fff',
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'center',
+                      boxShadow:`0 2px 8px ${theme?.brandDark || '#1E3A5F'}40` }}>
+                    {sub}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize:'15px', fontWeight:700, color:'#111827', marginBottom:'4px' }}>결제 목적 분류</div>
+            <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'16px' }}>{target.merchant}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'8px' }}>
+              {CATEGORY_GROUPS.map((g, i) => {
+                const isLast = i === CATEGORY_GROUPS.length - 1 && CATEGORY_GROUPS.length % 2 !== 0
+                return (
+                  <button key={g.main} onClick={() => setSelMain(g.main)}
+                    style={{ padding:'14px 0', gridColumn: isLast ? 'span 2' : undefined,
+                      background:'#F4F5F7', border:'1px solid #E9EAEC',
+                      borderRadius:'10px', fontSize:'14px', fontWeight:600, color:'#374151',
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'center' }}>
+                    {g.main}
+                    <span style={{ display:'block', fontSize:'10px', color:'#9CA3AF', fontWeight:400, marginTop:'2px' }}>
+                      {g.subs.slice(0,3).join(' · ')}{g.subs.length > 3 ? ' …' : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -226,6 +281,8 @@ export default function PaymentAlerts() {
   const [selected, setSelected] = useState([])
   const [justifyModal, setJustifyModal] = useState(false)
   const [justifyMsg, setJustifyMsg] = useState('')
+  const [claimReq, setClaimReq] = useState(true)
+  const [evidReq, setEvidReq] = useState(false)
   const [toast, setToast] = useState(null)
 
   const toggleSelect = (id) => setSelected(prev =>
@@ -238,7 +295,9 @@ export default function PaymentAlerts() {
   const openJustify = () => {
     const selItems = filtered.filter(p => selected.includes(p.id))
     const names = [...new Set(selItems.map(p => p.user))].filter(Boolean).slice(0,3).join(', ')
-    setJustifyMsg(`[소명요청] 아래 ${selItems.length}건의 결제에 대한 사용 목적 및 영수증을 소명해 주세요.`)
+    setJustifyMsg('')
+    setClaimReq(true)
+    setEvidReq(false)
     setJustifyModal(true)
   }
   const handleJustifySend = () => {
@@ -250,13 +309,13 @@ export default function PaymentAlerts() {
   }
 
   // 탭별 필터
-  const filtered = ALL_PAYMENTS.filter(p => {
+  const filtered = PROCESSED_PAYMENTS.filter(p => {
     if (activeTab === 'all') return true
     return p.type === activeTab
   })
 
-  const totalBlocked = ALL_PAYMENTS.filter(p => p.status === 'blocked').length
-  const unclassified = ALL_PAYMENTS.filter(p =>
+  const totalBlocked = PROCESSED_PAYMENTS.filter(p => p.status === 'blocked').length
+  const unclassified = PROCESSED_PAYMENTS.filter(p =>
     !p.categoryAuto && p.category === null && !purposeOverrides[p.id] && p.status !== 'blocked'
   ).length
 
@@ -296,7 +355,7 @@ export default function PaymentAlerts() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-              소명요청
+              내역확인요청
             </button>
           </div>
 
@@ -317,7 +376,7 @@ export default function PaymentAlerts() {
             scrollbarWidth:'none', msOverflowStyle:'none' }}>
             {TABS.map(tab => {
               const count = tab.key === 'anomaly'
-                ? ALL_PAYMENTS.filter(p => p.type === 'anomaly').length : 0
+                ? PROCESSED_PAYMENTS.filter(p => p.type === 'anomaly').length : 0
               const isActive = activeTab === tab.key
               return (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -366,7 +425,7 @@ export default function PaymentAlerts() {
                 style={{ padding:'8px 16px', background: theme.activeBtnGrad, border:'none',
                   borderRadius:'20px', color:'#fff', fontSize:'12px', fontWeight:700,
                   cursor:'pointer', fontFamily:'inherit', boxShadow: theme.activeShadow }}>
-                💬 소명요청 {selected.length}건
+                💳 사용내역확인 {selected.length}건
               </button>
             )}
           </div>
@@ -416,27 +475,30 @@ export default function PaymentAlerts() {
           onClose={() => setClassifyTarget(null)}
         />
 
-        {/* ── 소명요청 모달 ── */}
+        {/* ── 사용내역확인 모달 (ApprovalCenter 추가요청 스타일) ── */}
         {justifyModal && (() => {
           const selItems = filtered.filter(p => selected.includes(p.id))
+          const canSend = (claimReq || evidReq) && justifyMsg.trim().length >= 1
           return (
             <div style={{ position:'absolute', inset:0, zIndex:400,
               display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
               <div onClick={() => setJustifyModal(false)}
                 style={{ flex:1, background:'rgba(0,0,0,0.5)' }} />
-              <div style={{ background:'#fff', borderRadius:'24px 24px 0 0', padding:'20px 20px 36px' }}>
+              <div style={{ background:'#fff', borderRadius:'24px 24px 0 0', padding:'20px 20px 36px',
+                maxHeight:'85vh', overflowY:'auto' }}>
                 {/* 핸들 */}
                 <div style={{ width:'36px', height:'4px', borderRadius:'2px',
-                  background:'#E5E7EB', margin:'0 auto 18px' }} />
-                <div style={{ fontSize:'17px', fontWeight:700, color:'#111827', marginBottom:'4px' }}>
-                  소명요청 메시지
+                  background:'#E5E7EB', margin:'0 auto 16px' }} />
+                <div style={{ fontSize:'16px', fontWeight:700, color:'#111827', marginBottom:'3px' }}>
+                  사용내역확인 요청
                 </div>
                 <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'14px' }}>
-                  {[...new Set(selItems.map(p => p.user))].filter(Boolean).slice(0,3).join(', ')} · 플랫폼 메시지로 전송
+                  {selItems.length}건 선택 · 플랫폼 메시지로 전송
                 </div>
+
                 {/* 선택된 항목 목록 */}
                 <div style={{ background:'#F8F9FF', borderRadius:'10px',
-                  padding:'10px 12px', marginBottom:'12px', maxHeight:'100px', overflowY:'auto' }}>
+                  padding:'10px 12px', marginBottom:'14px', maxHeight:'90px', overflowY:'auto' }}>
                   {selItems.map((p, i) => (
                     <div key={i} style={{ fontSize:'11px', color:'#374151',
                       padding:'2px 0', display:'flex', justifyContent:'space-between' }}>
@@ -447,25 +509,67 @@ export default function PaymentAlerts() {
                     </div>
                   ))}
                 </div>
-                {/* 메시지 textarea */}
+
+                {/* 요청 유형 선택 */}
+                <div style={{ fontSize:'11px', fontWeight:700, color:'#374151', marginBottom:'8px' }}>
+                  요청 유형
+                </div>
+                {[
+                  { key:'claim', label:'소명 요청', sub:'결제 목적·사유 소명 요청', on: claimReq, set: setClaimReq, color:'#4F46E5' },
+                  { key:'evid',  label:'증빙 요청', sub:'영수증·서류 첨부 요청',     on: evidReq,  set: setEvidReq,  color:'#0891B2' },
+                ].map(opt => (
+                  <div key={opt.key} onClick={() => opt.set(v => !v)}
+                    style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                      padding:'10px 13px', borderRadius:'12px', marginBottom:'7px', cursor:'pointer',
+                      background: opt.on ? (opt.key==='claim' ? '#EEF2FF' : '#ECFEFF') : '#F9FAFB',
+                      border: `1.5px solid ${opt.on ? (opt.key==='claim' ? '#A5B4FC' : '#A5F3FC') : '#E9EAEC'}`,
+                      transition:'all 0.15s' }}>
+                    <div>
+                      <div style={{ fontSize:'13px', fontWeight:700, color: opt.on ? opt.color : '#374151' }}>{opt.label}</div>
+                      <div style={{ fontSize:'11px', color:'#9CA3AF', marginTop:'1px' }}>{opt.sub}</div>
+                    </div>
+                    <div style={{ width:'22px', height:'22px', borderRadius:'6px', flexShrink:0,
+                      background: opt.on ? opt.color : '#E9EAEC',
+                      display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s' }}>
+                      {opt.on && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* 메시지 */}
+                <div style={{ fontSize:'11px', fontWeight:700, color:'#374151', margin:'12px 0 8px',
+                  display:'flex', alignItems:'center', gap:'5px' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  요청 메시지
+                </div>
                 <textarea value={justifyMsg} onChange={e => setJustifyMsg(e.target.value)}
-                  style={{ width:'100%', height:'90px', padding:'12px', borderRadius:'12px',
-                    border:'1.5px solid #E9EAEC', fontSize:'13px', color:'#111827',
-                    fontFamily:'inherit', resize:'none', outline:'none',
-                    boxSizing:'border-box', lineHeight:1.6, background:'#F8F9FF' }} />
+                  rows={3} placeholder="확인을 요청할 내용을 입력하세요"
+                  style={{ width:'100%', borderRadius:'10px', border:'1px solid #E9EAEC',
+                    padding:'10px 12px', fontSize:'12px', color:'#111827', fontFamily:'inherit',
+                    resize:'none', outline:'none', background:'#F8F9FF', marginBottom:'12px',
+                    boxSizing:'border-box', lineHeight:1.6 }} />
+
                 {/* 버튼 */}
-                <div style={{ display:'flex', gap:'10px', marginTop:'12px' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:'8px' }}>
                   <button onClick={() => setJustifyModal(false)}
-                    style={{ flex:1, padding:'14px', background:'#F4F5F7', border:'none',
-                      borderRadius:'14px', fontSize:'14px', fontWeight:600, color:'#374151',
+                    style={{ height:'46px', borderRadius:'13px', fontSize:'13px', fontWeight:600,
+                      background:'#F4F5F7', color:'#374151', border:'1px solid #E9EAEC',
                       cursor:'pointer', fontFamily:'inherit' }}>
                     취소
                   </button>
-                  <button onClick={handleJustifySend}
-                    style={{ flex:2, padding:'14px', background: theme.activeBtnGrad, border:'none',
-                      borderRadius:'14px', fontSize:'14px', fontWeight:700, color:'#fff',
-                      cursor:'pointer', fontFamily:'inherit', boxShadow: theme.activeShadow }}>
-                    💬 메시지 발송
+                  <button onClick={handleJustifySend} disabled={!canSend}
+                    style={{ height:'46px', borderRadius:'13px', fontSize:'13px', fontWeight:700,
+                      background: canSend ? theme.activeBtnGrad : '#E9EAEC',
+                      color: canSend ? '#fff' : '#9CA3AF', border:'none',
+                      cursor: canSend ? 'pointer' : 'default', fontFamily:'inherit',
+                      boxShadow: canSend ? theme.activeShadow : 'none' }}>
+                    💬 메시지로 전송
                   </button>
                 </div>
               </div>

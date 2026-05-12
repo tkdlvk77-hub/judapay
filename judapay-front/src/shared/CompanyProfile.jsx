@@ -5,6 +5,25 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { getLang } from '../design/i18n'
 import BottomTab from '../components/BottomTab'
+import {
+  subscribe,
+  getMsg, setMsg,
+  getYearGoals, setYearGoals,
+  getQuarterGoals, setQuarterGoals,
+  getQuarterDone, toggleQuarterDone,
+  getProjects, addProject, updateProjectStatus, removeProject,
+  getVis, setVis,
+  getCurrentQuarter,
+  getCompanyActivityFeed,
+  getOperationStability,
+  getActivityContinuity,
+  getTrustSignals,
+  STATUS_CFG, CATEGORY_CFG, CATEGORY_STATUSES,
+} from './companyProfileStore'
+import { seedDemoTransactions } from './transactionStore'
+
+// 데모 데이터 초기화 (개발용)
+seedDemoTransactions()
 
 const S = {
   intro:      { ko: '소개',    en: 'About' },
@@ -22,75 +41,14 @@ const COMPANY = {
   location: '서울 강남구', founded: '2023.03', bizNo: '123-45-67890',
 }
 
-// ─── 활동 피드 ────────────────────────────────────────────
-const ACTIVITY_FEED = [
-  { id:1,  icon:'💰', text:'급여 지급 완료',          time:'오늘 09:00',  category:'payroll' },
-  { id:2,  icon:'🧾', text:'자동 운영비 결제 처리',   time:'오늘 08:30',  category:'expense' },
-  { id:3,  icon:'📋', text:'외주 계약 정산 완료',     time:'어제 17:20',  category:'contract' },
-  { id:4,  icon:'📊', text:'이번 달 세금 신고 제출',  time:'어제 14:00',  category:'tax' },
-  { id:5,  icon:'💳', text:'법인카드 정산 처리 완료', time:'3일 전',       category:'card' },
-  { id:6,  icon:'🚀', text:'신규 프로젝트 운영 시작', time:'3일 전',       category:'project' },
-  { id:7,  icon:'💰', text:'외주비 정산 완료',         time:'1주 전',       category:'contract' },
-]
-
-const STABILITY = [
-  { icon:'✅', text:'최근 6개월 급여 지연 없음' },
-  { icon:'✅', text:'최근 90일 운영 중단 없음' },
-  { icon:'✅', text:'자동 지출 정상 유지 중' },
-  { icon:'✅', text:'사무실 운영 유지 중' },
-]
-const CONTINUITY = [
-  { icon:'📈', text:'최근 30일 거래 활성 유지' },
-  { icon:'🔄', text:'정기 거래처 유지 중' },
-  { icon:'📊', text:'반복 결제 비율 증가 추세' },
-  { icon:'✅', text:'외주 정산 정상 진행 중' },
-]
-const TRUST_SIGNALS = [
-  { icon:'⚡', text:'최근 활동 빈도 높음' },
-  { icon:'📋', text:'세금 신고 완료' },
-  { icon:'✅', text:'정산 누락 없음' },
-  { icon:'💰', text:'급여 지급 정상 유지' },
-  { icon:'🔄', text:'운영 데이터 지속 업데이트 중' },
-]
-
-// ─── 프로젝트 ─────────────────────────────────────────────
-const STATUS_CFG = {
-  ready:       { ko:'준비 단계', color:'#6D28D9', bg:'#F5F3FF' },
-  dev:         { ko:'개발 중',   color:'#0369A1', bg:'#EFF6FF' },
-  test:        { ko:'테스트 중', color:'#D97706', bg:'#FFFBEB' },
-  running:     { ko:'운영 중',   color:'#047857', bg:'#F0FDF4' },
-  negotiating: { ko:'협상 중',   color:'#0369A1', bg:'#EFF6FF' },
-  signed:      { ko:'계약 완료', color:'#047857', bg:'#F0FDF4' },
-  hiring:      { ko:'채용 중',   color:'#D97706', bg:'#FFFBEB' },
-  reviewing:   { ko:'검토 중',   color:'#6D28D9', bg:'#F5F3FF' },
-  submitted:   { ko:'제출 완료', color:'#0369A1', bg:'#EFF6FF' },
-  approved:    { ko:'승인 완료', color:'#047857', bg:'#F0FDF4' },
-  done:        { ko:'완료',      color:'#6B7280', bg:'#F9FAFB' },
+// ─── store 구독 훅 ────────────────────────────────────────
+function useProfileStore() {
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    const unsub = subscribe(() => forceUpdate(n => n + 1))
+    return unsub
+  }, [])
 }
-const CATEGORY_CFG = {
-  dev:       { ko:'💻 개발/기술' },  sales:     { ko:'🤝 영업/계약' },
-  invest:    { ko:'💰 투자 유치' },  hr:        { ko:'👥 채용' },
-  marketing: { ko:'📢 마케팅' },     legal:     { ko:'📋 법무/인증' },
-  gov:       { ko:'🏛️ 정부 과제' },  ops:       { ko:'⚙️ 운영/인프라' },
-}
-const CATEGORY_STATUSES = {
-  dev:['ready','dev','test','running','done'],
-  sales:['ready','negotiating','signed','done'],
-  invest:['ready','reviewing','negotiating','signed','done'],
-  hr:['ready','hiring','done'],
-  marketing:['ready','running','done'],
-  legal:['ready','reviewing','submitted','approved','done'],
-  gov:['ready','reviewing','submitted','approved','running','done'],
-  ops:['ready','running','done'],
-}
-const INIT_PROJECTS = [
-  { id:1, name:'기업 자동지출 시스템', status:'dev',     category:'dev' },
-  { id:2, name:'법인카드 통합',         status:'test',    category:'dev' },
-  { id:3, name:'PG 인프라 구축',        status:'ready',   category:'ops' },
-  { id:4, name:'실시간 정산 시스템',    status:'running', category:'dev' },
-  { id:5, name:'Series A 투자 유치',    status:'ready',   category:'invest' },
-  { id:6, name:'개발자 2명 채용',       status:'running', category:'hr' },
-]
 
 // 공개 설정
 const VISIBILITY_OPTS = [
@@ -152,25 +110,33 @@ function GoalInput({ goals, onChange, placeholder }) {
 
 // ─── 탭: 소개 ─────────────────────────────────────────────
 function IntroTab({ lang, theme }) {
-  const [msg, setMsg] = useState('이번 달은 기업 자금 자동화 기능 안정화에 집중하고 있습니다.\n\nPG 인프라 구축 및 기업 운영 시스템 연동을 진행 중입니다.\n\n실시간 기업 운영 데이터를 기반으로 자금 흐름 시스템을 개발하고 있습니다.')
-  const [editingMsg, setEditingMsg] = useState(false)
-  const [yearGoals, setYearGoals] = useState(['PG 라이센스 취득','기업 운영 시스템 고도화','투자 연동 구조 구축','기업회원 200곳 확보'])
-  const [editingYear, setEditingYear] = useState(false)
-  const [activeQ, setActiveQ] = useState('Q2')
-  const [quarterGoals, setQuarterGoals] = useState({
-    Q1: ['MVP 안정화 및 베타 출시','PG 연동 테스트 완료','기업회원 50곳 확보','운영 안정화'],
-    Q2: ['자동정산 시스템 구축','기업회원 확대','운영 안정화','투자자 데모데이'],
-    Q3: ['기업회원 100곳 확보','Series A 준비','실시간 정산 런칭','운영 리포트 고도화'],
-    Q4: ['Series A 클로징','기업회원 200곳','PG 라이센스 취득','글로벌 확장 준비'],
-  })
-  const [quarterDone, setQuarterDone] = useState({ Q1:[true,true,false,false], Q2:[false,false,false,false], Q3:[false,false,false,false], Q4:[false,false,false,false] })
-  const [editingQ, setEditingQ] = useState(false)
-  const [vis, setVis] = useState({ msg:'public', year:'public', quarter:'public' })
-  const setV = k => v => setVis(p => ({...p,[k]:v}))
+  useProfileStore()
+  const msg          = getMsg()
+  const yearGoals    = getYearGoals()
+  const quarterGoals = getQuarterGoals()
+  const quarterDone  = getQuarterDone()
+  const vis          = getVis()
 
-  const toggleQDone = (i) => {
-    setQuarterDone(p => ({ ...p, [activeQ]: p[activeQ].map((v, idx) => idx === i ? !v : v) }))
-  }
+  const [editingMsg,  setEditingMsg]  = useState(false)
+  const [editingYear, setEditingYear] = useState(false)
+  const [editingQ,    setEditingQ]    = useState(false)
+  const [activeQ,     setActiveQ]     = useState(getCurrentQuarter)
+  // 수정 중 임시 상태
+  const [draftMsg,       setDraftMsg]       = useState('')
+  const [draftYearGoals, setDraftYearGoals] = useState([])
+  const [draftQGoals,    setDraftQGoals]    = useState([])
+
+  const startEditMsg  = () => { setDraftMsg(msg);                       setEditingMsg(true) }
+  const saveMsg       = () => { setMsg(draftMsg);                        setEditingMsg(false) }
+  const startEditYear = () => { setDraftYearGoals([...yearGoals]);       setEditingYear(true) }
+  const saveYear      = () => { setYearGoals(draftYearGoals);            setEditingYear(false) }
+  const startEditQ    = () => { setDraftQGoals([...(quarterGoals[activeQ]??[])]); setEditingQ(true) }
+  const saveQ         = () => { setQuarterGoals(activeQ, draftQGoals);   setEditingQ(false) }
+
+  const handleSetActiveQ = (q) => { setActiveQ(q); setEditingQ(false) }
+
+  const curQGoals = quarterGoals[activeQ] ?? []
+  const curQDone  = quarterDone[activeQ]  ?? []
 
   return (
     <div style={{ padding:'20px 16px 32px' }}>
@@ -197,16 +163,16 @@ function IntroTab({ lang, theme }) {
       </div>
 
       {/* 대표 메시지 */}
-      <SRow title="대표 메시지" visKey={vis.msg} onVis={setV('msg')}>
+      <SRow title="대표 메시지" visKey={vis.msg} onVis={v => setVis('msg', v)}>
         {editingMsg ? (
           <div>
-            <textarea value={msg} onChange={e => setMsg(e.target.value)} maxLength={300}
+            <textarea value={draftMsg} onChange={e => setDraftMsg(e.target.value)} maxLength={300}
               placeholder="5줄 내외로 현재 집중하고 있는 방향, 비전, 진행 상황을 입력해주세요."
               style={{ width:'100%', minHeight:'110px', padding:'12px', borderRadius:'12px', border:'1.5px solid '+COLORS.borderSoft, fontSize:'13px', color:COLORS.t1, fontFamily:'inherit', resize:'none', outline:'none', boxSizing:'border-box', lineHeight:1.7 }} />
             <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'8px' }}>
-              <span style={{ fontSize:'11px', color:COLORS.t4 }}>{msg.length}/300</span>
+              <span style={{ fontSize:'11px', color:COLORS.t4 }}>{draftMsg.length}/300</span>
             </div>
-            <button onClick={() => setEditingMsg(false)}
+            <button onClick={saveMsg}
               style={{ width:'100%', padding:'12px', background:theme.activeBtnGrad, border:'none', borderRadius:'12px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:theme.activeShadow }}>
               저장
             </button>
@@ -214,7 +180,7 @@ function IntroTab({ lang, theme }) {
         ) : (
           <div>
             <div style={{ fontSize:'13px', color:COLORS.t2, lineHeight:1.8, whiteSpace:'pre-line', marginBottom:'12px' }}>{msg}</div>
-            <button onClick={() => setEditingMsg(true)}
+            <button onClick={startEditMsg}
               style={{ padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
               ✏️ 수정
             </button>
@@ -223,11 +189,11 @@ function IntroTab({ lang, theme }) {
       </SRow>
 
       {/* 연간 목표 */}
-      <SRow title="2026년 연간 목표" visKey={vis.year} onVis={setV('year')}>
+      <SRow title={`${new Date().getFullYear()}년 연간 목표`} visKey={vis.year} onVis={v => setVis('year', v)}>
         {editingYear ? (
           <div>
-            <GoalInput goals={yearGoals} onChange={setYearGoals} placeholder="연간 목표 " />
-            <button onClick={() => setEditingYear(false)}
+            <GoalInput goals={draftYearGoals} onChange={setDraftYearGoals} placeholder="연간 목표 " />
+            <button onClick={saveYear}
               style={{ marginTop:'12px', width:'100%', padding:'12px', background:theme.activeBtnGrad, border:'none', borderRadius:'12px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:theme.activeShadow }}>
               저장
             </button>
@@ -240,7 +206,7 @@ function IntroTab({ lang, theme }) {
                 <span style={{ fontSize:'13px', color:COLORS.t1 }}>{g}</span>
               </div>
             ))}
-            <button onClick={() => setEditingYear(true)}
+            <button onClick={startEditYear}
               style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
               ✏️ 수정
             </button>
@@ -249,11 +215,10 @@ function IntroTab({ lang, theme }) {
       </SRow>
 
       {/* 분기별 목표 */}
-      <SRow title="분기별 목표" visKey={vis.quarter} onVis={setV('quarter')}>
-        {/* Q 탭 */}
+      <SRow title="분기별 목표" visKey={vis.quarter} onVis={v => setVis('quarter', v)}>
         <div style={{ display:'flex', gap:'6px', marginBottom:'14px' }}>
           {['Q1','Q2','Q3','Q4'].map(q => (
-            <button key={q} onClick={() => { setActiveQ(q); setEditingQ(false) }}
+            <button key={q} onClick={() => handleSetActiveQ(q)}
               style={{ flex:1, padding:'8px 4px', borderRadius:'10px', border:'1.5px solid '+(activeQ===q?theme.brandDark:COLORS.borderSoft), background:activeQ===q?theme.brandDark+'0E':COLORS.bgCard, color:activeQ===q?theme.brandDark:COLORS.t3, fontSize:'13px', fontWeight:activeQ===q?700:500, cursor:'pointer', fontFamily:'inherit' }}>
               {q}
             </button>
@@ -262,29 +227,29 @@ function IntroTab({ lang, theme }) {
 
         {editingQ ? (
           <div>
-            <GoalInput goals={quarterGoals[activeQ]} onChange={v => setQuarterGoals(p => ({...p,[activeQ]:v}))} placeholder={activeQ+" 목표 "} />
-            <button onClick={() => setEditingQ(false)}
+            <GoalInput goals={draftQGoals} onChange={setDraftQGoals} placeholder={activeQ+" 목표 "} />
+            <button onClick={saveQ}
               style={{ marginTop:'12px', width:'100%', padding:'12px', background:theme.activeBtnGrad, border:'none', borderRadius:'12px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:theme.activeShadow }}>
               저장
             </button>
           </div>
         ) : (
           <div>
-            {quarterGoals[activeQ].filter(Boolean).map((g, i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 0', borderBottom: i < quarterGoals[activeQ].filter(Boolean).length-1 ? '1px solid '+COLORS.borderSoft : 'none' }}>
-                <button onClick={() => toggleQDone(i)}
-                  style={{ width:'20px', height:'20px', borderRadius:'6px', border:'2px solid '+(quarterDone[activeQ][i]?theme.brandDark:COLORS.borderSoft), background:quarterDone[activeQ][i]?theme.brandDark:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, padding:0 }}>
-                  {quarterDone[activeQ][i] && (
+            {curQGoals.filter(Boolean).map((g, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 0', borderBottom: i < curQGoals.filter(Boolean).length-1 ? '1px solid '+COLORS.borderSoft : 'none' }}>
+                <button onClick={() => toggleQuarterDone(activeQ, i)}
+                  style={{ width:'20px', height:'20px', borderRadius:'6px', border:'2px solid '+(curQDone[i]?theme.brandDark:COLORS.borderSoft), background:curQDone[i]?theme.brandDark:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, padding:0 }}>
+                  {curQDone[i] && (
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   )}
                 </button>
-                <span style={{ flex:1, fontSize:'13px', color:quarterDone[activeQ][i]?COLORS.t4:COLORS.t1, textDecoration:quarterDone[activeQ][i]?'line-through':'none' }}>{g}</span>
-                {quarterDone[activeQ][i] && <span style={{ fontSize:'10px', fontWeight:700, color:'#047857', flexShrink:0 }}>완료</span>}
+                <span style={{ flex:1, fontSize:'13px', color:curQDone[i]?COLORS.t4:COLORS.t1, textDecoration:curQDone[i]?'line-through':'none' }}>{g}</span>
+                {curQDone[i] && <span style={{ fontSize:'10px', fontWeight:700, color:'#047857', flexShrink:0 }}>완료</span>}
               </div>
             ))}
-            <button onClick={() => setEditingQ(true)}
+            <button onClick={startEditQ}
               style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
               ✏️ {activeQ} 수정
             </button>
@@ -297,13 +262,25 @@ function IntroTab({ lang, theme }) {
 
 // ─── 탭: 활동 ─────────────────────────────────────────────
 function ActivityTab({ lang, theme }) {
-  const [vis, setVis] = useState('public')
+  useProfileStore()
+  const vis    = getVis()
   const [filter, setFilter] = useState('all')
+
   const FILTERS = [
-    { key:'all',ko:'전체' },{ key:'payroll',ko:'급여' },
-    { key:'expense',ko:'운영비' },{ key:'contract',ko:'계약' },{ key:'tax',ko:'세금' },
+    { key:'all',      ko:'전체' },
+    { key:'payroll',  ko:'급여' },
+    { key:'expense',  ko:'운영비' },
+    { key:'contract', ko:'계약' },
+    { key:'tax',      ko:'세금' },
   ]
-  const filtered = filter==='all' ? ACTIVITY_FEED : ACTIVITY_FEED.filter(a => a.category===filter)
+
+  // transactionStore 기반 실제 활동 피드
+  const feed     = getCompanyActivityFeed('biz_juda', 30)
+  const filtered = filter === 'all' ? feed : feed.filter(a => a.category === filter)
+
+  // 피드가 없을 때 안내 메시지
+  const isEmpty = filtered.length === 0
+
   return (
     <div style={{ padding:'20px 16px 32px' }}>
       <div style={{ background:COLORS.bgCard, borderRadius:'18px', boxShadow:SHADOWS.card, overflow:'hidden' }}>
@@ -313,7 +290,7 @@ function ActivityTab({ lang, theme }) {
               <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'2px' }}>활동 피드</div>
               <div style={{ fontSize:'11px', color:COLORS.t4 }}>실제 운영 활동만 표시 · 금액/거래처 비공개</div>
             </div>
-            <VisBtn value={vis} onChange={setVis} />
+            <VisBtn value={vis.activity} onChange={v => setVis('activity', v)} />
           </div>
           <div style={{ display:'flex', gap:'6px', overflowX:'auto', paddingBottom:'12px', scrollbarWidth:'none' }}>
             {FILTERS.map(f => (
@@ -324,7 +301,11 @@ function ActivityTab({ lang, theme }) {
             ))}
           </div>
         </div>
-        {filtered.map((item, i) => (
+        {isEmpty ? (
+          <div style={{ padding:'32px 16px', textAlign:'center', color:COLORS.t4, fontSize:'13px' }}>
+            해당 카테고리의 활동 내역이 없습니다.
+          </div>
+        ) : filtered.map((item, i) => (
           <div key={item.id} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', borderTop:'1px solid '+COLORS.borderSoft }}>
             <div style={{ width:'38px', height:'38px', borderRadius:'12px', background:theme.brandDark+'12', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>
               {item.icon}
@@ -343,8 +324,14 @@ function ActivityTab({ lang, theme }) {
 
 // ─── 탭: 운영 ─────────────────────────────────────────────
 function OperationTab({ lang, theme }) {
-  const [vis, setVis] = useState({ stability:'public', continuity:'public', trust:'bizOnly' })
-  const setV = k => v => setVis(p => ({...p,[k]:v}))
+  useProfileStore()
+  const vis = getVis()
+
+  // transactionStore 기반 실시간 계산 지표
+  const stability  = getOperationStability('biz_juda')
+  const continuity = getActivityContinuity('biz_juda')
+  const trust      = getTrustSignals('biz_juda')
+
   const ListCard = ({ title, vk, onV, items }) => (
     <div style={{ background:COLORS.bgCard, borderRadius:'18px', boxShadow:SHADOWS.card, padding:'18px', marginBottom:'14px' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
@@ -354,36 +341,39 @@ function OperationTab({ lang, theme }) {
       {items.map((item, i) => (
         <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 0', borderBottom:i<items.length-1?'1px solid '+COLORS.borderSoft:'none' }}>
           <span style={{ fontSize:'16px', flexShrink:0 }}>{item.icon}</span>
-          <span style={{ fontSize:'13px', color:COLORS.t1, fontWeight:500 }}>{item.text}</span>
+          <span style={{ fontSize:'13px', color:item.ok===false?'#B45309':COLORS.t1, fontWeight:500 }}>{item.text}</span>
         </div>
       ))}
     </div>
   )
+
   return (
     <div style={{ padding:'20px 16px 32px' }}>
       <div style={{ background:'#FEF3C7', border:'1px solid #FDE68A', borderRadius:'14px', padding:'12px 16px', marginBottom:'16px', display:'flex', gap:'10px' }}>
         <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
         <span style={{ fontSize:'12px', color:'#92400E', lineHeight:1.6 }}>운영 탭은 점수/등급이 아닌 실제 활동 기반으로 표시됩니다.</span>
       </div>
-      <ListCard title="운영 안정성" vk={vis.stability} onV={setV('stability')} items={STABILITY} />
-      <ListCard title="거래 지속성" vk={vis.continuity} onV={setV('continuity')} items={CONTINUITY} />
-      <ListCard title="활동 신뢰 지표" vk={vis.trust} onV={setV('trust')} items={TRUST_SIGNALS} />
+      <ListCard title="운영 안정성"   vk={vis.stability}  onV={v => setVis('stability', v)}  items={stability} />
+      <ListCard title="거래 지속성"   vk={vis.continuity} onV={v => setVis('continuity', v)} items={continuity} />
+      <ListCard title="활동 신뢰 지표" vk={vis.trust}     onV={v => setVis('trust', v)}      items={trust} />
     </div>
   )
 }
 
 // ─── 탭: 프로젝트 ─────────────────────────────────────────
 function ProjectTab({ lang, theme }) {
-  const [projects, setProjects] = useState(INIT_PROJECTS)
-  const [vis, setVis] = useState('public')
-  const [adding, setAdding] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newStatus, setNewStatus] = useState('dev')
+  useProfileStore()
+  const projects = getProjects()
+  const vis      = getVis()
+
+  const [adding,      setAdding]      = useState(false)
+  const [newName,     setNewName]     = useState('')
+  const [newStatus,   setNewStatus]   = useState('dev')
   const [newCategory, setNewCategory] = useState('dev')
 
-  const addProject = () => {
+  const handleAdd = () => {
     if (!newName.trim()) return
-    setProjects(p => [...p, { id:Date.now(), name:newName.trim(), status:newStatus, category:newCategory }])
+    addProject({ name: newName.trim(), status: newStatus, category: newCategory })
     setNewName(''); setAdding(false)
   }
 
@@ -396,7 +386,7 @@ function ProjectTab({ lang, theme }) {
               <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'2px' }}>진행 중인 프로젝트</div>
               <div style={{ fontSize:'11px', color:COLORS.t4 }}>{projects.length}개 프로젝트</div>
             </div>
-            <VisBtn value={vis} onChange={setVis} />
+            <VisBtn value={vis.projects} onChange={v => setVis('projects', v)} />
           </div>
           {projects.map((pr, i) => {
             const sc = STATUS_CFG[pr.status]
@@ -407,7 +397,7 @@ function ProjectTab({ lang, theme }) {
                     <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'3px' }}>{pr.name}</div>
                     <span style={{ fontSize:'11px', color:COLORS.t4 }}>{CATEGORY_CFG[pr.category]?.ko || '기타'}</span>
                   </div>
-                  <button onClick={() => setProjects(p => p.filter(x => x.id !== pr.id))}
+                  <button onClick={() => removeProject(pr.id)}
                     style={{ background:'none', border:'none', cursor:'pointer', color:COLORS.t4, fontSize:'18px', padding:'0 4px', flexShrink:0 }}>×</button>
                 </div>
                 <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
@@ -415,7 +405,7 @@ function ProjectTab({ lang, theme }) {
                     const cfg = STATUS_CFG[key]
                     return (
                       <button key={key}
-                        onClick={() => setProjects(p => p.map(x => x.id===pr.id?{...x,status:key}:x))}
+                        onClick={() => updateProjectStatus(pr.id, key)}
                         style={{ padding:'3px 10px', borderRadius:'20px', border:'none', background:pr.status===key?cfg.bg:COLORS.bgMuted, color:pr.status===key?cfg.color:COLORS.t4, fontSize:'11px', fontWeight:pr.status===key?700:400, cursor:'pointer', fontFamily:'inherit' }}>
                         {cfg.ko}
                       </button>
@@ -465,7 +455,7 @@ function ProjectTab({ lang, theme }) {
             <div style={{ display:'flex', gap:'10px' }}>
               <button onClick={() => setAdding(false)}
                 style={{ flex:1, padding:'14px', background:COLORS.bgMuted, border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:600, color:COLORS.t2, cursor:'pointer', fontFamily:'inherit' }}>취소</button>
-              <button onClick={addProject}
+              <button onClick={handleAdd}
                 style={{ flex:2, padding:'14px', background:theme.activeBtnGrad, border:'none', borderRadius:'14px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:theme.activeShadow }}>추가하기</button>
             </div>
           </div>

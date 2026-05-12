@@ -4,6 +4,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { addTransaction } from '../../shared/transactionStore'
 
 // ─── 상수 ─────────────────────────────────────────────────
 const PAY_DAYS = ['1','5','10','15','20','25','28','말일']
@@ -380,11 +381,23 @@ export default function ExecuteRentLease() {
 
   const handleSave = () => {
     if (!selectedItem) return
+    const amtNum = parseInt(String(editAmount).replace(/,/g,'')) || selectedItem.amount
     setItems(prev => prev.map(it =>
       it.id === selectedItem.id
-        ? { ...it, autoEnabled: autoOn, payDay, vatMode, amount: parseInt(String(editAmount).replace(/,/g,'')) || it.amount }
+        ? { ...it, autoEnabled: autoOn, payDay, vatMode, amount: amtNum }
         : it
     ))
+    addTransaction({
+      type: 'rentLease',
+      fromUserId: 'biz_juda',
+      fromUserName: '㈜주다컴퍼니',
+      fromUserType: 'business',
+      recipient: { id: null, name: selectedItem.vendor || selectedItem.name, phone: '', verified: true, isBusiness: true },
+      amount: amtNum,
+      reason: selectedItem.name,
+      walletId: 'my', walletLabel: 'MY 지갑',
+      payDateMode: 'immediate', status: 'completed',
+    })
     setSaved(true)
     setTimeout(() => setScreen('list'), 800)
   }

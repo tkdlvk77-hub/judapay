@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 // ─── 상수 ────────────────────────────────────────────────
 const INS_TYPES = [
@@ -191,8 +192,10 @@ export default function ExecuteInsurancePremium() {
   }
 
   function handleSave() {
+    const amtNum = Number(String(editAmount).replace(/,/g,'')) || 0
+    const selItem = items.find(i => i.id === selId)
     setItems(prev => prev.map(it => it.id !== selId ? it : {
-      ...it, amount:Number(String(editAmount).replace(/,/g,''))||it.amount,
+      ...it, amount: amtNum || it.amount,
       cycle:editCycle, autoOn:editAutoOn, autoEnd:editAutoEnd,
       payDay:editPayDay, payMethod:editPayMethod, selectedCard:editCard,
       approvalEnabled:editApproval, limitEnabled:editLimitOn,
@@ -201,6 +204,19 @@ export default function ExecuteInsurancePremium() {
       notifBefore:editNotifBefore, notifDone:editNotifDone,
       notifFail:editNotifFail, notifExpiry:editNotifExpiry,
     }))
+    if (selItem) {
+      addTransaction({
+        type: 'insurancePremium',
+        fromUserId: 'biz_juda',
+        fromUserName: '㈜주다컴퍼니',
+        fromUserType: 'business',
+        recipient: { id: null, name: selItem.insurer || selItem.name, phone: '', verified: true, isBusiness: true },
+        amount: amtNum || selItem.amount || 0,
+        reason: selItem.name,
+        walletId: 'my', walletLabel: 'MY 지갑',
+        payDateMode: 'immediate', status: 'completed',
+      })
+    }
     setSaved(true); setTimeout(() => setSaved(false), 1800)
   }
 

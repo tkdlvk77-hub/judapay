@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 const PAY_DAYS = ['1','5','10','15','20','25','28','말일']
 const CYCLE_OPTS = [
@@ -85,6 +86,16 @@ export default function ExecuteMisc() {
       payDay: form.payDay, cycle: form.cycle,
       active: true, lastPayStatus: null,
     }, ...prev])
+    addTransaction({
+      type: 'misc',
+      fromUserId: 'biz_juda', fromUserName: '㈜주다컴퍼니', fromUserType: 'business',
+      recipient: { id: null, name: form.name, phone: '', verified: true, isBusiness: true },
+      amount: parseInt(form.amount),
+      reason: form.name,
+      walletId: 'my', walletLabel: 'MY 지갑',
+      payDateMode: 'immediate', status: 'completed',
+      mainCat: '미분류', subCat: '미분류',
+    })
     setScreen('list')
     setForm({ icon:'📋', name:'', amount:'', payDay:'25', cycle:'monthly' })
     setSelectedIcon('📋')

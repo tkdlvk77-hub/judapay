@@ -699,9 +699,9 @@ return (
                 const d = diffInfo(total, prevTotal)
                 if (!d) return null
                 return (
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', background: d.bg, borderRadius:'8px', padding:'3px 9px' }}>
-                    <span style={{ fontSize:'12px', fontWeight:700, color: d.color }}>{d.arrow} {d.pct}%</span>
-                    <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.7)' }}>전월 대비</span>
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', background:'rgba(0,0,0,0.28)', borderRadius:'8px', padding:'3px 9px' }}>
+                    <span style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>{d.arrow} {d.pct}%</span>
+                    <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.65)' }}>전월 대비</span>
                   </div>
                 )
               })()}

@@ -43,20 +43,73 @@
 // ─────────────────────────────────────────────────────────
 export const TX_TYPE_META = {
   // 기업 자금집행
-  freelance:    { icon: '🧾', labelKo: '외주비',     labelEn: 'Outsourcing' },
-  marketing:    { icon: '📢', labelKo: '마케팅비',    labelEn: 'Marketing' },
-  bonus:        { icon: '🎉', labelKo: '상여금',     labelEn: 'Bonus' },
-  condolence:   { icon: '💐', labelKo: '경조사비',    labelEn: 'Family Event' },
-  otherIncome:  { icon: '📋', labelKo: '기타소득',    labelEn: 'Other Income' },
-  lend:         { icon: '💸', labelKo: '대여금',     labelEn: 'Loan' },
-  support:      { icon: '🌱', labelKo: '자금 지원',   labelEn: 'Support' },
-  salary:       { icon: '💰', labelKo: '급여',       labelEn: 'Salary' },
-  rent:         { icon: '🏢', labelKo: '임대료',     labelEn: 'Rent' },
+  salary:           { icon: '💰', labelKo: '급여',       labelEn: 'Salary' },
+  freelance:        { icon: '🧾', labelKo: '외주비',     labelEn: 'Outsourcing' },
+  marketing:        { icon: '📢', labelKo: '마케팅비',    labelEn: 'Marketing' },
+  bonus:            { icon: '🎉', labelKo: '상여금',     labelEn: 'Bonus' },
+  condolence:       { icon: '💐', labelKo: '경조사비',    labelEn: 'Family Event' },
+  otherIncome:      { icon: '📋', labelKo: '기타소득',    labelEn: 'Other Income' },
+  insurance4:       { icon: '🛡️', labelKo: '4대보험',    labelEn: '4 Insurances' },
+  rent:             { icon: '🏢', labelKo: '임대료',     labelEn: 'Rent' },
+  rentLease:        { icon: '🚗', labelKo: '렌트&리스',  labelEn: 'Rent & Lease' },
+  subscription:     { icon: '📱', labelKo: '구독료',     labelEn: 'Subscription' },
+  telecom:          { icon: '📡', labelKo: '통신비',     labelEn: 'Telecom' },
+  utility:          { icon: '💡', labelKo: '공과금',     labelEn: 'Utility' },
+  insurancePremium: { icon: '🛡️', labelKo: '보험료',    labelEn: 'Insurance' },
+  travelMeal:       { icon: '✈️', labelKo: '출장식대',   labelEn: 'Travel & Meal' },
+  welfare:          { icon: '🎁', labelKo: '복리후생',   labelEn: 'Welfare' },
+  otherOps:         { icon: '📦', labelKo: '기타 정기지출', labelEn: 'Other Ops' },
+  marketing2:       { icon: '📣', labelKo: '마케팅비',   labelEn: 'Marketing' },
+  lend:             { icon: '💸', labelKo: '대여금',     labelEn: 'Loan' },
+  support:          { icon: '🌱', labelKo: '자금 지원',  labelEn: 'Support' },
+  invest:           { icon: '📈', labelKo: '투자',       labelEn: 'Invest' },
+  vendorLoan:       { icon: '🤝', labelKo: '대여금',     labelEn: 'Vendor Loan' },
+  tax:              { icon: '🧾', labelKo: '세금',       labelEn: 'Tax' },
   // 개인 자금집행
-  gift:         { icon: '🎁', labelKo: '용돈/선물',   labelEn: 'Gift' },
-  personalLend: { icon: '💸', labelKo: '빌려주기',    labelEn: 'Lend' },
-  invest:       { icon: '💼', labelKo: '투자',       labelEn: 'Invest' },
-  realestate:   { icon: '🏠', labelKo: '부동산',     labelEn: 'Real Estate' },
+  gift:             { icon: '🎁', labelKo: '용돈/선물',  labelEn: 'Gift' },
+  personalLend:     { icon: '💸', labelKo: '빌려주기',   labelEn: 'Lend' },
+  realestate:       { icon: '🏠', labelKo: '부동산',     labelEn: 'Real Estate' },
+}
+
+// ─────────────────────────────────────────────────────────
+// 대카테고리 / 중카테고리 자동 매핑
+// ExecutionStats CATEGORY_GROUPS의 subs 레이블과 완전 동일하게 유지
+// addTransaction() 호출 시 type 기반으로 mainCat / subCat 자동 주입
+// ─────────────────────────────────────────────────────────
+export const TYPE_TO_CATEGORY = {
+  // 인건비
+  salary:           { mainCat: '인건비', subCat: '급여' },
+  freelance:        { mainCat: '인건비', subCat: '외주비' },
+  bonus:            { mainCat: '인건비', subCat: '상여금' },
+  condolence:       { mainCat: '인건비', subCat: '경조사비' },
+  otherIncome:      { mainCat: '인건비', subCat: '기타소득' },
+  insurance4:       { mainCat: '인건비', subCat: '4대보험' },
+  // 운영비
+  rent:             { mainCat: '운영비', subCat: '임대료' },
+  rentLease:        { mainCat: '운영비', subCat: '렌트&리스' },
+  subscription:     { mainCat: '운영비', subCat: '구독료' },
+  telecom:          { mainCat: '운영비', subCat: '통신비' },
+  utility:          { mainCat: '운영비', subCat: '공과금' },
+  insurancePremium: { mainCat: '운영비', subCat: '보험료' },
+  travelMeal:       { mainCat: '운영비', subCat: '출장식대' },
+  welfare:          { mainCat: '운영비', subCat: '복리후생' },
+  otherOps:         { mainCat: '운영비', subCat: '기타 정기지출' },
+  // 사업비
+  marketing:        { mainCat: '사업비', subCat: '마케팅비' },
+  support:          { mainCat: '사업비', subCat: '마케팅비' },   // 자금지원 → 사업비
+  // 금융
+  invest:           { mainCat: '금융',   subCat: '투자' },
+  lend:             { mainCat: '금융',   subCat: '대여금' },
+  vendorLoan:       { mainCat: '금융',   subCat: '대여금' },
+  personalLend:     { mainCat: '금융',   subCat: '대여금' },
+  realestate:       { mainCat: '금융',   subCat: '투자' },
+  // 세금
+  tax:              { mainCat: '세금',   subCat: '세금' },
+  // 개인 (미분류 시 기본값)
+  gift:             { mainCat: '운영비', subCat: '복리후생' },
+  // 미분류
+  misc:             { mainCat: '미분류', subCat: '미분류' },
+  otherExpense:     { mainCat: '미분류', subCat: '미분류' },
 }
 
 // ─────────────────────────────────────────────────────────
@@ -245,6 +298,12 @@ export function addTransaction(params) {
   const meta = TX_TYPE_META[type] || { icon: '💼', labelKo: type, labelEn: type }
   const category = getTxCategory(type)
 
+  // 대/중 카테고리 자동 주입 (TYPE_TO_CATEGORY 매핑 기반)
+  // params에 명시적으로 전달된 경우 우선, 없으면 매핑에서 자동 결정
+  const catMap = TYPE_TO_CATEGORY[type] || { mainCat: null, subCat: null }
+  const resolvedMainCat = params.mainCat || catMap.mainCat
+  const resolvedSubCat  = params.subCat  || catMap.subCat
+
   // 가입자/비가입자
   const recipientVerified = !!recipient.verified
 
@@ -268,6 +327,8 @@ export function addTransaction(params) {
     typeLabel: meta.labelKo,
     typeIcon: meta.icon,
     category,                       // 'contract' | 'notification'
+    mainCat: resolvedMainCat,       // 대카테고리: 인건비 / 운영비 / 사업비 / 금융 / 세금
+    subCat:  resolvedSubCat,        // 중카테고리: 급여 / 외주비 / 임대료 / ... (ExecutionStats subs 동일)
 
     fromUserId,
     fromUserName,
@@ -1084,7 +1145,7 @@ export function seedDemoTransactions() {
     }
   })
 
-  // _transactions, _activities, _alerts, _messages는 시간 역순 정렬이 깨졌을 수 있으니 재정렬
+  // 시간 역순 정렬
   _transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   _activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   _alerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))

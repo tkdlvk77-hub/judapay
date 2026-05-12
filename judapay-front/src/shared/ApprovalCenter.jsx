@@ -1,17 +1,59 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useUser } from '../contexts/UserContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { pushApprovalMsg } from './approvalMessageBus'
 
 // ─── 유형 메타 ────────────────────────────────────────────
 const TYPE_META = {
-  execute:  { label: '자금 집행', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
-  card:     { label: '카드 결제', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
-  mcc:      { label: 'MCC 허용',  color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-  claim:    { label: '소명 응답', color: '#059669', bg: '#F0FDF4', border: '#BBF7D0' },
-  review:   { label: '검수 대기', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
-  wallet:   { label: '지갑 변경', color: '#DB2777', bg: '#FDF2F8', border: '#FBCFE8' },
-  evidence: { label: '증빙 요청', color: '#0891B2', bg: '#ECFEFF', border: '#A5F3FC' },
+  execute:      { label: '자금 집행',   color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  card:         { label: '카드 결제',   color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
+  mcc:          { label: 'MCC 허용',    color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+  claim:        { label: '소명 응답',   color: '#059669', bg: '#F0FDF4', border: '#BBF7D0' },
+  review:       { label: '검수 대기',   color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+  wallet:       { label: '지갑 변경',   color: '#DB2777', bg: '#FDF2F8', border: '#FBCFE8' },
+  evidence:     { label: '증빙 요청',   color: '#0891B2', bg: '#ECFEFF', border: '#A5F3FC' },
+  evidenceIn:   { label: '내역증빙요청', color: '#0891B2', bg: '#ECFEFF', border: '#A5F3FC' },
+  dataRequest:  { label: '자료요청',    color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
+  refund:       { label: '상환요청',    color: '#059669', bg: '#F0FDF4', border: '#BBF7D0' },
+}
+
+// 처리기한 기준 긴급 여부 — deadline이 오늘 기준 3일 이내면 긴급
+function isUrgent(item) {
+  if (!item.deadline || item.status === 'done') return false
+  const today = new Date(); today.setHours(0,0,0,0)
+  const d = new Date(item.deadline.replace(/\./g, '-')); d.setHours(0,0,0,0)
+  const diffDays = Math.floor((d - today) / 86400000)
+  return diffDays <= 3
+}
+
+// type → 상위 카테고리 (카드 좌측 상단 첫 번째 배지)
+const CATEGORY_META = {
+  execute:     { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  card:        { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  mcc:         { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  wallet:      { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  evidence:    { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  evidenceIn:  { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  dataRequest: { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  refund:      { label: '승인필요',     color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+  review:      { label: '검수확인',     color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
+  claim:       { label: '사용내역확인', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+}
+
+// item → 현재 처리 상태 배지 (카테고리 바로 우측)
+function getStatusBadge(item) {
+  if (item.status === 'done') {
+    if (item.doneType === 'rejected') return { label: '반려',    color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' }
+    return                                   { label: '승인완료', color: '#047857', bg: '#F0FDF4', border: '#BBF7D0' }
+  }
+  if (item.status === 'inprogress') {
+    return { label: '진행중', color: '#C8821A', bg: '#FFFBEB', border: '#FDE68A' }
+  }
+  // pending
+  if (item.type === 'review') return { label: '검수대기', color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' }
+  return { label: '승인대기', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' }
 }
 
 const RISK_META = {
@@ -33,6 +75,44 @@ const TYPE_FILTER_TYPES = {
   evidence: ['evidence'],
 }
 
+// ─── 카테고리 체계 (대카테고리 → 중카테고리) ──────────────
+const CATEGORY_MAP = {
+  // 인건비
+  '급여':           { main:'인건비', icon:'💰', color:'#0369A1', bg:'#F0F9FF', border:'#BAE6FD' },
+  '외주비':         { main:'인건비', icon:'💼', color:'#0369A1', bg:'#F0F9FF', border:'#BAE6FD' },
+  '외주비 (프리랜서/외주)': { main:'인건비', icon:'💼', color:'#0369A1', bg:'#F0F9FF', border:'#BAE6FD' },
+  '4대보험':        { main:'인건비', icon:'🛡️', color:'#0369A1', bg:'#F0F9FF', border:'#BAE6FD' },
+  '상여금':         { main:'인건비', icon:'🎁', color:'#0369A1', bg:'#F0F9FF', border:'#BAE6FD' },
+  // 운영비
+  '임대료':         { main:'운영비', icon:'🏢', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '임대료 (자동 지출)': { main:'운영비', icon:'🏢', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '임차료':         { main:'운영비', icon:'🔑', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '구독료':         { main:'운영비', icon:'💻', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '통신비':         { main:'운영비', icon:'📱', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '공과금':         { main:'운영비', icon:'⚡', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '보험료':         { main:'운영비', icon:'🏥', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '세금':           { main:'운영비', icon:'🧾', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  '기타 정기지출':  { main:'운영비', icon:'💡', color:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE' },
+  // 마케팅
+  '광고비':         { main:'마케팅', icon:'📣', color:'#D97706', bg:'#FFFBEB', border:'#FDE68A' },
+  '홍보비':         { main:'마케팅', icon:'📢', color:'#D97706', bg:'#FFFBEB', border:'#FDE68A' },
+  '콘텐츠 제작':    { main:'마케팅', icon:'🎬', color:'#D97706', bg:'#FFFBEB', border:'#FDE68A' },
+  // 경비
+  '접대비':         { main:'경비', icon:'🍽️', color:'#DC2626', bg:'#FEF2F2', border:'#FECACA' },
+  '출장비':         { main:'경비', icon:'✈️', color:'#DC2626', bg:'#FEF2F2', border:'#FECACA' },
+  '교통비':         { main:'경비', icon:'🚌', color:'#DC2626', bg:'#FEF2F2', border:'#FECACA' },
+  '복리후생':       { main:'경비', icon:'☕', color:'#DC2626', bg:'#FEF2F2', border:'#FECACA' },
+  // 자산
+  '비품':           { main:'자산', icon:'📦', color:'#059669', bg:'#F0FDF4', border:'#BBF7D0' },
+  '장비':           { main:'자산', icon:'🖥️', color:'#059669', bg:'#F0FDF4', border:'#BBF7D0' },
+  '차량':           { main:'자산', icon:'🚗', color:'#059669', bg:'#F0FDF4', border:'#BBF7D0' },
+  '부동산':         { main:'자산', icon:'🏠', color:'#059669', bg:'#F0FDF4', border:'#BBF7D0' },
+}
+function getCatMeta(category) {
+  if (!category) return null
+  return CATEGORY_MAP[category] || { main:'기타', icon:'📂', color:'#6B7280', bg:'#F4F5F7', border:'#E9EAEC' }
+}
+
 // ─────────────────────────────────────────────────────────
 // 유형 가이드 (Judapay 시스템 기준)
 //  execute  : 자금 집행 승인 — 급여/외주비/임대료/렌트리스/구독료/
@@ -44,13 +124,24 @@ const TYPE_FILTER_TYPES = {
 //  review   : 결과물 검수 — 외주비/마케팅비/부동산(근저당 해지)만 해당
 //  evidence : 영수증·서류 증빙 제출 요청
 // ─────────────────────────────────────────────────────────
+// 승인 권한 단계: 1=승인자(팀장급), 2=관리자(본부장급), 3=최고관리자/대표
+// 실제 값은 컴포넌트 내부에서 currentUser.role로 동적 계산됨
+const ROLE_TO_AUTHORITY = {
+  master:     'super',  // 최고관리자: 모든 단계·모든 항목 승인 가능
+  admin:      2,        // 관리자: 2차 승인
+  accounting: 1,        // 재무담당자: 1차 승인
+  manager:    1,        // 승인자: 1차 승인
+  staff:      null,     // 일반구성원: 승인 권한 없음
+  viewer:     null,     // 조회전용: 승인 권한 없음
+}
+
 const INIT_APPROVALS = [
   // ── 진행 중 / 승인 대기 (pending) ─────────────────────
 
   // [자금집행] 외주비 — 신규 수신 계좌라 위험도 높음
   {
-    id:'a1', status:'pending', type:'execute',
-    requester:'박철수', requestedAt:'10분 전', urgent:true,
+    id:'a1', status:'pending', direction:'outgoing', type:'execute', approvalStage:2, has2ndStage:true, nextApprover:'이대표 (최고관리자)',
+    requester:'박철수', requestedAt:'10분 전', deadline:'2026.05.14',
     title:'5월 웹개발 외주비 집행',
     desc:'외주비 지갑 → ㈜오로라 이체',
     amount:3500000,
@@ -71,8 +162,8 @@ const INIT_APPROVALS = [
 
   // [자금집행] 임대료 자동 지출 — 금액 크지만 정기 패턴
   {
-    id:'a2', status:'pending', type:'execute',
-    requester:'자동 지출', requestedAt:'오늘 09:00', urgent:false,
+    id:'a2', status:'pending', direction:'outgoing', type:'execute', approvalStage:1, has2ndStage:true, nextApprover:'김관리 (관리자)',
+    requester:'자동 지출', requestedAt:'오늘 09:00',
     title:'5월 사무실 임대료 납부',
     desc:'운영비 지갑 → 한강부동산관리㈜',
     amount:4200000,
@@ -93,8 +184,8 @@ const INIT_APPROVALS = [
 
   // [자금집행] 보너스 지급 — 대상자 다수
   {
-    id:'a3', status:'pending', type:'execute',
-    requester:'이유진', requestedAt:'2시간 전', urgent:false,
+    id:'a3', status:'pending', direction:'outgoing', type:'execute', approvalStage:2,
+    requester:'이유진', requestedAt:'2시간 전',
     title:'1분기 성과급 지급',
     desc:'급여 지갑 → 구성원 5명 계좌',
     amount:12500000,
@@ -114,8 +205,8 @@ const INIT_APPROVALS = [
 
   // [카드결제] 법인카드 한도 초과 결제
   {
-    id:'a4', status:'pending', type:'card',
-    requester:'이민형', requestedAt:'1시간 전', urgent:true,
+    id:'a4', status:'pending', direction:'outgoing', type:'card', approvalStage:1,
+    requester:'이민형', requestedAt:'1시간 전', deadline:'2026.05.15',
     title:'법인카드 호텔 결제 한도 초과',
     desc:'운영비 카드 · MCC 7011(숙박업) · 건당 한도 초과',
     amount:480000,
@@ -136,8 +227,8 @@ const INIT_APPROVALS = [
 
   // [MCC 허용] 게임업종 — 권한 없음
   {
-    id:'a5', status:'pending', type:'mcc',
-    requester:'김지수', requestedAt:'2시간 전', urgent:true,
+    id:'a5', status:'pending', direction:'outgoing', type:'mcc', approvalStage:3,
+    requester:'김지수', requestedAt:'2시간 전', deadline:'2026.05.15',
     title:'게임/오락(7993) 업종 임시 허용 요청',
     desc:'법인카드 · 차단 업종 해제 요청',
     amount:null,
@@ -160,8 +251,8 @@ const INIT_APPROVALS = [
 
   // [검수] 외주 개발 결과물 검수 — 중도금 단계 검수 대기
   {
-    id:'a6', status:'pending', type:'review',
-    requester:'박철수', requestedAt:'30분 전', urgent:true,
+    id:'a6', status:'pending', direction:'outgoing', type:'review',
+    requester:'박철수', requestedAt:'30분 전', deadline:'2026.05.13',
     title:'앱 기능 개발 외주 결과물 검수',
     desc:'㈜테크솔루션 · 결제 모듈 개발 1차 완료 보고',
     amount:1120000,
@@ -193,8 +284,8 @@ const INIT_APPROVALS = [
 
   // [검수] 부동산 근저당 해지 서류 검수 (단계 없는 문서 검수)
   {
-    id:'a7', status:'pending', type:'review',
-    requester:'이유진', requestedAt:'1시간 전', urgent:false,
+    id:'a7', status:'pending', direction:'outgoing', type:'review',
+    requester:'이유진', requestedAt:'1시간 전',
     title:'사무실 근저당 해지 완료 서류 검수',
     desc:'부동산 실행 완료 · 해지 서류 3건 첨부',
     amount:null,
@@ -217,8 +308,8 @@ const INIT_APPROVALS = [
 
   // [소명] 법인카드 마트 결제 소명
   {
-    id:'a8', status:'pending', type:'claim',
-    requester:'홍길동', requestedAt:'3시간 전', urgent:false,
+    id:'a8', status:'pending', direction:'outgoing', type:'claim',
+    requester:'홍길동', requestedAt:'3시간 전',
     title:'법인카드 마트 결제 업무 소명',
     desc:'이마트 결제 · MCC 5411(식료품) · 업무 연관성 확인',
     amount:87000,
@@ -239,8 +330,8 @@ const INIT_APPROVALS = [
 
   // [증빙] 법인카드 월간 영수증 제출
   {
-    id:'a9', status:'pending', type:'evidence',
-    requester:'김지수', requestedAt:'오늘 08:00', urgent:false,
+    id:'a9', status:'pending', direction:'outgoing', type:'evidence',
+    requester:'김지수', requestedAt:'오늘 08:00',
     title:'5월 법인카드 영수증 증빙 제출',
     desc:'5월 1~10일 결제 건 영수증 미제출 3건',
     amount:234000,
@@ -264,8 +355,8 @@ const INIT_APPROVALS = [
 
   // [자금집행] 급여 선지급 — 근로계약서 추가 요청 중
   {
-    id:'a10', status:'inprogress', type:'execute',
-    requester:'홍길동', requestedAt:'어제', urgent:false,
+    id:'a10', status:'inprogress', direction:'outgoing', type:'execute', approvalStage:1,
+    requester:'홍길동', requestedAt:'어제',
     title:'5월 급여 선지급 요청',
     desc:'급여 지갑 → 홍길동 개인 계좌',
     amount:2500000,
@@ -290,8 +381,8 @@ const INIT_APPROVALS = [
 
   // [소명] 법인카드 야근 식대 재확인 중
   {
-    id:'a11', status:'inprogress', type:'claim',
-    requester:'이유진', requestedAt:'어제', urgent:false,
+    id:'a11', status:'inprogress', direction:'outgoing', type:'claim',
+    requester:'이유진', requestedAt:'어제',
     title:'법인카드 야근 식대 소명 재확인',
     desc:'배달 영수증 날짜 불일치 — 수정본 제출 대기',
     amount:52000,
@@ -318,8 +409,8 @@ const INIT_APPROVALS = [
 
   // [자금집행] 구독료 — 승인 완료
   {
-    id:'a12', status:'done', doneType:'approved', type:'execute',
-    requester:'자동 지출', requestedAt:'3일 전', urgent:false,
+    id:'a12', status:'done', doneType:'approved', direction:'outgoing', type:'execute', approvalStage:1,
+    requester:'자동 지출', requestedAt:'3일 전',
     title:'Slack 구독료 자동 납부',
     desc:'운영비 지갑 → Slack Technologies',
     amount:890000,
@@ -344,8 +435,8 @@ const INIT_APPROVALS = [
 
   // [검수] 마케팅 외주 결과물 검수 완료
   {
-    id:'a13', status:'done', doneType:'approved', type:'review',
-    requester:'이민형', requestedAt:'2일 전', urgent:false,
+    id:'a13', status:'done', doneType:'approved', direction:'outgoing', type:'review',
+    requester:'이민형', requestedAt:'2일 전',
     title:'SNS 마케팅 캠페인 결과물 검수',
     desc:'㈜애드캠프 · 4월 SNS 광고 집행 결과 보고',
     amount:1500000,
@@ -384,8 +475,8 @@ const INIT_APPROVALS = [
 
   // [MCC 허용] 카지노 업종 — 반려
   {
-    id:'a14', status:'done', doneType:'rejected', type:'mcc',
-    requester:'김지수', requestedAt:'4일 전', urgent:false,
+    id:'a14', status:'done', doneType:'rejected', direction:'outgoing', type:'mcc', approvalStage:3,
+    requester:'김지수', requestedAt:'4일 전',
     title:'카지노/도박(7995) 업종 영구 허용 요청',
     desc:'법인카드 · 영구 차단 업종 해제 요청',
     amount:null,
@@ -410,8 +501,8 @@ const INIT_APPROVALS = [
 
   // [자금집행] 해외 이체 — 규정 미충족 반려
   {
-    id:'a15', status:'done', doneType:'rejected', type:'execute',
-    requester:'이민형', requestedAt:'6일 전', urgent:false,
+    id:'a15', status:'done', doneType:'rejected', direction:'outgoing', type:'execute', approvalStage:2,
+    requester:'이민형', requestedAt:'6일 전',
     title:'해외 법인 계좌 이체',
     desc:'운영비 지갑 → 미국 법인 계좌',
     amount:5000000,
@@ -436,8 +527,8 @@ const INIT_APPROVALS = [
 
   // [소명] 법인카드 편의점 결제 소명 — 반려
   {
-    id:'a16', status:'done', doneType:'rejected', type:'claim',
-    requester:'박철수', requestedAt:'1주 전', urgent:false,
+    id:'a16', status:'done', doneType:'rejected', direction:'outgoing', type:'claim',
+    requester:'박철수', requestedAt:'1주 전',
     title:'법인카드 편의점 결제 소명',
     desc:'CU 편의점 결제 · 업무 연관성 소명',
     amount:34000,
@@ -459,6 +550,215 @@ const INIT_APPROVALS = [
       { action:'반려', actor:'나', time:'05.05 11:00', note:'주말 근무 기록 없음 · 개인비용 처리' },
     ],
   },
+
+  // ════════════════════════════════════════
+  // ── 관리자 승인 설정에서 연동된 집행 요청
+  // ════════════════════════════════════════
+
+  // [자금집행] 사무용품 구매 — 1차 승인 대기
+  {
+    id:'a17', status:'pending', direction:'outgoing', type:'execute', approvalStage:1, has2ndStage:false, nextApprover:null,
+    requester:'최직원', requestedAt:'2026.05.11',
+    title:'사무용품 구매',
+    desc:'운영비 지갑 → 오피스디포',
+    amount:245000,
+    keyPoint:'비품 카테고리 · 1차 승인 대기 · 박승인 검토 필요',
+    riskLevel:'low', canApprove:true, txId:'tx_a17',
+    executionData:{
+      recipientName:'오피스디포',
+      recipientAccount:'',
+      wallet:'운영비 지갑',
+      category:'비품',
+      purpose:'프린터 토너 교체',
+      scheduledDate:'2026.05.14',
+      receiptStatus:'영수증 첨부 완료',
+      memo:'프린터 토너 교체 — 소모품',
+      attachments:['영수증_사무용품.jpg'],
+    },
+    history:[
+      { action:'집행 요청', actor:'최직원', time:'05.11 09:00', note:'영수증 첨부 완료' },
+    ],
+  },
+
+  // [자금집행] 외주 개발비 — 1차 완료, 2차 승인 대기
+  {
+    id:'a18', status:'inprogress', direction:'outgoing', type:'execute', approvalStage:2, has2ndStage:true, nextApprover:'이대표 (최고관리자)',
+    requester:'박승인', requestedAt:'2026.05.10',
+    title:'외주 개발비',
+    desc:'외주비 지갑 → ㈜디자인랩',
+    amount:5800000,
+    keyPoint:'외주비 카테고리 · 1차 승인 완료 · 2차 검토 대기 (500만원 이상)',
+    riskLevel:'mid', canApprove:true, txId:'tx_a18',
+    executionData:{
+      recipientName:'㈜디자인랩',
+      recipientAccount:'기업은행 179-012345-67-890',
+      wallet:'외주비 지갑',
+      category:'외주비',
+      purpose:'앱 UI 리뉴얼 개발',
+      scheduledDate:'2026.05.20',
+      receiptStatus:'계약서 첨부 완료',
+      memo:'앱 UI 리뉴얼 — 외주 개발비 (1차 계약)',
+      attachments:['외주계약서_디자인랩.pdf','견적서.pdf'],
+    },
+    history:[
+      { action:'집행 요청', actor:'박승인', time:'05.10 10:00', note:'계약서 첨부' },
+      { action:'1차 승인', actor:'박승인', time:'05.10 14:30', note:'내용 검토 후 승인 — 2차 검토 필요 (외주 고액)' },
+    ],
+  },
+
+  // [자금집행] 법인 접대비 — 2차 승인 대기, 증빙 없음
+  {
+    id:'a19', status:'pending', direction:'outgoing', type:'execute', approvalStage:2, has2ndStage:true, nextApprover:'이대표 (최고관리자)',
+    requester:'김관리', requestedAt:'2026.05.09', deadline:'2026.05.14',
+    title:'법인 접대비',
+    desc:'운영비 지갑 → 강남그릴',
+    amount:1240000,
+    keyPoint:'접대비 카테고리 · 증빙 미첨부 · 2차 조건 충족으로 2차 대기',
+    riskLevel:'high', canApprove:true, txId:'tx_a19',
+    executionData:{
+      recipientName:'강남그릴',
+      recipientAccount:'',
+      wallet:'운영비 지갑',
+      category:'접대비',
+      purpose:'거래처 저녁 식사',
+      scheduledDate:'2026.05.12',
+      receiptStatus:'영수증 미첨부 ⚠️',
+      memo:'주요 거래처 방문 — 저녁 식사',
+      attachments:[],
+    },
+    history:[
+      { action:'집행 요청', actor:'김관리', time:'05.09 17:30', note:'증빙 첨부 없이 제출' },
+      { action:'증빙 요청', actor:'시스템', time:'05.09 17:31', note:'접대비 영수증 첨부 필요 — 자동 플래그' },
+    ],
+  },
+
+  // [자금집행] 마케팅 광고비 — 추가 서류 요청 중
+  {
+    id:'a20', status:'inprogress', direction:'outgoing', type:'execute', approvalStage:1, has2ndStage:true, nextApprover:'이대표 (최고관리자)',
+    requester:'최직원', requestedAt:'2026.05.08',
+    title:'마케팅 광고비',
+    desc:'마케팅 지갑 → 메타코리아',
+    amount:3200000,
+    keyPoint:'SNS 광고 집행 · 추가 서류 요청 중 (광고 집행 계획서)',
+    riskLevel:'mid', canApprove:true, txId:'tx_a20',
+    executionData:{
+      recipientName:'메타코리아',
+      recipientAccount:'',
+      wallet:'마케팅 지갑',
+      category:'광고비',
+      purpose:'SNS 광고 집행',
+      scheduledDate:'2026.05.15',
+      receiptStatus:'광고 인보이스 첨부',
+      memo:'인스타그램·페이스북 광고 — 5월 캠페인',
+      attachments:['광고_인보이스.pdf'],
+    },
+    history:[
+      { action:'집행 요청', actor:'최직원', time:'05.08 11:00', note:'인보이스 첨부' },
+      { action:'추가 서류 요청', actor:'박승인', time:'05.08 15:00', note:'광고 집행 계획서 및 기대 성과 제출 요청' },
+    ],
+  },
+
+  // [자금집행] 서버 장비 구매 — 최종 승인 완료
+  {
+    id:'a21', status:'done', doneType:'approved', direction:'outgoing', type:'execute', approvalStage:3,
+    requester:'박승인', requestedAt:'2026.05.07',
+    title:'서버 장비 구매',
+    desc:'인프라 지갑 → 삼성SDS',
+    amount:12000000,
+    keyPoint:'고액 비품 · 1차+2차+대표 최종 승인 완료 · 집행 예정 2026.05.25',
+    riskLevel:'mid', canApprove:true, txId:'tx_a21',
+    executionData:{
+      recipientName:'삼성SDS',
+      recipientAccount:'기업은행 080-000000-00-000',
+      wallet:'인프라 지갑',
+      category:'비품',
+      purpose:'서버 장비 교체',
+      scheduledDate:'2026.05.25',
+      receiptStatus:'견적서 첨부 완료',
+      memo:'노후 서버 장비 전면 교체 — 3년 보증',
+      attachments:['견적서_삼성SDS.pdf','장비_사양서.pdf'],
+    },
+    history:[
+      { action:'집행 요청', actor:'박승인', time:'05.07 09:00', note:'견적서·사양서 첨부' },
+      { action:'1차 승인', actor:'박승인', time:'05.07 11:00', note:'필요성 확인' },
+      { action:'2차 승인', actor:'김관리', time:'05.08 09:30', note:'예산 적합성 검토 완료' },
+      { action:'최종 승인', actor:'이대표', time:'05.09 10:00', note:'고액 승인 — 집행 예약' },
+    ],
+  },
+
+  // ════════════════════════════════════════
+  // ── 받은 요청 (incoming) ─────────────────
+  // ════════════════════════════════════════
+
+  // [증빙요청] 세무사 증빙자료 요청
+  {
+    id:'a22', status:'pending', direction:'incoming', type:'evidenceIn',
+    requester:'세무법인 하나', requestedAt:'1시간 전', deadline:'2026.05.16',
+    title:'5월 부가세 신고 증빙자료 요청',
+    desc:'세무사 → 우리 회사 · 5월 법인카드 매입 세금계산서 제출 요청',
+    amount:null,
+    keyPoint:'부가세 신고 마감 D-5 · 세금계산서 8건 미제출 · 기한 내 제출 필요',
+    riskLevel:'mid', canApprove:true, txId:'tx_a22',
+    executionData:{
+      expenseType:'세무 증빙 제출',
+      period:'2026년 5월 (부가세 신고용)',
+      requiredDocs:'법인카드 매입 세금계산서 8건',
+      deadline:'2026.05.25',
+      memo:'부가세 신고를 위한 매입 세금계산서 제출 요청',
+      attachments:[],
+    },
+    history:[
+      { action:'증빙자료 요청', actor:'세무법인 하나', time:'05.12 09:00', note:'부가세 신고 기한 D-5 · 서류 취합 요청' },
+    ],
+  },
+
+  // [자료요청] 거래처 계약서 재요청
+  {
+    id:'a23', status:'pending', direction:'incoming', type:'dataRequest',
+    requester:'㈜파트너솔루션', requestedAt:'3시간 전',
+    title:'계약서 원본 재발송 요청',
+    desc:'거래처 → 우리 회사 · 계약서 원본 PDF 재발송 요청',
+    amount:null,
+    keyPoint:'담당자 변경으로 기존 계약서 분실 · 원본 스캔본 또는 공인전자문서 제출 필요',
+    riskLevel:'low', canApprove:true, txId:'tx_a23',
+    executionData:{
+      expenseType:'계약 서류 제출',
+      requester:'㈜파트너솔루션 구매팀',
+      requiredDocs:'서비스 계약서 원본 (2026.03 체결)',
+      deadline:'2026.05.20',
+      memo:'담당자 변경으로 계약서 재발송 요청 — 공인전자문서 또는 PDF 스캔본 제출',
+      attachments:[],
+    },
+    history:[
+      { action:'계약서 재발송 요청', actor:'㈜파트너솔루션', time:'05.12 10:30', note:'기존 담당자 퇴직 · 계약서 분실 · 재발송 요청' },
+    ],
+  },
+
+  // [상환요청] 직원 출장비 상환 요청
+  {
+    id:'a24', status:'pending', direction:'incoming', type:'refund',
+    requester:'김출장 (영업팀)', requestedAt:'어제',
+    title:'출장비 상환 요청',
+    desc:'직원 선지출 → 회사 상환 · KTX + 숙박 + 식대',
+    amount:178000,
+    keyPoint:'영수증 3건 첨부 완료 · 출장보고서 미제출 · 상환 전 보고서 확인 필요',
+    riskLevel:'low', canApprove:true, txId:'tx_a24',
+    executionData:{
+      expenseType:'출장비 상환',
+      tripPeriod:'2026.05.09 ~ 2026.05.10 (1박 2일)',
+      destination:'부산 (거래처 방문)',
+      items:[
+        { name:'KTX 왕복', amount:98000, status:'영수증 첨부됨' },
+        { name:'숙박 (비즈니스호텔)', amount:62000, status:'영수증 첨부됨' },
+        { name:'식대 (1박 2일)', amount:18000, status:'영수증 첨부됨' },
+      ],
+      memo:'부산 거래처 방문 출장 · 개인카드 선지출 후 상환 요청',
+      attachments:['영수증_KTX.jpg','영수증_숙박.jpg','영수증_식대.jpg'],
+    },
+    history:[
+      { action:'상환 요청', actor:'김출장', time:'05.11 18:00', note:'영수증 3건 첨부 · 출장보고서 미제출' },
+    ],
+  },
 ]
 
 // ─── 필터 헬퍼 ────────────────────────────────────────────
@@ -469,10 +769,31 @@ function matchStatus(a, tab) {
   if (tab === 'done')       return a.status === 'done' && a.doneType !== 'rejected'
   return false
 }
-function matchType(a, tf) {
-  if (tf === 'all') return a.canApprove
+function matchType(a, tf, authority) {
+  const isSuperAdmin = authority === 'super'
+  if (tf === 'all') return isSuperAdmin ? true : a.canApprove
+  // usageCheck = evidence + claim 통합
+  if (tf === 'usageCheck') {
+    if (!isSuperAdmin && !a.canApprove) return false
+    return ['evidence', 'claim'].includes(a.type)
+  }
+  // 받은 요청 카테고리 — direction:'incoming' 아이템만
+  if (tf === 'evidenceIn') return a.type === 'evidenceIn'
+  if (tf === 'dataRequest') return a.type === 'dataRequest'
+  if (tf === 'refund') return a.type === 'refund'
+  if (tf === 'settlement')  return a.type === 'wallet'
+  if (tf === 'evidenceReq') return a.type === 'evidence' || a.type === 'evidenceIn'
+  if (tf === 'refundReq')   return a.type === 'refund'
+  if (tf === 'dataReq')     return a.type === 'dataRequest'
   const types = TYPE_FILTER_TYPES[tf]
-  return a.canApprove && types && types.includes(a.type)
+  if (!isSuperAdmin && (!a.canApprove || !types || !types.includes(a.type))) return false
+  if (isSuperAdmin && (!types || !types.includes(a.type))) return false
+  // 승인요청: 최고관리자는 모든 단계, 나머지는 내 단계만
+  if (tf === 'approval') {
+    if (isSuperAdmin) return true
+    return !a.approvalStage || a.approvalStage === authority
+  }
+  return true
 }
 function fmt(n) { return n == null ? null : Number(n).toLocaleString('ko-KR') }
 
@@ -546,24 +867,31 @@ function HistoryTimeline({ history, large, brandColor }) {
       border:'1px solid #E0E7FF', borderRadius:'10px', marginBottom:'10px' }}>
       <div style={{ fontSize:'10px', fontWeight:700, color:'#4338CA',
         marginBottom:'8px', letterSpacing:'0.3px' }}>처리 이력</div>
-      {history.map((h, i) => (
-        <div key={i} style={{ display:'flex', gap:'8px', marginBottom: i<history.length-1?'7px':0 }}>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
-            <div style={{ width:'7px', height:'7px', borderRadius:'50%', marginTop:'3px',
-              background: i===history.length-1 ? '#4F46E5' : '#D1D5DB', flexShrink:0 }} />
-            {i < history.length-1 && (
-              <div style={{ width:'1px', flex:1, background:'#E5E7EB', marginTop:'2px', minHeight:'12px' }} />
-            )}
+      {history.map((h, i) => {
+        const dotColor = h.action?.includes('반려') ? '#DC2626'
+          : h.action?.includes('최종 승인') ? '#059669'
+          : h.action?.includes('승인') ? '#4F46E5' : '#D1D5DB'
+        const textColor = h.action?.includes('반려') ? '#DC2626'
+          : h.action?.includes('최종 승인') ? '#047857' : '#374151'
+        return (
+          <div key={i} style={{ display:'flex', gap:'8px', marginBottom: i<history.length-1?'7px':0 }}>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+              <div style={{ width:'7px', height:'7px', borderRadius:'50%', marginTop:'3px',
+                background: dotColor, flexShrink:0 }} />
+              {i < history.length-1 && (
+                <div style={{ width:'1px', flex:1, background:'#E5E7EB', marginTop:'2px', minHeight:'12px' }} />
+              )}
+            </div>
+            <div style={{ flex:1 }}>
+              <span style={{ fontSize:'11px', fontWeight:600, color:textColor }}>{h.action}</span>
+              <span style={{ fontSize:'10px', color:'#9CA3AF' }}> · {h.time}</span>
+              {h.note && (
+                <div style={{ fontSize:'10px', color:'#6B7280', lineHeight:1.4, marginTop:'1px' }}>{h.note}</div>
+              )}
+            </div>
           </div>
-          <div style={{ flex:1 }}>
-            <span style={{ fontSize:'11px', fontWeight:600, color:'#374151' }}>{h.action}</span>
-            <span style={{ fontSize:'10px', color:'#9CA3AF' }}> · {h.time}</span>
-            {h.note && (
-              <div style={{ fontSize:'10px', color:'#6B7280', lineHeight:1.4, marginTop:'1px' }}>{h.note}</div>
-            )}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -614,14 +942,20 @@ function ExecutionDataSection({ item }) {
 
   // ── execute ──
   if (type === 'execute') {
+    const catMeta = getCatMeta(d.category)
     const rows = [
       { label:'받는 분',   value: d.recipientName, highlight:true },
-      { label:'받는 계좌', value: d.recipientAccount },
+      d.recipientAccount && { label:'받는 계좌', value: d.recipientAccount },
       { label:'출금 지갑', value: d.wallet },
-      { label:'지급 유형', value: d.category },
+      { label:'대카테고리', value: catMeta ? catMeta.main : '기타' },
+      { label:'중카테고리', value: d.category
+          ? (catMeta ? `${catMeta.icon} ${d.category}` : d.category)
+          : '-' },
+      d.purpose && { label:'집행 목적', value: d.purpose },
+      d.receiptStatus && { label:'증빙 상태', value: d.receiptStatus },
       d.payPeriod && { label:'지급 기간', value: d.payPeriod },
       d.taxInvoice && { label:'세금계산서', value: d.taxInvoice },
-      { label:'실행 일시', value: d.scheduledDate },
+      { label:'집행 예정일', value: d.scheduledDate },
       d.memo && { label:'메모', value: d.memo },
     ].filter(Boolean)
     return (
@@ -970,10 +1304,31 @@ function DetailSheet({ item, theme, onClose, onApprove, onReject, onRequest }) {
                 응답 대기 중
               </span>
             )}
-            {!isDone && !isInProgress && item.urgent && (
+            {!isDone && !isInProgress && isUrgent(item) && (
               <span style={{ padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
                 color:'#DC2626', background:'rgba(255,255,255,0.95)', border:'1px solid #FECACA' }}>
                 긴급 처리
+              </span>
+            )}
+            {item.approvalStage && (
+              <span style={{ padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:700,
+                color:'#1D4ED8', background:'rgba(255,255,255,0.95)', border:'1px solid #BFDBFE' }}>
+                {item.approvalStage}차 승인 단계
+              </span>
+            )}
+            {item.executionData?.category && (() => {
+              const cm = getCatMeta(item.executionData.category)
+              return cm ? (
+                <span style={{ padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
+                  color:cm.color, background:'rgba(255,255,255,0.95)', border:`1px solid ${cm.border}` }}>
+                  {cm.icon} {cm.main} · {item.executionData.category}
+                </span>
+              ) : null
+            })()}
+            {item.nextApprover && !isDone && (
+              <span style={{ padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
+                color:'#7C3AED', background:'rgba(255,255,255,0.95)', border:'1px solid #DDD6FE' }}>
+                다음 승인 → {item.nextApprover}
               </span>
             )}
           </div>
@@ -991,6 +1346,68 @@ function DetailSheet({ item, theme, onClose, onApprove, onReject, onRequest }) {
             marginBottom:'5px', letterSpacing:'0.3px' }}>확인 포인트</div>
           <div style={{ fontSize:'12px', fontWeight:500, color:'#374151', lineHeight:1.65 }}>{item.keyPoint}</div>
         </div>
+
+        {/* 승인 단계 현황 (execute 타입 + approvalStage 있을 때) */}
+        {item.type === 'execute' && item.approvalStage != null && (
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'13px 16px',
+            boxShadow:'0 1px 6px rgba(0,0,0,0.06)', marginBottom:'10px' }}>
+            <div style={{ fontSize:'10px', fontWeight:700, color:'#9CA3AF',
+              marginBottom:'12px', letterSpacing:'0.5px' }}>승인 단계 현황</div>
+
+            {/* 단계 진행 바 */}
+            <div style={{ display:'flex', alignItems:'center', gap:'4px', marginBottom:'12px' }}>
+              {[1, 2, 3].map((s, i) => {
+                const isActive = s === item.approvalStage
+                const isPast   = s < item.approvalStage || item.status === 'done'
+                const stageLabels = { 1:'1차 승인', 2:'2차 승인', 3:'최종 승인' }
+                const stageActors = { 1:'승인자', 2:'관리자', 3:'최고관리자' }
+                return (
+                  <div key={s} style={{ display:'flex', alignItems:'center', flex: i < 2 ? 'none' : 1 }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', minWidth:'54px' }}>
+                      <div style={{ width:'28px', height:'28px', borderRadius:'50%', display:'flex', alignItems:'center',
+                        justifyContent:'center', fontSize:'12px', fontWeight:700,
+                        background: isPast ? '#10B981' : isActive ? theme.brandDark : '#F4F5F7',
+                        color: isPast || isActive ? '#fff' : '#9CA3AF',
+                        border: isActive ? `2px solid ${theme.brandDark}` : isPast ? '2px solid #10B981' : '2px solid #E9EAEC' }}>
+                        {isPast ? '✓' : s}
+                      </div>
+                      <div style={{ fontSize:'9px', fontWeight:600, textAlign:'center',
+                        color: isPast ? '#059669' : isActive ? theme.brandDark : '#C4C6CA' }}>
+                        {stageLabels[s]}
+                      </div>
+                      <div style={{ fontSize:'8px', color: isPast ? '#6EE7B7' : isActive ? '#93C5FD' : '#D1D5DB' }}>
+                        {stageActors[s]}
+                      </div>
+                    </div>
+                    {i < 2 && (
+                      <div style={{ flex:1, height:'2px', margin:'0 3px',
+                        background: s < item.approvalStage ? '#10B981' : '#E9EAEC',
+                        borderRadius:'99px', minWidth:'16px' }} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* 현재 단계 요약 행 */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+              paddingTop:'10px', borderTop:'1px solid #F4F5F7' }}>
+              <div>
+                <div style={{ fontSize:'11px', fontWeight:700, color:'#374151', marginBottom:'2px' }}>
+                  현재 단계: {item.approvalStage}차 승인
+                  {item.status === 'done' ? ' (완료)' : item.status === 'inprogress' ? ' 대기 중' : ' 검토 중'}
+                </div>
+                <div style={{ fontSize:'10px', color:'#9CA3AF' }}>요청자: {item.requester}</div>
+              </div>
+              {item.nextApprover && item.status !== 'done' && (
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontSize:'10px', color:'#9CA3AF', marginBottom:'2px' }}>다음 승인자</div>
+                  <div style={{ fontSize:'11px', fontWeight:700, color:'#7C3AED' }}>{item.nextApprover}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 집행 내용 */}
         <ExecutionDataSection item={item} />
@@ -1070,7 +1487,7 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
   const reviewStages = item.type === 'review' && item.executionData?.stages
 
   // 좌측 액센트 컬러
-  const accentColor = item.urgent && !isDone ? '#EF4444'
+  const accentColor = isUrgent(item) && !isDone ? '#EF4444'
     : isInProgress ? '#F59E0B'
     : isDone && item.doneType === 'rejected' ? '#EF4444'
     : isDone ? '#10B981'
@@ -1085,44 +1502,42 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
     }}>
       <div style={{ padding:'14px 16px' }}>
 
-        {/* ── 1행: 유형 + 상태배지 + 시간 ── */}
-        <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'10px', flexWrap:'wrap' }}>
-          <TypeBadge type={item.type} />
-
-          {!isDone && !isInProgress && item.urgent && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
-              color:'#DC2626', background:'#FEF2F2' }}>긴급</span>
-          )}
-          {isInProgress && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
-              color:'#92400E', background:'#FFFBEB' }}>응답 대기</span>
-          )}
-          {isDone && doneMeta && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
-              color:doneMeta.color, background:doneMeta.bg }}>
-              {doneMeta.label}
-            </span>
-          )}
-          {item.claimStatus === 'requested' && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
-              color:'#059669', background:'#F0FDF4' }}>소명 요청됨</span>
-          )}
-          {item.claimStatus === 'completed' && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
-              color:'#047857', background:'#DCFCE7' }}>소명완료</span>
-          )}
-          {item.evidenceStatus === 'requested' && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
-              color:'#0891B2', background:'#ECFEFF' }}>증빙 요청됨</span>
-          )}
-          {item.evidenceStatus === 'completed' && (
-            <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
-              color:'#0E7490', background:'#CFFAFE' }}>증빙완료</span>
-          )}
-          <span style={{ marginLeft:'auto', fontSize:'11px', color:'#C4C6CA', flexShrink:0 }}>
-            {item.requestedAt}
-          </span>
-        </div>
+        {/* ── 1행: 카테고리 + 처리상태 + 긴급여부 + 시간 ── */}
+        {(() => {
+          const cm = CATEGORY_META[item.type] || { label:'승인필요', color:'#1D4ED8', bg:'#EFF6FF', border:'#BFDBFE' }
+          const sb = getStatusBadge(item)
+          return (
+            <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'10px', flexWrap:'wrap' }}>
+              {/* 카테고리 배지 */}
+              <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
+                color:cm.color, background:cm.bg, border:`1px solid ${cm.border}` }}>
+                {cm.label}
+              </span>
+              {/* 처리 상태 배지 */}
+              <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
+                color:sb.color, background:sb.bg, border:`1px solid ${sb.border}` }}>
+                {sb.label}
+              </span>
+              {/* 긴급 */}
+              {!isDone && !isInProgress && isUrgent(item) && (
+                <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
+                  color:'#DC2626', background:'#FEF2F2', border:'1px solid #FECACA' }}>🔴 긴급</span>
+              )}
+              {/* 사용내역 추가 상태 */}
+              {item.claimStatus === 'completed' && (
+                <span style={{ padding:'2px 7px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
+                  color:'#047857', background:'#DCFCE7', border:'1px solid #BBF7D0' }}>내역제출완료</span>
+              )}
+              {item.evidenceStatus === 'completed' && (
+                <span style={{ padding:'2px 7px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
+                  color:'#0E7490', background:'#CFFAFE', border:'1px solid #A5F3FC' }}>첨부완료</span>
+              )}
+              <span style={{ marginLeft:'auto', fontSize:'11px', color:'#C4C6CA', flexShrink:0 }}>
+                {item.requestedAt}
+              </span>
+            </div>
+          )
+        })()}
 
         {/* ── 2행: 제목 + 금액 ── */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'8px', marginBottom:'3px' }}>
@@ -1155,6 +1570,23 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
           </div>
         )}
 
+        {/* ── 승인 단계 진행 배너 ── */}
+        {item.status === 'inprogress' && item.history?.some(h => h.action?.includes('차 승인 완료')) && (
+          <div style={{ background:'linear-gradient(135deg,#F0FDF4,#F0F9FF)', borderRadius:'10px',
+            padding:'8px 12px', marginBottom:'8px', border:'1px solid #BBF7D0',
+            display:'flex', alignItems:'center', gap:'8px' }}>
+            <span style={{ fontSize:'14px' }}>✓</span>
+            <div>
+              <div style={{ fontSize:'10px', fontWeight:700, color:'#047857', marginBottom:'1px' }}>
+                {item.history.filter(h=>h.action?.includes('차 승인 완료')).slice(-1)[0]?.action}
+              </div>
+              {item.nextApprover && (
+                <div style={{ fontSize:'10px', color:'#6B7280' }}>다음 승인자: {item.nextApprover}</div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── 확인 포인트 ── */}
         <div style={{ background:'#F8F9FF', borderRadius:'10px',
           padding:'9px 12px', marginBottom:'10px', borderLeft:'2.5px solid #818CF8' }}>
@@ -1162,6 +1594,33 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
             marginBottom:'3px', letterSpacing:'0.3px' }}>확인 포인트</div>
           <div style={{ fontSize:'11px', fontWeight:500, color:'#374151', lineHeight:1.6 }}>{item.keyPoint}</div>
         </div>
+
+        {/* ── 집행 정보 미니 행: category, scheduledDate, nextApprover ── */}
+        {(item.executionData?.scheduledDate || item.executionData?.category || item.nextApprover) && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'5px', marginBottom:'10px' }}>
+            {item.executionData?.category && (() => {
+              const cm = getCatMeta(item.executionData.category)
+              return cm ? (
+                <span style={{ padding:'3px 9px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
+                  background:cm.bg, color:cm.color, border:`1px solid ${cm.border}` }}>
+                  {cm.icon} {cm.main} · {item.executionData.category}
+                </span>
+              ) : null
+            })()}
+            {item.executionData?.scheduledDate && (
+              <span style={{ padding:'3px 9px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
+                background:'#F0FDF4', color:'#15803D', border:'1px solid #BBF7D0' }}>
+                📅 {item.executionData.scheduledDate}
+              </span>
+            )}
+            {item.nextApprover && !isDone && (
+              <span style={{ padding:'3px 9px', borderRadius:'20px', fontSize:'10px', fontWeight:600,
+                background:'#FDF4FF', color:'#7C3AED', border:'1px solid #E9D5FF' }}>
+                다음 승인 → {item.nextApprover}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* ── 권한 외 안내 ── */}
         {locked && (
@@ -1217,7 +1676,9 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
                 background: theme.activeBtnGrad || theme.brandDark,
                 color:'#fff', border:'none', cursor:'pointer', fontFamily:'inherit',
                 boxShadow: theme.activeShadow || '0 2px 8px rgba(0,0,0,0.18)' }}>
-              {item.type === 'review' ? '검수 승인' : '승인'}
+              {item.type === 'review' ? '검수 승인'
+                : item.approvalStage ? `${item.approvalStage}차 승인`
+                : '승인'}
             </button>
           </div>
         )}
@@ -1293,11 +1754,19 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
   const [deadlineDate, setDeadlineDate] = useState('')
   const [attachReq, setAttachReq]       = useState(false)
   const [suppleMsg, setSuppleMsg]       = useState('')
+  // ── 증빙·소명 추가요청 전용 상태 ──
+  const [claimReq, setClaimReq]   = useState(false)
+  const [evidReq, setEvidReq]     = useState(false)
+  const [message, setMessage]     = useState('')
+  const [msgEdited, setMsgEdited] = useState(false)
 
   const isBulk      = mode === 'bulk'
   const isReject    = mode === 'reject'
   const isRequest   = mode === 'request'
   const isReview    = item?.type === 'review'
+  const isEvidence  = item?.type === 'evidence'
+  const isClaim     = item?.type === 'claim'
+  const isEvidClaim = isEvidence || isClaim
   const title       = isBulk ? '일괄 승인' : isReject ? '반려' : isRequest ? '추가 서류 요청' : '승인'
   const desc        = isBulk
     ? `안전 등급 항목 ${item?.count}건을 일괄 승인합니다.`
@@ -1333,7 +1802,8 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
 
   const canConfirmReview  = (reworkReq || deadlineExt) && (!deadlineExt || newDeadline) && reviewMsg.trim().length > 0
   const canConfirmApproval = (resubmitReq || deadlineReq || attachReq) && (!deadlineReq || deadlineDate) && suppleMsg.trim().length > 0
-  const canConfirmRequest = isReview ? canConfirmReview : canConfirmApproval
+  const canConfirmEvidClaim = (claimReq || evidReq) && message.trim().length > 0
+  const canConfirmRequest = isReview ? canConfirmReview : isEvidClaim ? canConfirmEvidClaim : canConfirmApproval
   const canConfirm = isRequest ? canConfirmRequest : (!isReject || reason.trim().length >= 5)
 
   // ── Toggle 컴포넌트 ──
@@ -1430,8 +1900,62 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
           </>
         )}
 
+        {/* ── 증빙·소명 추가 요청 UI ── */}
+        {isRequest && isEvidClaim && (
+          <>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#374151', marginBottom:'8px' }}>
+              추가 요청 항목
+            </div>
+
+            {/* 소명요청 토글 */}
+            <div onClick={toggleClaim}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'11px 13px', borderRadius:'12px', marginBottom:'8px', cursor:'pointer',
+                background: claimReq ? '#F0FDF4' : '#F9FAFB',
+                border: `1.5px solid ${claimReq ? '#BBF7D0' : '#E9EAEC'}`,
+                transition:'all 0.15s' }}>
+              <div>
+                <div style={{ fontSize:'13px', fontWeight:700, color: claimReq ? '#047857' : '#374151' }}>소명요청</div>
+                <div style={{ fontSize:'11px', color:'#9CA3AF', marginTop:'2px' }}>업무 연관성 · 사용 목적 소명 요구</div>
+              </div>
+              <Toggle on={claimReq} color="#059669" />
+            </div>
+
+            {/* 증빙요청 토글 */}
+            <div onClick={toggleEvid}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'11px 13px', borderRadius:'12px', marginBottom:'14px', cursor:'pointer',
+                background: evidReq ? '#ECFEFF' : '#F9FAFB',
+                border: `1.5px solid ${evidReq ? '#67E8F9' : '#E9EAEC'}`,
+                transition:'all 0.15s' }}>
+              <div>
+                <div style={{ fontSize:'13px', fontWeight:700, color: evidReq ? '#0E7490' : '#374151' }}>증빙요청</div>
+                <div style={{ fontSize:'11px', color:'#9CA3AF', marginTop:'2px' }}>영수증 · 계약서 등 서류 첨부 요구</div>
+              </div>
+              <Toggle on={evidReq} color="#0891B2" />
+            </div>
+
+            {/* 전송 메시지 */}
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#374151', marginBottom:'6px',
+              display:'flex', alignItems:'center', gap:'5px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              전송 메시지
+              <span style={{ fontSize:'10px', color:'#9CA3AF', fontWeight:400 }}>(직접 수정 가능)</span>
+            </div>
+            <textarea value={message}
+              onChange={e => { setMsgEdited(true); setMessage(e.target.value) }}
+              rows={3} placeholder="요청 내용을 입력하세요"
+              style={{ width:'100%', borderRadius:'10px', border:'1px solid #E9EAEC',
+                padding:'10px 12px', fontSize:'12px', color:'#111827', fontFamily:'inherit',
+                resize:'none', outline:'none', background:'#F0FDF4', marginBottom:'12px',
+                boxSizing:'border-box', lineHeight:1.6 }} />
+          </>
+        )}
+
         {/* ── 승인 요청 추가 서류 요청 UI ── */}
-        {isRequest && !isReview && (
+        {isRequest && !isReview && !isEvidClaim && (
           <>
             {/* 요청 대상자 선택 */}
             <div style={{ marginBottom:'12px' }}>
@@ -1439,25 +1963,40 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
                 요청 대상자
               </div>
               <div style={{ display:'flex', gap:'6px' }}>
-                {[
-                  { id:'requester', label:'최초 요청자', icon:'👤' },
-                  { id:'manager1',  label:'1차 담당자',  icon:'👔' },
-                  { id:'manager2',  label:'2차 담당자',  icon:'🏢' },
-                ].map(opt => {
-                  const on = targetPerson === opt.id
-                  return (
-                    <button key={opt.id} onClick={() => setTargetPerson(opt.id)}
-                      style={{ flex:1, padding:'8px 4px', borderRadius:'10px', border:'none',
-                        cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
-                        background: on ? theme.brand : '#F3F4F6',
-                        boxShadow: on ? `0 2px 8px ${theme.brand}40` : 'none' }}>
-                      <div style={{ fontSize:'15px', marginBottom:'3px' }}>{opt.icon}</div>
-                      <div style={{ fontSize:'10px', fontWeight:700, color: on ? '#fff' : '#6B7280', lineHeight:1.3 }}>
-                        {opt.label}
-                      </div>
-                    </button>
-                  )
-                })}
+                {(() => {
+                  // 동적 대상자 목록: approvalStage + has2ndStage 기반
+                  const stage = item?.approvalStage || 0
+                  const has2nd = item?.has2ndStage
+                  const allOpts = [
+                    { id:'requester', label:'최초 요청자', subLabel: item?.requester || '', icon:'👤' },
+                    { id:'manager1',  label:'1차 담당자',  subLabel: stage >= 1 ? '승인자' : '', icon:'👔' },
+                    { id:'manager2',  label:'2차 담당자',  subLabel: stage >= 2 ? '관리자' : '', icon:'🏢' },
+                  ]
+                  // 보여줄 옵션 결정
+                  let visibleOpts = [allOpts[0]] // 최초 요청자는 항상
+                  if (stage >= 1) visibleOpts.push(allOpts[1]) // 1차 이상이면 1차 담당자
+                  if (stage >= 2) visibleOpts.push(allOpts[2]) // 2차 이상이면 2차 담당자
+                  return visibleOpts.map(opt => {
+                    const on = targetPerson === opt.id
+                    return (
+                      <button key={opt.id} onClick={() => setTargetPerson(opt.id)}
+                        style={{ flex:1, padding:'8px 4px', borderRadius:'10px', border:'none',
+                          cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
+                          background: on ? theme.brand : '#F3F4F6',
+                          boxShadow: on ? `0 2px 8px ${theme.brand}40` : 'none' }}>
+                        <div style={{ fontSize:'15px', marginBottom:'3px' }}>{opt.icon}</div>
+                        <div style={{ fontSize:'10px', fontWeight:700, color: on ? '#fff' : '#6B7280', lineHeight:1.3 }}>
+                          {opt.label}
+                        </div>
+                        {opt.subLabel ? (
+                          <div style={{ fontSize:'9px', color: on ? 'rgba(255,255,255,0.75)' : '#9CA3AF', marginTop:'1px' }}>
+                            {opt.subLabel}
+                          </div>
+                        ) : null}
+                      </button>
+                    )
+                  })
+                })()}
               </div>
             </div>
 
@@ -1534,20 +2073,49 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
 
         {/* ── 반려 사유 ── */}
         {isReject && (
-          <textarea value={reason} onChange={e => setReason(e.target.value)}
-            placeholder='반려 사유를 입력하세요 (5자 이상)'
-            rows={3}
-            style={{ width:'100%', borderRadius:'10px', border:'1px solid #E9EAEC',
-              padding:'10px 12px', fontSize:'12px', color:'#111827', fontFamily:'inherit',
-              resize:'none', outline:'none', background:'#F9FAFB', marginBottom:'12px',
-              boxSizing:'border-box' }} />
+          <>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#6B7280', marginBottom:'7px' }}>빠른 사유 선택</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'10px' }}>
+              {[
+                '금액 확인 필요',
+                '증빙 부족',
+                '계약서 확인 필요',
+                '지급 목적 불일치',
+                '수신자 정보 확인 필요',
+                '출금 지갑 확인 필요',
+                '기타',
+              ].map(preset => (
+                <button key={preset}
+                  onClick={() => setReason(prev => prev ? prev + ' / ' + preset : preset)}
+                  style={{ padding:'4px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
+                    background: reason.includes(preset) ? '#FEE2E2' : '#F4F5F7',
+                    color: reason.includes(preset) ? '#DC2626' : '#6B7280',
+                    border: reason.includes(preset) ? '1px solid #FECACA' : '1px solid #E9EAEC',
+                    cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <textarea value={reason} onChange={e => setReason(e.target.value)}
+              placeholder='반려 사유를 입력하세요 (5자 이상)'
+              rows={3}
+              style={{ width:'100%', borderRadius:'10px', border:'1px solid #E9EAEC',
+                padding:'10px 12px', fontSize:'12px', color:'#111827', fontFamily:'inherit',
+                resize:'none', outline:'none', background:'#F9FAFB', marginBottom:'12px',
+                boxSizing:'border-box' }} />
+          </>
         )}
 
         {/* ── 승인 / 일괄 승인 ── */}
         {!isReject && !isRequest && (
           <div style={{ background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:'10px',
             padding:'9px 12px', marginBottom:'12px', fontSize:'11px', color:'#047857', lineHeight:1.5 }}>
-            ✓ 승인 즉시 처리됩니다. 이 작업은 취소할 수 없습니다.
+            {isBulk
+              ? '✓ 선택 항목을 일괄 승인합니다. 이 작업은 취소할 수 없습니다.'
+              : item?.has2ndStage
+                ? `✓ ${item?.approvalStage}차 승인 처리 후 다음 승인자에게 전달됩니다.`
+                : '✓ 최종 승인 즉시 집행 처리됩니다. 이 작업은 취소할 수 없습니다.'
+            }
           </div>
         )}
 
@@ -1560,7 +2128,9 @@ function ConfirmModal({ mode, item, onConfirm, onCancel, theme }) {
             onClick={() => isRequest
               ? isReview
                 ? onConfirm({ message: reviewMsg, reworkRequest: reworkReq, deadlineExtension: deadlineExt, newDeadline })
-                : onConfirm({ message: suppleMsg, targetPerson, resubmitRequest: resubmitReq, deadlineRequest: deadlineReq, deadlineDate, attachmentRequest: attachReq })
+                : isEvidClaim
+                  ? onConfirm({ message, claimRequest: claimReq, evidenceRequest: evidReq })
+                  : onConfirm({ message: suppleMsg, targetPerson, resubmitRequest: resubmitReq, deadlineRequest: deadlineReq, deadlineDate, attachmentRequest: attachReq })
               : onConfirm(reason)
             }
             disabled={!canConfirm}
@@ -1585,34 +2155,71 @@ const STATUS_TABS = [
   { id:'done',       label:'완료'   },
 ]
 
-const TYPE_CHIPS = [
-  { id:'approval', label:'승인요청' },
-  { id:'review',   label:'검수요청' },
-  { id:'evidence', label:'증빙요청' },
-  { id:'claim',    label:'소명요청' },
+// 내부 검토 카테고리 탭 — 8개 슬라이드 스크롤
+const OUTGOING_CHIPS = [
+  { id:'all',         label:'전체',   activeBg: '#111827',  activeColor:'#fff' },
+  { id:'approval',    label:'승인필요', activeBg:'#1D4ED8',  activeColor:'#fff' },
+  { id:'review',      label:'검수확인', activeBg:'#7C3AED',  activeColor:'#fff' },
+  { id:'usageCheck',  label:'내역확인', activeBg:'#D97706',  activeColor:'#fff' },
+  { id:'settlement',  label:'정산요청', activeBg:'#059669',  activeColor:'#fff' },
+  { id:'evidenceReq', label:'증빙요청', activeBg:'#0891B2',  activeColor:'#fff' },
+  { id:'refundReq',   label:'상환요청', activeBg:'#DC2626',  activeColor:'#fff' },
+  { id:'dataReq',     label:'자료요청', activeBg:'#6D28D9',  activeColor:'#fff' },
+]
+// 받은 요청 카테고리 칩
+const INCOMING_CHIPS = [
+  { id:'all',         label:'전체',       activeBg:'#111827', activeColor:'#fff' },
+  { id:'evidenceIn',  label:'내역증빙',   activeBg:'#0891B2', activeColor:'#fff' },
+  { id:'dataRequest', label:'자료요청',   activeBg:'#6D28D9', activeColor:'#fff' },
+  { id:'refund',      label:'상환요청',   activeBg:'#DC2626', activeColor:'#fff' },
 ]
 
 export default function ApprovalCenter() {
   const navigate = useNavigate()
+  const location = useLocation()
   const theme = getAccountTheme()
+  const { currentUser } = useUser()
 
+  // 현재 로그인 사용자의 승인 권한 동적 계산
+  const myAuthority = useMemo(() => {
+    if (!currentUser) return 1
+    return ROLE_TO_AUTHORITY[currentUser.role] ?? 1
+  }, [currentUser])
+  const isSuperAdmin = myAuthority === 'super'
+
+  const [reqDir, setReqDir]             = useState((location.state?.reqDir) || 'outgoing')  // 'outgoing'=내부 검토 | 'incoming'=받은 요청
   const [activeStatus, setActiveStatus] = useState('all')
   const [typeFilter, setTypeFilter]     = useState('all')
   const [approvals, setApprovals]       = useState(INIT_APPROVALS)
   const [modal, setModal]               = useState(null)
   const [toast, setToast]               = useState(null)
   const [detailItem, setDetailItem]     = useState(null)
+  const [stageFilter, setStageFilter]   = useState('all')  // 최고관리자는 전체, 나머지는 첫 렌더 후 조정
 
-  const myItems = approvals.filter(a => a.canApprove)
+  // 최고관리자는 모든 항목 canApprove 처리
+  const effectiveApprovals = useMemo(() => {
+    if (!isSuperAdmin) return approvals
+    return approvals.map(a => ({ ...a, canApprove: true }))
+  }, [approvals, isSuperAdmin])
+
+  const myItems = effectiveApprovals.filter(a => a.canApprove && (a.direction || 'outgoing') === reqDir)
   const tabCounts = {
     all:        myItems.length,
     inprogress: myItems.filter(a => a.status==='pending' || a.status==='inprogress').length,
     rejected:   myItems.filter(a => a.status==='done' && a.doneType==='rejected').length,
     done:       myItems.filter(a => a.status==='done' && a.doneType!=='rejected').length,
   }
-  const urgentCount = approvals.filter(a => a.status==='pending' && a.urgent && a.canApprove).length
+  const urgentCount = effectiveApprovals.filter(a => a.status==='pending' && a.urgent && a.canApprove).length
 
-  const filtered = approvals.filter(a => matchStatus(a, activeStatus) && matchType(a, typeFilter))
+  const filtered = effectiveApprovals.filter(a => {
+    if ((a.direction || 'outgoing') !== reqDir) return false
+    if (!matchStatus(a, activeStatus)) return false
+    if (!matchType(a, typeFilter, myAuthority)) return false
+    if (typeFilter === 'approval' && stageFilter !== 'all' && a.approvalStage) {
+      if (a.approvalStage !== stageFilter) return false
+    }
+    return true
+  })
 
   const typeOrder = ['review','execute','card','mcc','claim','evidence','wallet']
   const grouped = filtered.reduce((acc, a) => {
@@ -1630,7 +2237,7 @@ export default function ApprovalCenter() {
   const handleDetail  = (item) => setDetailItem(item)
 
   const handleBulkApprove = (type) => {
-    const items = (grouped[type]||[]).filter(i => i.canApprove && i.riskLevel==='low')
+    const items = (grouped[type]||[]).filter(i => (isSuperAdmin || i.canApprove) && i.riskLevel==='low')
     setModal({ mode:'bulk', item:{ count:items.length, type, ids:items.map(i=>i.id) } })
   }
 
@@ -1641,19 +2248,66 @@ export default function ApprovalCenter() {
     const reason = typeof data === 'string' ? data : ''
 
     if (mode === 'approve') {
-      setApprovals(prev => prev.map(a => a.id!==item.id ? a : {
-        ...a, status:'done', doneType:'approved',
-        history:[...a.history,{ action:'승인 완료', actor:'나', time:ts, note:reason||'정상 처리' }]
+      const needs2nd = item.has2ndStage === true
+      const stageLabel = item.approvalStage === 1 ? '1차' : item.approvalStage === 2 ? '2차' : '최종'
+      const histAction = needs2nd ? `${stageLabel} 승인 완료` : '최종 승인 완료'
+      const toastMsg = needs2nd
+        ? `✓ ${stageLabel} 승인 완료 · 다음 승인자에게 전달됨`
+        : '✓ 최종 승인 완료 · 집행 진행'
+      setApprovals(prev => prev.map(a => a.id !== item.id ? a : {
+        ...a,
+        status: needs2nd ? 'inprogress' : 'done',
+        ...(needs2nd
+          ? { approvalStage: a.approvalStage + 1, has2ndStage: false }
+          : { doneType: 'approved' }
+        ),
+        history: [...a.history, { action: histAction, actor: '나', time: ts, note: reason || '정상 처리' }]
       }))
-      showToast('✓ 승인 완료'); setActiveStatus('done')
+      pushApprovalMsg({
+        action: needs2nd ? 'approved' : 'approved',
+        actor: '나',
+        itemTitle: `${item.title || item.requester || ''} — ${(item.amount||0).toLocaleString()}원`,
+        note: reason || null,
+        requesterId: item.requester,
+      })
+      showToast(toastMsg)
+      setActiveStatus(needs2nd ? 'inprogress' : 'done')
     } else if (mode === 'reject') {
       setApprovals(prev => prev.map(a => a.id!==item.id ? a : {
         ...a, status:'done', doneType:'rejected',
         history:[...a.history,{ action:'반려', actor:'나', time:ts, note:reason }]
       }))
+      pushApprovalMsg({
+        action: 'inspection_rejected',
+        actor: '나',
+        itemTitle: `${item.title || item.requester || ''} — ${(item.amount||0).toLocaleString()}원`,
+        note: reason || null,
+        requesterId: item.requester,
+      })
       showToast('반려 처리 완료 · 사유 전달됨'); setActiveStatus('rejected')
     } else if (mode === 'request') {
-      if (item.type === 'review') {
+      if (item.type === 'evidence' || item.type === 'claim') {
+        // ── 증빙·소명 추가 요청 처리 ──
+        const { message: msg, claimRequest, evidenceRequest } = data
+        const parts = [claimRequest && '소명 요청', evidenceRequest && '증빙 요청'].filter(Boolean)
+        const reqLabel = parts.join(' + ') || '추가 요청'
+        const newHistEntry = { action:`${reqLabel} 전송`, actor:'나', time:ts, note:msg }
+        setApprovals(prev => prev.map(a => a.id!==item.id ? a : {
+          ...a, status:'inprogress',
+          history:[...a.history, newHistEntry]
+        }))
+        if (detailItem?.id === item.id) {
+          setDetailItem(prev => ({ ...prev, status:'inprogress', history:[...prev.history, newHistEntry] }))
+        }
+        pushApprovalMsg({
+          action: 'extra_docs',
+          actor: '나',
+          itemTitle: `${item.title || item.requester || ''} — ${reqLabel}`,
+          note: data.message || null,
+          requesterId: item.requester,
+        })
+        showToast('💬 추가 요청이 전달됐습니다'); setActiveStatus('inprogress')
+      } else if (item.type === 'review') {
         // ── 검수 요청 전용 처리 ──
         const { message, reworkRequest, deadlineExtension, newDeadline } = data
         const parts = []
@@ -1668,6 +2322,14 @@ export default function ApprovalCenter() {
         if (detailItem?.id === item.id) {
           setDetailItem(prev => ({ ...prev, status:'inprogress', history:[...prev.history, newHistEntry] }))
         }
+        pushApprovalMsg({
+          action: 'inspection_approved',
+          actor: '나',
+          itemTitle: `${item.title || item.requester || ''} — ${reqLabel}`,
+          note: message || null,
+          requestedDocs: reworkRequest ? ['결과물 재제출'] : null,
+          requesterId: item.requester,
+        })
         showToast('💬 검수 요청 전달 완료'); setActiveStatus('inprogress')
         setTimeout(() => navigate('/messages', { state: { threadId: '1' } }), 600)
       } else {
@@ -1691,6 +2353,14 @@ export default function ApprovalCenter() {
             history:[...prev.history, newHistEntry]
           }))
         }
+        pushApprovalMsg({
+          action: 'extra_docs',
+          actor: '나',
+          itemTitle: `${item.title || item.requester || ''} → ${targetLabel}`,
+          note: message || null,
+          requestedDocs: reqParts.length ? reqParts : null,
+          requesterId: item.requester,
+        })
         showToast('💬 메시지로 전달 완료'); setActiveStatus('inprogress')
       }
     } else if (mode === 'bulk') {
@@ -1700,6 +2370,13 @@ export default function ApprovalCenter() {
           history:[...a.history,{ action:'일괄 승인', actor:'나', time:ts, note:'일괄 처리' }]
         }
       ))
+      pushApprovalMsg({
+        action: 'approved',
+        actor: '나',
+        itemTitle: `${item.type} 유형 ${item.count}건 일괄 승인`,
+        note: '일괄 처리',
+        requesterId: null,
+      })
       showToast(`✓ ${item.count}건 일괄 승인 완료`); setActiveStatus('done')
     }
     setModal(null)
@@ -1711,7 +2388,9 @@ export default function ApprovalCenter() {
 
         {/* ── 헤더 ── */}
         <div style={{ background: theme.headerGrad, padding:'28px 16px 0', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
+
+          {/* ── 1행: 뒤로가기 · 타이틀 · 배지 ── */}
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
             <button onClick={() => navigate(-1)}
               style={{ width:'34px', height:'34px', borderRadius:'10px', background:'transparent',
                 border:'none', display:'flex', alignItems:'center', justifyContent:'center',
@@ -1721,67 +2400,222 @@ export default function ApprovalCenter() {
               </svg>
             </button>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:'16px', fontWeight:700, color:'#fff' }}>승인 대기 센터</div>
-              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', marginTop:'2px' }}>
-                {activeStatus==='all'?'전체 항목':activeStatus==='inprogress'?'승인 대기 + 서류 검토 중':activeStatus==='rejected'?'반려된 항목':'처리 완료된 항목'}
+              <div style={{ fontSize:'16px', fontWeight:700, color:'#fff', letterSpacing:'-0.2px' }}>처리 센터</div>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>
+                {reqDir === 'outgoing'
+                  ? (activeStatus==='all' ? '내부 검토 전체' : activeStatus==='inprogress' ? '진행 중인 항목' : activeStatus==='rejected' ? '반려된 항목' : '처리 완료')
+                  : '받은 요청 · 메시지 연동 예정'}
               </div>
             </div>
-            {urgentCount > 0 && (
-              <span style={{ padding:'4px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:700,
-                color:'#FCA5A5', background:'rgba(239,68,68,0.25)', border:'1px solid rgba(239,68,68,0.4)',
-                display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
-                <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:'#EF4444', display:'inline-block' }} />
-                긴급 {urgentCount}건
-              </span>
-            )}
+            <div style={{ display:'flex', gap:'6px', flexShrink:0, alignItems:'center' }}>
+              {urgentCount > 0 && (
+                <span style={{ padding:'4px 9px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
+                  color:'#FCA5A5', background:'rgba(239,68,68,0.25)', border:'1px solid rgba(239,68,68,0.4)',
+                  display:'flex', alignItems:'center', gap:'4px' }}>
+                  <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:'#EF4444', display:'inline-block' }} />
+                  긴급 {urgentCount}
+                </span>
+              )}
+              {isSuperAdmin && (
+                <span style={{ padding:'4px 9px', borderRadius:'20px', background:'rgba(237,233,254,0.9)',
+                  color:'#7C3AED', fontSize:'10px', fontWeight:800, whiteSpace:'nowrap' }}>
+                  👑 최고관리자
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* 탭 */}
-          <div style={{ display:'flex', gap:'3px', marginTop:'4px' }}>
+          {/* ── 2행: 내부 검토 / 받은 요청 세그먼트 토글 ── */}
+          <div style={{ display:'flex', gap:'0', marginBottom:'14px',
+            background:'rgba(0,0,0,0.18)', borderRadius:'14px', padding:'3px' }}>
+            {[
+              { id:'outgoing', label:'내부 검토', emoji:'📤' },
+              { id:'incoming', label:'받은 요청', emoji:'📥' },
+            ].map(d => {
+              const isOn = reqDir === d.id
+              return (
+                <button key={d.id}
+                  onClick={() => { setReqDir(d.id); setTypeFilter('all'); setActiveStatus('all') }}
+                  style={{ flex:1, height:'38px', borderRadius:'11px',
+                    background: isOn ? 'rgba(255,255,255,0.95)' : 'transparent',
+                    color: isOn ? theme.brandDark : 'rgba(255,255,255,0.65)',
+                    border:'none', cursor:'pointer', fontFamily:'inherit',
+                    fontSize:'13px', fontWeight: isOn ? 700 : 500,
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:'5px',
+                    transition:'all 0.18s',
+                    boxShadow: isOn ? '0 2px 8px rgba(0,0,0,0.15)' : 'none' }}>
+                  <span style={{ fontSize:'14px' }}>{d.emoji}</span>
+                  <span>{d.label}</span>
+                  {d.id === 'outgoing' && (
+                    <span style={{ fontSize:'10px', fontWeight:700,
+                      background: isOn ? theme.brandDark : 'rgba(255,255,255,0.2)',
+                      color: isOn ? '#fff' : 'rgba(255,255,255,0.8)',
+                      padding:'1px 6px', borderRadius:'10px', lineHeight:'16px' }}>
+                      {tabCounts.all}
+                    </span>
+                  )}
+                  {d.id === 'incoming' && (
+                    <span style={{ fontSize:'10px', fontWeight:700,
+                      background: isOn ? '#E9EAEC' : 'rgba(255,255,255,0.2)',
+                      color: isOn ? '#9CA3AF' : 'rgba(255,255,255,0.7)',
+                      padding:'1px 6px', borderRadius:'10px', lineHeight:'16px' }}>
+                      준비중
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* ── 3행: 상태 탭 (전체/진행중/반려/완료) — 항상 표시 ── */}
+          <div style={{ display:'flex', gap:'3px' }}>
             {STATUS_TABS.map(tab => {
               const isActive = activeStatus === tab.id
               const activeColor = tab.id === 'rejected' ? '#DC2626' : theme.brandDark
               return (
                 <button key={tab.id} onClick={() => setActiveStatus(tab.id)}
-                  style={{ flex:1, height:'46px', borderRadius:'12px 12px 0 0',
+                  style={{ flex:1, height:'44px', borderRadius:'12px 12px 0 0',
                     background: isActive ? '#fff' : 'rgba(255,255,255,0.1)',
-                    color: isActive ? activeColor : 'rgba(255,255,255,0.7)',
+                    color: isActive ? activeColor : 'rgba(255,255,255,0.65)',
                     border: isActive ? 'none' : '1px solid rgba(255,255,255,0.12)',
                     borderBottom:'none', fontSize:'12px', fontWeight: isActive?700:500,
                     cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
-                    whiteSpace:'nowrap', lineHeight:1.3,
                     display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'2px' }}>
                   <span style={{ fontSize:'12px', fontWeight: isActive?700:500 }}>{tab.label}</span>
-                  <span style={{ fontSize:'11px', fontWeight:700, opacity: isActive?1:0.7 }}>{tabCounts[tab.id]}</span>
+                  <span style={{ fontSize:'10px', fontWeight:700, opacity: isActive?1:0.6 }}>{tabCounts[tab.id]}</span>
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* ── 유형 필터 칩 ── */}
-        <div style={{ background:'#fff', borderBottom:'1px solid #F0F1F3', flexShrink:0,
-          overflowX:'auto', padding:'10px 14px', display:'flex', alignItems:'center',
-          gap:'6px', scrollbarWidth:'none' }}>
-          {TYPE_CHIPS.map(f => {
-            const isActive = typeFilter === f.id
-            return (
-              <button key={f.id} onClick={() => setTypeFilter(isActive ? 'all' : f.id)}
-                style={{ padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:600,
-                  flexShrink:0, whiteSpace:'nowrap',
-                  background: isActive ? theme.brandDark : '#F4F5F7',
-                  color: isActive ? '#fff' : '#6B7280',
-                  border: isActive ? 'none' : '1px solid #E9EAEC',
-                  cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
-                {f.label}
-              </button>
-            )
-          })}
-        </div>
+        {/* ── 카테고리 탭 — 가로 슬라이드 스크롤 ── */}
+        {(() => {
+          const chips = reqDir === 'outgoing' ? OUTGOING_CHIPS : INCOMING_CHIPS
+          const showStageBorder = reqDir === 'outgoing' && typeFilter === 'approval'
+          return (
+            <div style={{
+              position:'relative', flexShrink:0,
+              background:'#fff',
+              borderBottom: showStageBorder ? 'none' : '1px solid #EEEFF2',
+            }}>
+              {/* 스크롤 트랙 — 오른쪽에 반쪽짜리 탭이 걸쳐 보이도록 paddingRight 없음 */}
+              <div style={{
+                overflowX:'auto', display:'flex', alignItems:'center',
+                gap:'6px',
+                paddingTop:'10px', paddingBottom:'10px', paddingLeft:'16px', paddingRight:'0px',
+                scrollbarWidth:'none', WebkitOverflowScrolling:'touch',
+                scrollSnapType:'x mandatory',
+              }}>
+                {chips.map((f, idx) => {
+                  const isActive = typeFilter === f.id
+                  const isLast = idx === chips.length - 1
+                  return (
+                    <button key={f.id}
+                      onClick={() => {
+                        setTypeFilter(f.id)
+                        if (reqDir === 'outgoing') setStageFilter(isSuperAdmin ? 'all' : myAuthority)
+                      }}
+                      style={{
+                        flexShrink:0, whiteSpace:'nowrap',
+                        scrollSnapAlign:'start',
+                        minWidth:'80px',
+                        padding:'5px 14px',
+                        borderRadius:'20px',
+                        fontSize:'12px', fontWeight: isActive ? 700 : 500,
+                        cursor:'pointer', fontFamily:'inherit',
+                        transition:'all 0.2s cubic-bezier(.4,0,.2,1)',
+                        border: isActive ? 'none' : '1px solid #E4E6EA',
+                        background: isActive ? f.activeBg : '#F7F8FA',
+                        color: isActive ? f.activeColor : '#6B7280',
+                        boxShadow: isActive ? `0 2px 10px ${f.activeBg}44` : 'none',
+                        transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+                        textAlign:'center',
+                      }}>
+                      {f.label}
+                    </button>
+                  )
+                })}
+                {/* 반쪽 피킹용 — 마지막 다음 탭 미리보기 효과를 위한 여백 */}
+                <div style={{ minWidth:'40px', flexShrink:0 }} />
+              </div>
+              {/* 우측 엣지 인너 섀도 — 스크롤 가능 암시 */}
+              <div style={{
+                position:'absolute', right:0, top:0, bottom:0, width:'40px',
+                background:'linear-gradient(to right, transparent, rgba(240,241,243,0.95))',
+                pointerEvents:'none',
+                display:'flex', alignItems:'center', justifyContent:'flex-end',
+                paddingRight:'6px',
+              }}>
+                <span style={{
+                  fontSize:'14px', color:'#9CA3AF', lineHeight:1,
+                  textShadow:'0 0 4px rgba(240,241,243,1)',
+                }}>›</span>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ── 승인 단계 서브칩 (승인필요 탭에서만) ── */}
+        {reqDir === 'outgoing' && typeFilter === 'approval' && (
+          <div style={{ background:'#fff', borderBottom:'1px solid #F0F1F3', flexShrink:0,
+            padding:'10px 14px 12px', display:'flex', alignItems:'center', gap:'8px' }}>
+            <span style={{ fontSize:'11px', fontWeight:700, color:'#9CA3AF', flexShrink:0 }}>
+              승인 단계
+            </span>
+            {[
+              { stage:'all', label:'전체', color: theme.brandDark },
+              { stage:1, label:'1차', color:'#1D4ED8' },
+              { stage:2, label:'2차', color:'#7C3AED' },
+              { stage:3, label:'3차', color:'#DC2626' },
+            ].map(s => {
+              const isOn = stageFilter === s.stage
+              const isMine = isSuperAdmin ? s.stage === 'all' : s.stage === myAuthority
+              return (
+                <button key={s.stage}
+                  onClick={() => setStageFilter(s.stage)}
+                  style={{ padding:'4px 16px', borderRadius:'20px', fontSize:'12px', fontWeight:700,
+                    flexShrink:0, whiteSpace:'nowrap',
+                    background: isOn ? s.color : '#F4F5F7',
+                    color: isOn ? '#fff' : isMine ? s.color : '#6B7280',
+                    border: isOn ? 'none' : isMine ? `2px solid ${s.color}` : '1px solid #E9EAEC',
+                    cursor:'pointer', fontFamily:'inherit' }}>
+                  {isMine ? `● ${s.label}` : s.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* ── 콘텐츠 ── */}
         <div style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'12px 14px 32px' }}>
-          {orderedTypes.length === 0 ? (
+
+          {/* 받은 요청 — 아이템 있으면 리스트, 없으면 빈 상태 */}
+          {reqDir === 'incoming' && (filtered.length === 0 ? (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
+              padding:'52px 24px', textAlign:'center' }}>
+              <div style={{ width:'72px', height:'72px', borderRadius:'22px', marginBottom:'18px',
+                background:'linear-gradient(135deg,#EDE9FE,#DBEAFE)',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>
+                📥
+              </div>
+              <div style={{ fontSize:'15px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>
+                받은 요청 없음
+              </div>
+              <div style={{ fontSize:'12px', color:'#9CA3AF', lineHeight:1.7, maxWidth:'240px' }}>
+                내역증빙 · 자료 · 상환 요청 등<br/>
+                들어온 요청이 없습니다.
+              </div>
+            </div>
+          ) : (
+            filtered.map(item => (
+              <ApprovalCard key={item.id} item={item} theme={theme}
+                onApprove={handleApprove} onReject={handleReject}
+                onRequest={handleRequest} onDetail={handleDetail} />
+            ))
+          ))}
+
+          {reqDir === 'outgoing' && (orderedTypes.length === 0 ? (
             <div style={{ padding:'52px 0 40px', display:'flex', flexDirection:'column', alignItems:'center' }}>
               <div style={{ width:'64px', height:'64px', borderRadius:'20px', marginBottom:'16px',
                 display:'flex', alignItems:'center', justifyContent:'center',
@@ -1821,23 +2655,12 @@ export default function ApprovalCenter() {
               </div>
             </div>
           ) : (
-            orderedTypes.map((type, gi) => {
-              const items = grouped[type]
-              const approvable = items.filter(i => i.canApprove && i.riskLevel==='low' &&
-                (i.status==='pending'||i.status==='inprogress'))
-              const showBulk = approvable.length > 1
-              return (
-                <div key={type} style={{ marginBottom: gi<orderedTypes.length-1?'8px':0 }}>
-                  <TypeSectionHeader type={type} count={items.length} canBulk={showBulk} onBulkApprove={() => handleBulkApprove(type)} />
-                  {items.map(item => (
-                    <ApprovalCard key={item.id} item={item} theme={theme}
-                      onApprove={handleApprove} onReject={handleReject}
-                      onRequest={handleRequest} onDetail={handleDetail} />
-                  ))}
-                </div>
-              )
-            })
-          )}
+filtered.map(item => (
+                <ApprovalCard key={item.id} item={item} theme={theme}
+                  onApprove={handleApprove} onReject={handleReject}
+                  onRequest={handleRequest} onDetail={handleDetail} />
+              ))
+          ))}
         </div>
 
         {/* ── 상세 화면 ── */}

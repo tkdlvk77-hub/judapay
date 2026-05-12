@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 // ─── 상수 ─────────────────────────────────────────────────
 const PAY_DAYS = ['1','5','10','15','20','25','28','말일']
@@ -508,6 +509,17 @@ export default function ExecuteUtility() {
             hasTax, hasReceipt, notifBefore, notifDone, notifFail, notifSurge, notifLimit }
         : it
     ))
+    addTransaction({
+      type: 'utility',
+      fromUserId: 'biz_juda',
+      fromUserName: '㈜주다컴퍼니',
+      fromUserType: 'business',
+      recipient: { id: null, name: editSupplier || editName, phone: '', verified: true, isBusiness: true },
+      amount: amtNum,
+      reason: editName,
+      walletId: 'my', walletLabel: 'MY 지갑',
+      payDateMode: 'immediate', status: 'completed',
+    })
     setSaved(true)
     setTimeout(() => setScreen('list'), 800)
   }

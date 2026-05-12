@@ -22,15 +22,11 @@ const COMPANY = {
 
 // 1. 처리 필요 항목 — count: 0이면 자동 미노출
 const TODO_ITEMS = [
-  { id: 't1', text: '승인 필요',          count: 3, urgent: true,  route: '/approval-center' },
-  { id: 't2', text: '소명 필요',          count: 1, urgent: true,  route: '/messages' },
-  { id: 't3', text: '검수 필요',          count: 2, urgent: true,  route: '/messages' },
-  { id: 't4', text: '증빙 제출 필요',     count: 1, urgent: false, route: '/messages' },
-  { id: 't5', text: '미분류 결제',        count: 2, urgent: false, route: '/payment-alerts' },
-  { id: 't6', text: '지급 실패',          count: 1, urgent: true,  route: '/payment-alerts' },
-  { id: 't7', text: '이상거래 확인 필요', count: 2, urgent: true,  route: '/payment-alerts' },
-  { id: 't8', text: '잔액 확인 필요',     count: 1, urgent: true,  route: '/execute/business/operations/auto-pay-all' },
-  { id: 't9', text: '지원금 만료 임박',   count: 1, urgent: false, route: '/wallet' },
+  { id: 't1', text: '내부 검토',    count: 3, urgent: true,  route: '/approval-center', state: { reqDir: 'outgoing' }, icon: '📤' },
+  { id: 't2', text: '받은 요청',    count: 2, urgent: false, route: '/approval-center', state: { reqDir: 'incoming' }, icon: '📥' },
+  { id: 't3', text: '지급 실패',    count: 1, urgent: true,  route: '/payment-alerts',  state: null, icon: '⚠️' },
+  { id: 't4', text: '미분류 결제',  count: 2, urgent: false, route: '/payment-alerts',  state: null, icon: '🏷️' },
+  { id: 't5', text: '잔액 부족 위험', count: 1, urgent: true, route: '/wallet',          state: null, icon: '💸' },
 ].filter(t => t.count > 0)  // 0건은 자동 제외
 
 // 2. 진행 중인 자금 집행
@@ -243,12 +239,11 @@ export default function HomeBusiness() {
               </button>
               {/* 펼쳐질 때만 노출 */}
               {todoExpanded && TODO_ITEMS.map((item, i) => (
-                <button key={item.id} onClick={() => navigate(item.route)}
+                <button key={item.id} onClick={() => navigate(item.route, item.state ? { state: item.state } : {})}
                   style={{ width:'100%', padding:'12px 16px', background:'transparent', border:'none',
                     borderTop: i===0 ? 'none' : '1px solid #F0F1F3',
                     display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
-                  <div style={{ width:'7px', height:'7px', borderRadius:'50%', flexShrink:0,
-                    background: item.urgent ? '#EF4444' : '#9CA3AF' }} />
+                  <span style={{ fontSize:'15px', flexShrink:0, lineHeight:1 }}>{item.icon || '•'}</span>
                   <span style={{ flex:1, fontSize:'13px', color:'#1F2937', fontWeight:500 }}>{item.text}</span>
                   <span style={{ fontSize:'13px', fontWeight:700,
                     color: item.urgent ? '#DC2626' : '#374151',

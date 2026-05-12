@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 // ─── 상수 ─────────────────────────────────────────────────
 const PAY_DAYS   = ['1','5','10','15','20','25','28','말일']
@@ -317,6 +318,7 @@ export default function ExecuteTelecom() {
   const handleSave = () => {
     if (!selectedItem) return
     const amtNum = parseInt(editAmount) || 0
+    const totalAmt = amtNum * editLines
     setItems(prev => prev.map(it =>
       it.id === selectedItem.id
         ? { ...it, name:editName, carrier:editCarrier, lines:editLines, amountPerLine:amtNum,
@@ -324,6 +326,17 @@ export default function ExecuteTelecom() {
             selectedCard, bankName, bankAccount, status: autoOn ? 'active' : 'manual' }
         : it
     ))
+    addTransaction({
+      type: 'telecom',
+      fromUserId: 'biz_juda',
+      fromUserName: '㈜주다컴퍼니',
+      fromUserType: 'business',
+      recipient: { id: null, name: editCarrier || editName, phone: '', verified: true, isBusiness: true },
+      amount: totalAmt,
+      reason: `${editName} · ${editLines}회선`,
+      walletId: 'my', walletLabel: 'MY 지갑',
+      payDateMode: 'immediate', status: 'completed',
+    })
     setSaved(true)
     setTimeout(() => setScreen('list'), 800)
   }

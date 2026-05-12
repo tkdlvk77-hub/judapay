@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
+import { addTransaction } from '../../shared/transactionStore'
 
 // ─── 상수 ─────────────────────────────────────────────────
 const CYCLES = [
@@ -220,6 +221,17 @@ export default function ExecuteOtherExpense() {
   }
 
   function handleAdd() {
+    const _amtNum = Number(String(addAmount).replace(/,/g,''))||0
+    addTransaction({
+      type: 'otherExpense',
+      fromUserId: 'biz_juda', fromUserName: '㈜주다컴퍼니', fromUserType: 'business',
+      recipient: { id: null, name: addVendor || addName, phone: '', verified: true, isBusiness: true },
+      amount: _amtNum,
+      reason: addName,
+      walletId: 'my', walletLabel: 'MY 지갑',
+      payDateMode: 'immediate', status: 'completed',
+      mainCat: '미분류', subCat: '미분류',
+    })
     setItems(prev => [...prev, {
       id:'e'+Date.now(), name:addName, memo:addMemo, vendor:addVendor,
       amount:Number(String(addAmount).replace(/,/g,''))||0,
