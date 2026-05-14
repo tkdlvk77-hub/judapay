@@ -112,6 +112,7 @@ export default function ExecuteLend() {
   const [repaymentDate, setRepaymentDate] = useState('2026-11-04')
   const [interestPayDay, setInterestPayDay] = useState(25)
   const [mccItems, setMccItems] = useState(MCC_DEFAULT)
+  const [singleLimit, setSingleLimit] = useState(null)
   const [pin, setPin] = useState('')
 
   if (!recipient) return null
@@ -646,6 +647,8 @@ export default function ExecuteLend() {
             items={mccItems}
             onChange={setMccItems}
             recipientName={recipient.name}
+            singleLimit={singleLimit}
+            onLimitChange={setSingleLimit}
           />
         </div>
       </div>
@@ -919,6 +922,7 @@ export default function ExecuteLend() {
                 editStep:1,
               },
               { label:'사용 통제', value: blockedCount > 0 ? `${blockedCount}개 카테고리 차단` : '제한 없음', sub: blockedCount > 0 ? blockedLabels.join(', ') : null, editStep:2 },
+              { label:'1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음', editStep:2 },
               { label:'계약서', value:'모두싸인 자동 생성', sub:'양측 서명 후 효력', editStep:3 },
             ].map((row, i, arr) => (
               <div key={row.label} style={{
@@ -1174,6 +1178,8 @@ export default function ExecuteLend() {
                 : []),
               { label: repaymentType === 'monthly' ? '원금 만기' : '상환일', value: repaymentDateFmt },
               { label:'예상 회수액', value:`${(amtNum + totalInterest).toLocaleString()}원`, bold:true },
+              { label:'사용 통제', value: blockedCount > 0 ? `${blockedCount}개 카테고리 차단` : '제한 없음' },
+              { label:'1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음' },
             ].map((row, i, arr) => (
               <div key={row.label} style={{
                 display:'flex', justifyContent:'space-between',

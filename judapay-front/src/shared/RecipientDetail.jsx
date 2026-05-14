@@ -281,6 +281,9 @@ function MCCTab({ r, lang, theme }) {
   const [history, setHistory] = useState(r.mccChangeHistory)
   const [showAddMCC, setShowAddMCC] = useState(false)
   const hasMCC = r.typeKey !== 'lend' && r.typeKey !== 'gift'
+  // [권한] master·admin 만 MCC 편집 가능
+  const _mccRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canEditMCC = ['master', 'admin'].includes(_mccRole)
 
   if (!hasMCC) {
     return (
@@ -295,6 +298,7 @@ function MCCTab({ r, lang, theme }) {
   }
 
   const toggle = (id) => {
+    if (!canEditMCC) return
     if (MCC_MASTER.find(m => m.id === id)?.defaultBlocked) return
     setAllowed(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id])
     setSaved(false)
@@ -308,6 +312,15 @@ function MCCTab({ r, lang, theme }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {!canEditMCC && (
+        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '18px' }}>🔒</span>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400E' }}>조회 전용</div>
+            <div style={{ fontSize: '11px', color: '#B45309', lineHeight: 1.5 }}>MCC 설정은 최고관리자·관리자만 변경할 수 있습니다.</div>
+          </div>
+        </div>
+      )}
       {['business','living','blocked'].map(group => {
         const items = MCC_MASTER.filter(m => m.group === group)
         const groupLabel = { business: '업무 관련', living: '생활 관련', blocked: t('alwaysBlocked', lang) }[group]
@@ -359,7 +372,7 @@ function MCCTab({ r, lang, theme }) {
       })}
 
       {/* 업종 추가 버튼 */}
-      <button onClick={() => setShowAddMCC(true)}
+      <button onClick={() => canEditMCC && setShowAddMCC(true)}
         style={{
           width: '100%', padding: '14px',
           background: DK.inner,
@@ -379,7 +392,7 @@ function MCCTab({ r, lang, theme }) {
 
 
       {/* 적용 버튼 */}
-      <button onClick={handleApply}
+      <button onClick={canEditMCC ? handleApply : undefined}
         style={{
           width: '100%', padding: '15px',
           background: saved ? DK.greenDim : theme.activeBtnGrad,
@@ -428,7 +441,7 @@ function MCCTab({ r, lang, theme }) {
                   <button key={m.id}
                     onClick={() => { toggle(m.id); setSaved(false) }}
                     style={{
-                      width: '100%', padding: '12px 14px', borderRadius: '12px', border: 'none',
+                      width: '100%', padding: '12px 14px', borderRadius: '12px',
                       background: isOn ? DK.goldDim : DK.inner,
                       border: `1.5px solid ${isOn ? `${DK.gold}50` : DK.divider}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -820,8 +833,6 @@ export default function RecipientDetail() {
   const [lang, setLang] = useState(getLang())
   const [activeTab, setActiveTab] = useState('overview')
 
-  const fromStatsAuth = location.state?.from === 'stats-auth'
-
   useEffect(() => {
     const handler = () => setLang(getLang())
     window.addEventListener('langchange', handler)
@@ -849,7 +860,7 @@ export default function RecipientDetail() {
             <div style={{ position:'absolute', bottom:'-20px', left:'-20px', width:'100px', height:'100px', borderRadius:'50%', background:'rgba(255,255,255,0.05)', pointerEvents:'none' }} />
             {/* 네비 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px 14px' }}>
-              <button onClick={() => fromStatsAuth ? navigate('/stats', { state: { openDetail: 'auth' }, replace: true }) : navigate(-1)}
+              <button onClick={() => navigate(-1)}
                 style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>

@@ -35,6 +35,29 @@ export default function PinStep({
   const [pin, setPin] = useState('')
   const [showExitModal, setShowExitModal] = useState(false)
 
+  // ── [안전 가드] 기업 사용자 중 집행 권한 없는 역할 차단 ─────
+  // viewer / manager 가 직접 URL로 접근 시에도 PIN 입력 불가
+  const bizType = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizType') : null
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') : null
+  const BIZ_NO_EXECUTE = ['viewer', 'manager']
+  if (bizType === 'business' && bizRole && BIZ_NO_EXECUTE.includes(bizRole)) {
+    return (
+      <PhoneShell>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+          <div style={{ fontSize:'48px', marginBottom:'18px' }}>🔒</div>
+          <div style={{ fontSize:'17px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>집행 권한이 없습니다</div>
+          <div style={{ fontSize:'12px', color:'#9CA3AF', lineHeight:1.7, marginBottom:'28px' }}>
+            {bizRole === 'manager' ? '승인자 권한은 집행을 직접 완료할 수 없습니다.' : '조회전용 권한으로는 자금 집행이 불가합니다.'}
+          </div>
+          <button onClick={() => navigate(exitTo)}
+            style={{ width:'100%', maxWidth:'280px', height:'48px', background:'#111827', color:'#fff', border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            이전으로
+          </button>
+        </div>
+      </PhoneShell>
+    )
+  }
+
   const pinInput = (k) => {
     if (k === null) return
     if (k === 'del') {

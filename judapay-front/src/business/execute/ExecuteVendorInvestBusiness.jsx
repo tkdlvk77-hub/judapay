@@ -97,6 +97,7 @@ export default function ExecuteVendorInvestBusiness() {
   // Step 3 state
   const [selectedCategories, setSelectedCategories] = useState([])
   const [mccItems, setMccItems] = useState(DEFAULT_MCC)
+  const [singleLimit, setSingleLimit] = useState(null)
   const [contractFile, setContractFile] = useState(null)
 
   if (!recipient) return null
@@ -575,7 +576,12 @@ export default function ExecuteVendorInvestBusiness() {
           <div style={{ marginBottom:'22px' }}>
             <div style={{ fontSize:'12px', fontWeight:700, color: COLORS.t2, marginBottom:'4px', padding:'0 4px' }}>MCC 사용 통제</div>
             <div style={{ fontSize:'10px', color: COLORS.t5, marginBottom:'10px', padding:'0 4px' }}>차단 항목은 투자 자금으로 결제 불가</div>
-            <MccBlock items={mccItems} onChange={setMccItems} theme={theme} />
+            <MccBlock
+              items={mccItems}
+              onChange={setMccItems}
+              singleLimit={singleLimit}
+              onLimitChange={setSingleLimit}
+            />
           </div>
 
           {/* 정식 계약서 첨부 */}
@@ -631,6 +637,7 @@ export default function ExecuteVendorInvestBusiness() {
       { label: '보고 주기', value: reportLabel, editAction: () => setStep(2) },
       ...(selectedCategories.length > 0 ? [{ label: '자금 사용 목적', value: selectedCategories.map(id => FUND_USE_CATEGORIES.find(c => c.id === id)?.label).filter(Boolean).join(', '), editAction: () => setStep(3) }] : []),
       ...(blockedMcc.length > 0 ? [{ label: 'MCC 차단', value: `${blockedMcc.length}개 항목`, editAction: () => setStep(3) }] : []),
+      { label: '1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음', editAction: () => setStep(3) },
       ...(contractFile ? [{ label: '정식 계약서', value: contractFile.name }] : []),
     ]
 
@@ -687,6 +694,8 @@ export default function ExecuteVendorInvestBusiness() {
         ...(investType === 'equity' && valuation > 0 ? [{ label: '회사 가치', value: fmtValuation(valuation) }] : []),
         { label: '계약 기간', value: periodLabel },
         { label: '보고 주기', value: reportLabel },
+        ...(blockedMcc.length > 0 ? [{ label: 'MCC 차단', value: `${blockedMcc.length}개 항목` }] : []),
+        { label: '1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음' },
         { label: '출금 지갑', value: walletLabel },
       ]}
       noteYellow="투자 자산 등록 완료 · 세무사에게 자동 전송됐어요"

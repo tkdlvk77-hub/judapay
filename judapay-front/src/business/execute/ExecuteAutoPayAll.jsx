@@ -114,6 +114,10 @@ export default function ExecuteAutoPayAll() {
   const [filterLabel, setFilterLabel]     = useState('전체')
   const [showFilterSheet, setShowFilterSheet] = useState(false)
 
+  // [권한] viewer·staff 는 수정 불가
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canEdit = !['viewer', 'staff'].includes(bizRole)
+
   // 수정 상태
   const [editAmount, setEditAmount]   = useState('')
   const [editPayDay, setEditPayDay]   = useState('')
@@ -260,12 +264,13 @@ export default function ExecuteAutoPayAll() {
                     <span style={{ fontSize:'9px', fontWeight:700, color:theme.brand }}>수정</span>
                   </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'baseline', gap:'6px', borderBottom:`1.5px solid ${theme.brand}50`, paddingBottom:'6px', marginBottom:'6px' }}>
-                  <input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)}
-                    style={{ flex:1, border:'none', outline:'none', fontSize:'26px', fontWeight:800, color:COLORS.t1, background:'transparent', fontFamily:'inherit', letterSpacing:'-0.5px', padding:0 }}/>
+                <div style={{ display:'flex', alignItems:'baseline', gap:'6px', borderBottom:`1.5px solid ${canEdit ? theme.brand+'50' : COLORS.borderSoft}`, paddingBottom:'6px', marginBottom:'6px' }}>
+                  <input type="number" value={editAmount} onChange={e => canEdit && setEditAmount(e.target.value)}
+                    readOnly={!canEdit}
+                    style={{ flex:1, border:'none', outline:'none', fontSize:'26px', fontWeight:800, color:COLORS.t1, background:'transparent', fontFamily:'inherit', letterSpacing:'-0.5px', padding:0, cursor: canEdit ? 'text' : 'default' }}/>
                   <span style={{ fontSize:'14px', fontWeight:600, color:COLORS.t3 }}>원</span>
                 </div>
-                <span style={{ fontSize:'10px', color:COLORS.t4 }}>탭하여 수정</span>
+                <span style={{ fontSize:'10px', color:COLORS.t4 }}>{canEdit ? '탭하여 수정' : '🔒 조회 전용'}</span>
               </div>
 
               {/* 자동 지급 토글 */}
@@ -274,13 +279,13 @@ export default function ExecuteAutoPayAll() {
                   <div style={{ fontSize:'13px', fontWeight:600, color:COLORS.t1, marginBottom:'2px' }}>자동 지급</div>
                   <div style={{ fontSize:'11px', color:COLORS.t4 }}>{editAutoOn ? `매월 ${editPayDay==='말일'?'말일':editPayDay+'일'} 자동 집행` : '수동 지급 모드'}</div>
                 </div>
-                <button onClick={() => setEditAutoOn(!editAutoOn)} style={{ width:'40px', height:'22px', borderRadius:'11px', border:'none', outline:'none', cursor:'pointer', background: editAutoOn ? theme.brand : COLORS.bgMuted, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+                <button onClick={() => canEdit && setEditAutoOn(!editAutoOn)} style={{ width:'40px', height:'22px', borderRadius:'11px', border:'none', outline:'none', cursor: canEdit ? 'pointer' : 'default', background: editAutoOn ? theme.brand : COLORS.bgMuted, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
                   <div style={{ position:'absolute', top:'3px', left: editAutoOn ? '21px' : '3px', width:'16px', height:'16px', borderRadius:'50%', background:'#fff', transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
                 </button>
               </div>
 
               {/* 지급일 변경 */}
-              {editAutoOn && (
+              {editAutoOn && canEdit && (
                 <div style={{ background:COLORS.bgCard, borderRadius:'16px', boxShadow:SHADOWS.card, padding:'14px 16px' }}>
                   <div style={{ fontSize:'11px', fontWeight:600, color:COLORS.t4, marginBottom:'10px', letterSpacing:'0.3px' }}>지급일 변경</div>
                   <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
@@ -337,10 +342,16 @@ export default function ExecuteAutoPayAll() {
           </div>
 
           <div style={{ flexShrink:0, padding:'12px 16px 20px', background:COLORS.bgCard, borderTop:`1px solid ${COLORS.borderSoft}`, boxShadow:'0 -4px 16px rgba(0,0,0,0.06)' }}>
-            <button onClick={handleSave}
-              style={{ width:'100%', padding:'15px', background: saved ? '#10B981' : theme.brand, color:'#fff', border:'none', outline:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'background 0.3s' }}>
-              {saved ? '✓ 저장되었습니다' : '저장'}
-            </button>
+            {canEdit ? (
+              <button onClick={handleSave}
+                style={{ width:'100%', padding:'15px', background: saved ? '#10B981' : theme.brand, color:'#fff', border:'none', outline:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'background 0.3s' }}>
+                {saved ? '✓ 저장되었습니다' : '저장'}
+              </button>
+            ) : (
+              <div style={{ width:'100%', padding:'13px', background:'#F3F4F6', borderRadius:'14px', textAlign:'center', fontSize:'13px', fontWeight:600, color:'#9CA3AF' }}>
+                🔒 조회 전용 — 수정 불가
+              </div>
+            )}
           </div>
         </div>
         <ExitModal/>

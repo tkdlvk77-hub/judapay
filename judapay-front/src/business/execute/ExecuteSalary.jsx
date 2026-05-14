@@ -571,6 +571,10 @@ export default function ExecuteSalary() {
   const navigate = useNavigate()
   const theme    = getAccountTheme('business')
 
+  // ── 권한 체크: staff/viewer는 조회만 가능 ──
+  const _bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canEdit  = !['viewer', 'staff'].includes(_bizRole)
+
   const [charts, setCharts]               = useState(DEMO_CHARTS)
   const [screen, setScreen]               = useState('list')
   const [selectedChart, setSelectedChart] = useState(null)
@@ -1163,7 +1167,7 @@ export default function ExecuteSalary() {
                 const isOverdue = computedStatus === 'overdue'
                 const { payable, gross, insCo } = calcEmployees(chart.employees)
                 return (
-                  <div key={chart.id} onClick={() => openDetail(chart)}
+                  <div key={chart.id} onClick={() => canEdit && openDetail(chart)}
                     style={{ background:COLORS.bgCard, borderRadius:'16px', boxShadow:SHADOWS.card, border:isOverdue ? '1px solid #FDE68A' : `1px solid ${COLORS.borderSoft}`, cursor:'pointer', overflow:'hidden' }}>
                     <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px' }}>
                       <div style={{ width:'44px', height:'44px', borderRadius:'14px', background:`${theme.brand}12`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>💰</div>
@@ -1194,17 +1198,28 @@ export default function ExecuteSalary() {
             )}
           </div>
 
-          {/* 버튼 2개 — 직접 만들기 + 엑셀 업로드 */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-            <button onClick={openAddForm}
-              style={{ width:'100%', padding:'15px', background:theme.activeBtnGrad, color:'#fff', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow:theme.activeShadow }}>
-              <span style={{ fontSize:'18px' }}>+</span> 급여 차트 만들기
-            </button>
-            <button onClick={() => setShowExcelSheet(true)}
-              style={{ width:'100%', padding:'14px', background:COLORS.bgCard, color:COLORS.t1, border:`1.5px solid ${COLORS.borderSoft}`, borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', boxShadow:SHADOWS.card }}>
-              <span style={{ fontSize:'17px' }}>📊</span> 엑셀로 일괄 업로드
-            </button>
-          </div>
+          {/* 버튼 2개 — 직접 만들기 + 엑셀 업로드 (권한 있을 때만) */}
+          {canEdit && (
+            <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+              <button onClick={openAddForm}
+                style={{ width:'100%', padding:'15px', background:theme.activeBtnGrad, color:'#fff', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow:theme.activeShadow }}>
+                <span style={{ fontSize:'18px' }}>+</span> 급여 차트 만들기
+              </button>
+              <button onClick={() => setShowExcelSheet(true)}
+                style={{ width:'100%', padding:'14px', background:COLORS.bgCard, color:COLORS.t1, border:`1.5px solid ${COLORS.borderSoft}`, borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', boxShadow:SHADOWS.card }}>
+                <span style={{ fontSize:'17px' }}>📊</span> 엑셀로 일괄 업로드
+              </button>
+            </div>
+          )}
+          {!canEdit && (
+            <div style={{ padding:'13px 16px', background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:'13px', display:'flex', alignItems:'center', gap:'10px' }}>
+              <span style={{ fontSize:'18px' }}>🔒</span>
+              <div>
+                <div style={{ fontSize:'12px', fontWeight:700, color:'#92400E' }}>조회 전용</div>
+                <div style={{ fontSize:'11px', color:'#B45309', lineHeight:1.5 }}>급여 차트 생성·수정은 관리자 이상 권한이 필요합니다.</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

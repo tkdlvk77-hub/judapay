@@ -129,8 +129,8 @@ const TRANSLATIONS = {
   'businessMenu.sched.salarySub': { ko: '{date} ({days}일 후)', en: '{date} (in {days} days)' },
   'businessMenu.sched.rent':      { ko: '강남 사무실 임대료', en: 'Gangnam Office Rent' },
   'businessMenu.sched.rentSub':   { ko: 'D-{days} · {date}', en: 'D-{days} · {date}' },
-  'businessMenu.sched.outsource': { ko: '박철수 외주비 잔금', en: 'Park Cheol-su Final Payment' },
-  'businessMenu.sched.outsourceSub': { ko: '{date} · 검수 대기', en: '{date} · Awaiting Review' },
+  'businessMenu.sched.subscription':    { ko: '클라우드·구독료 합산', en: 'Cloud & Subscription Total' },
+  'businessMenu.sched.subscriptionSub': { ko: '{date} · 승인 후 자동 지급', en: '{date} · Auto-pay after approval' },
   'businessMenu.warningCategory': { ko: 'SKT 통신비',      en: 'SKT Telecom' },
 
   // ExecuteToPersonal 화면
@@ -175,6 +175,9 @@ const TRANSLATIONS = {
   'execPersonal.fund.gift.label':       { ko: '용돈선물',       en: 'Gift Money' },
   'execPersonal.fund.gift.desc':        { ko: '생일·기념일·축하금', en: 'Birthday · anniversary · congrats' },
   'execPersonal.fund.gift.control':     { ko: 'MCC 차단 옵션 · 만료일 설정 가능', en: 'MCC blocking · expiry date' },
+  'execPersonal.fund.living.label':     { ko: '생활비',         en: 'Living Expenses' },
+  'execPersonal.fund.living.desc':      { ko: '식비·교통·의료·생활용품 지원', en: 'Food · transport · medical · household' },
+  'execPersonal.fund.living.control':   { ko: 'MCC 차단 · 1회 결제 한도 설정 가능', en: 'MCC blocking · per-payment limit' },
   'execPersonal.fund.lend.label':       { ko: '빌려주기',       en: 'Lending' },
   'execPersonal.fund.lend.desc':        { ko: '차용증 자동 + 상환 일정 추적', en: 'Auto IOU + repayment tracking' },
   'execPersonal.fund.lend.control':     { ko: '차용증 + 이자율 + 상환일 자동 차감', en: 'IOU + interest + auto deduction' },
@@ -1005,4 +1008,137 @@ const TRANSLATIONS = {
   'execRent.inline.vatHint':        { ko: '부가세 처리 방식',              en: 'VAT Handling' },
   'execRent.inline.maintHint':      { ko: '관리비 (월 고정)',              en: 'Maintenance Fee (monthly)' },
   'execRent.inline.notRegistered':  { ko: '자동지급 활성 시 수정 가능',     en: 'Editable when auto-pay is active' },
+
+  // ─── 개인 생활비 집행 (ExecuteLiving) ───────────────────────────────────
+  'execLiving.smallTitle':            { ko: '생활비',                       en: 'Living Expenses' },
+  'execLiving.badge':                 { ko: '권한자금',                      en: 'Permission Fund' },
+  'execLiving.step1.title':           { ko: '{name}에게 보낼 생활비',         en: 'Living expenses for {name}' },
+  'execLiving.recipient.label':       { ko: '받는 사람',                     en: 'Recipient' },
+  'execLiving.recipient.change':      { ko: '변경',                          en: 'Change' },
+  'execLiving.kyc.verified':          { ko: '본인인증 완료',                  en: 'KYC Verified' },
+  'execLiving.wallet.label':          { ko: '출금 지갑',                     en: 'Source Wallet' },
+  'execLiving.wallet.info':           { ko: '{name}의 생활비 지갑으로 즉시 입금되며, 출금은 불가하고 카드 결제만 가능합니다. 사용 내역은 자동으로 보관됩니다.', en: 'Deposited instantly to {name}\'s living-expense wallet. Card payments only — no withdrawal. All usage is auto-archived.' },
+  'execLiving.amount.label':          { ko: '보낼 금액',                     en: 'Amount to Send' },
+  'execLiving.category.label':        { ko: '생활비 항목',                   en: 'Category' },
+  'execLiving.category.food':         { ko: '식비',                          en: 'Food' },
+  'execLiving.category.transport':    { ko: '교통비',                        en: 'Transport' },
+  'execLiving.category.medical':      { ko: '의료·약',                       en: 'Medical' },
+  'execLiving.category.household':    { ko: '생활용품',                      en: 'Household' },
+  'execLiving.category.etc':          { ko: '기타',                          en: 'Other' },
+  'execLiving.mcc.label':             { ko: '사용 통제 설정',                 en: 'Spending Controls' },
+  'execLiving.mcc.none':              { ko: 'MCC 차단 없음 — 자유롭게 사용',  en: 'No MCC blocks — free to use' },
+  'execLiving.mcc.blocked':           { ko: 'MCC {count}개 차단됨',          en: '{count} MCC(s) blocked' },
+  'execLiving.mcc.noneDesc':          { ko: '모든 업종에서 자유롭게 사용 가능합니다',  en: 'Usable at all merchant categories' },
+  'execLiving.mcc.step.smallTitle':   { ko: '사용 통제',                     en: 'Spending Controls' },
+  'execLiving.mcc.step.title':        { ko: '사용 가능 업종 설정',             en: 'Set Allowed Merchants' },
+  'execLiving.mcc.step.sub':          { ko: '{name}의 생활비 지갑에서 차단할 업종을 선택하세요', en: 'Select categories to block in {name}\'s wallet' },
+  'execLiving.memo.label':            { ko: '메모 (선택)',                   en: 'Memo (optional)' },
+  'execLiving.memo.ph':               { ko: '예) 5월 식비 🛒',               en: 'e.g. May food budget 🛒' },
+  'execLiving.btn.insufficient':      { ko: '잔액 부족',                     en: 'Insufficient Balance' },
+  'execLiving.btn.send':              { ko: '{amount}원 보내기',              en: 'Send {amount} KRW' },
+  'execLiving.btn.noAmount':          { ko: '금액을 입력하세요',               en: 'Enter an amount' },
+  'execLiving.btn.next':              { ko: '다음',                          en: 'Next' },
+  'execLiving.btn.execute':           { ko: '집행하기',                      en: 'Execute' },
+  'execLiving.btn.toHome':            { ko: '홈으로',                        en: 'Go Home' },
+  'execLiving.btn.chat':              { ko: '{name}에게 메시지',              en: 'Message {name}' },
+  'execLiving.confirm.smallTitle':    { ko: '집행 확인',                     en: 'Confirm Execution' },
+  'execLiving.confirm.bigSub':        { ko: '{name}에게 생활비 지급',         en: 'Living expenses to {name}' },
+  'execLiving.row.recipient':         { ko: '받는 사람',                     en: 'Recipient' },
+  'execLiving.row.walletBalance':     { ko: '잔액 {amount}원',               en: 'Balance {amount} KRW' },
+  'execLiving.row.category':          { ko: '항목',                          en: 'Category' },
+  'execLiving.row.mcc':               { ko: '사용 통제',                     en: 'Spending Control' },
+  'execLiving.row.mccBlocked':        { ko: '{count}개 업종 차단',            en: '{count} category(ies) blocked' },
+  'execLiving.row.mccNone':           { ko: '차단 없음',                     en: 'No blocks' },
+  'execLiving.row.memo':              { ko: '메모',                          en: 'Memo' },
+  'execLiving.auto.deposit':          { ko: '{name}의 생활비 지갑으로 즉시 입금', en: 'Instantly deposited to {name}\'s wallet' },
+  'execLiving.auto.notify':           { ko: '{name}에게 입금 알림 발송',       en: 'Deposit notification sent to {name}' },
+  'execLiving.auto.archive':          { ko: '지급 증빙 자동 보관 (5년)',       en: 'Auto-archived for 5 years' },
+  'execLiving.footer.afterExec':      { ko: '{wallet} 잔액 {before}원 → {after}원', en: '{wallet} balance {before} → {after} KRW' },
+  'execLiving.pin.summary':           { ko: '{name}에게 생활비',              en: 'Living expenses for {name}' },
+  'execLiving.done.title':            { ko: '생활비 지급 완료!',              en: 'Payment Complete!' },
+  'execLiving.done.desc':             { ko: '{name}에게 {amount}원이 생활비로 지급되었습니다.', en: '{amount} KRW sent to {name} for living expenses.' },
+  'execLiving.done.label.amount':     { ko: '지급 금액',                     en: 'Amount Sent' },
+  'execLiving.done.label.remaining':  { ko: '지갑 잔액',                     en: 'Wallet Balance' },
+  'execLiving.done.mccBlocked':       { ko: '{count}개 업종 차단',            en: '{count} category(ies) blocked' },
+  'execLiving.done.mccNone':          { ko: '차단 없음',                     en: 'No blocks' },
+  'execLiving.done.note':             { ko: '{name}의 생활비 지갑에 입금되었어요. 출금 없이 카드 결제로만 사용 가능합니다.', en: 'Deposited to {name}\'s wallet. Card payments only — no withdrawal.' },
+
+  // ─── 개인 선물·용돈 집행 (ExecuteGift) ───────────────────────────────────
+  'execGift.smallTitle':            { ko: '용돈 · 선물',                   en: 'Gift / Allowance' },
+  'execGift.badge':                 { ko: '권한자금',                      en: 'Permission Fund' },
+  'execGift.step1.title':           { ko: '{name}에게 보낼 금액',           en: 'Amount for {name}' },
+
+  // 받는 사람
+  'execGift.recipient.label':       { ko: '받는 사람',                     en: 'Recipient' },
+  'execGift.recipient.change':      { ko: '변경',                          en: 'Change' },
+  'execGift.kyc.verified':          { ko: '본인인증 완료',                  en: 'KYC Verified' },
+
+  // 지갑
+  'execGift.wallet.label':          { ko: '출금 지갑',                     en: 'Source Wallet' },
+  'execGift.wallet.info':           { ko: '{name}의 받은 지갑으로 즉시 입금되며, 출금은 불가하고 카드 결제만 가능합니다. 사용 내역은 자동으로 보관됩니다.', en: 'Funds are sent instantly to {name}\'s receive wallet. Withdrawal is not allowed — card payments only. All usage is auto-archived.' },
+
+  // 금액
+  'execGift.amount.label':          { ko: '보낼 금액',                     en: 'Amount to Send' },
+
+  // 카테고리
+  'execGift.category.label':        { ko: '카테고리',                      en: 'Category' },
+  'execGift.category.birthday':     { ko: '생일',                          en: 'Birthday' },
+  'execGift.category.allowance':    { ko: '용돈',                          en: 'Allowance' },
+  'execGift.category.gift':         { ko: '선물',                          en: 'Gift' },
+  'execGift.category.etc':          { ko: '기타',                          en: 'Other' },
+
+  // MCC 사용 통제
+  'execGift.mcc.label':             { ko: '사용 통제 설정',                 en: 'Spending Controls' },
+  'execGift.mcc.none':              { ko: 'MCC 차단 없음 — 자유롭게 사용',  en: 'No MCC blocks — free to use' },
+  'execGift.mcc.blocked':           { ko: 'MCC {count}개 차단됨',          en: '{count} MCC(s) blocked' },
+  'execGift.mcc.noneDesc':          { ko: '모든 업종에서 자유롭게 사용 가능합니다',  en: 'Usable at all merchant categories' },
+  'execGift.mcc.step.smallTitle':   { ko: '사용 통제',                     en: 'Spending Controls' },
+  'execGift.mcc.step.title':        { ko: '사용 가능 업종 설정',             en: 'Set Allowed Merchants' },
+  'execGift.mcc.step.sub':          { ko: '{name}의 지갑에서 차단할 업종을 선택하세요', en: 'Select categories to block in {name}\'s wallet' },
+
+  // 메모
+  'execGift.memo.label':            { ko: '메모 (선택)',                   en: 'Memo (optional)' },
+  'execGift.memo.ph':               { ko: '예) 생일 축하해 🎂',            en: 'e.g. Happy birthday 🎂' },
+
+  // 버튼
+  'execGift.btn.insufficient':      { ko: '잔액 부족',                     en: 'Insufficient Balance' },
+  'execGift.btn.send':              { ko: '{amount}원 보내기',              en: 'Send {amount} KRW' },
+  'execGift.btn.noAmount':          { ko: '금액을 입력하세요',               en: 'Enter an amount' },
+  'execGift.btn.next':              { ko: '다음',                          en: 'Next' },
+  'execGift.btn.execute':           { ko: '집행하기',                      en: 'Execute' },
+  'execGift.btn.toHome':            { ko: '홈으로',                        en: 'Go Home' },
+  'execGift.btn.chat':              { ko: '{name}에게 메시지',              en: 'Message {name}' },
+
+  // 확인 단계
+  'execGift.confirm.smallTitle':    { ko: '집행 확인',                     en: 'Confirm Execution' },
+  'execGift.confirm.bigSub':        { ko: '{name}에게 지급',               en: 'Payment to {name}' },
+
+  // 확인 행
+  'execGift.row.recipient':         { ko: '받는 사람',                     en: 'Recipient' },
+  'execGift.row.walletBalance':     { ko: '잔액 {amount}원',               en: 'Balance {amount} KRW' },
+  'execGift.row.category':          { ko: '카테고리',                      en: 'Category' },
+  'execGift.row.mcc':               { ko: '사용 통제',                     en: 'Spending Control' },
+  'execGift.row.mccBlocked':        { ko: '{count}개 업종 차단',            en: '{count} category(ies) blocked' },
+  'execGift.row.mccNone':           { ko: '차단 없음',                     en: 'No blocks' },
+  'execGift.row.memo':              { ko: '메모',                          en: 'Memo' },
+
+  // 자동 처리 안내
+  'execGift.auto.deposit':          { ko: '{name}의 받은 지갑으로 즉시 입금', en: 'Instantly deposited to {name}\'s wallet' },
+  'execGift.auto.notify':           { ko: '{name}에게 입금 알림 발송',       en: 'Deposit notification sent to {name}' },
+  'execGift.auto.archive':          { ko: '지급 증빙 자동 보관 (5년)',       en: 'Auto-archived for 5 years' },
+
+  // 하단 잔액 안내
+  'execGift.footer.afterExec':      { ko: '{wallet} 잔액 {before}원 → {after}원', en: '{wallet} balance {before} → {after} KRW' },
+
+  // PIN 단계
+  'execGift.pin.summary':           { ko: '{name}에게 선물·용돈',           en: 'Gift to {name}' },
+
+  // 완료 단계
+  'execGift.done.title':            { ko: '지급 완료!',                    en: 'Payment Complete!' },
+  'execGift.done.desc':             { ko: '{name}에게 {amount}원이 지급되었습니다.', en: '{amount} KRW sent to {name}.' },
+  'execGift.done.label.amount':     { ko: '지급 금액',                     en: 'Amount Sent' },
+  'execGift.done.label.remaining':  { ko: '지갑 잔액',                     en: 'Wallet Balance' },
+  'execGift.done.mccBlocked':       { ko: '{count}개 업종 차단',            en: '{count} category(ies) blocked' },
+  'execGift.done.mccNone':          { ko: '차단 없음',                     en: 'No blocks' },
+  'execGift.done.note':             { ko: '{name}의 받은 지갑에 입금되었어요. 출금 없이 카드 결제로만 사용 가능합니다.', en: 'Deposited to {name}\'s wallet. Card payments only — no withdrawal.' },
 }

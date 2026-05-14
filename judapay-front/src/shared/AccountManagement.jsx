@@ -232,7 +232,7 @@ function AddAccountButton({ onClick }) {
 }
 
 // ─── 액션 시트 (계좌 더보기) ──────────────────────────
-function ActionSheet({ account, onClose, onSetPrimary, onDelete }) {
+function ActionSheet({ account, onClose, onSetPrimary, onDelete, canManageAccount }) {
   const theme = getAccountTheme()
   if (!account) return null
   const meta = BANK_META[account.bank] || BANK_META.kb
@@ -289,60 +289,88 @@ function ActionSheet({ account, onClose, onSetPrimary, onDelete }) {
         </div>
 
         {/* 액션들 */}
-        {!account.isPrimary && (
-          <button onClick={onSetPrimary}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              padding: '14px 4px',
-              display: 'flex', alignItems: 'center', gap: '12px',
-              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-            }}>
+        {canManageAccount ? (
+          <>
+            {!account.isPrimary && (
+              <button onClick={onSetPrimary}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '14px 4px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                }}>
+                <div style={{
+                  width: '32px', height: '32px',
+                  borderRadius: RADIUS.sm,
+                  background: 'rgba(91,79,232,0.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.brand} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/>
+                  </svg>
+                </div>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.t1 }}>
+                  대표 계좌로 설정
+                </span>
+              </button>
+            )}
+
+            <button onClick={onDelete}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                padding: '14px 4px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+              <div style={{
+                width: '32px', height: '32px',
+                borderRadius: RADIUS.sm,
+                background: COLORS.dangerBg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.danger} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/>
+                  <path d="M14 11v6"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.danger }}>
+                계좌 등록 해제
+              </span>
+            </button>
+          </>
+        ) : (
+          <div style={{
+            padding: '14px 4px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+          }}>
             <div style={{
               width: '32px', height: '32px',
               borderRadius: RADIUS.sm,
-              background: 'rgba(91,79,232,0.10)',
+              background: '#F3F4F6',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
+              fontSize: '15px',
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.brand} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/>
-              </svg>
+              🔒
             </div>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.t1 }}>
-              대표 계좌로 설정
-            </span>
-          </button>
-        )}
-
-        <button onClick={onDelete}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            padding: '14px 4px',
-            display: 'flex', alignItems: 'center', gap: '12px',
-            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-          }}>
-          <div style={{
-            width: '32px', height: '32px',
-            borderRadius: RADIUS.sm,
-            background: COLORS.dangerBg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.danger} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/>
-              <path d="M14 11v6"/>
-            </svg>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.t2, marginBottom: '2px' }}>
+                계좌 관리 권한 없음
+              </div>
+              <div style={{ fontSize: '11px', color: COLORS.t4, lineHeight: 1.5 }}>
+                계좌 등록·해제는 최고관리자·관리자만 가능합니다
+              </div>
+            </div>
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: COLORS.danger }}>
-            계좌 등록 해제
-          </span>
-        </button>
+        )}
       </div>
     </>
   )
@@ -432,6 +460,11 @@ export default function AccountManagement() {
   const [sheetAccount, setSheetAccount] = useState(null)
   const [confirmAccount, setConfirmAccount] = useState(null)
 
+  // [권한] 계좌 등록·해제·대표설정은 master/admin만 가능
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const ACCOUNT_MANAGE_ROLES = ['master', 'admin']
+  const canManageAccount = ACCOUNT_MANAGE_ROLES.includes(bizRole)
+
   const handleSetPrimary = () => {
     if (!sheetAccount) return
     setAccounts(prev =>
@@ -505,8 +538,39 @@ export default function AccountManagement() {
               />
             ))}
 
-            {/* 새 계좌 등록 */}
-            <AddAccountButton onClick={() => alert('1원 인증 흐름 (추후 구현)')} />
+            {/* 새 계좌 등록 — master/admin만 가능 */}
+            {canManageAccount ? (
+              <AddAccountButton onClick={() => alert('1원 인증 흐름 (추후 구현)')} />
+            ) : (
+              <div style={{
+                width: '100%',
+                background: '#F9FAFB',
+                border: `1.5px dashed ${COLORS.border}`,
+                borderRadius: RADIUS.lg,
+                padding: '18px 18px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                opacity: 0.7,
+              }}>
+                <div style={{
+                  width: '40px', height: '40px',
+                  borderRadius: '50%',
+                  background: '#F3F4F6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  fontSize: '18px',
+                }}>
+                  🔒
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: COLORS.t3, marginBottom: '2px' }}>
+                    새 계좌 등록
+                  </div>
+                  <div style={{ fontSize: '11px', color: COLORS.t4 }}>
+                    최고관리자·관리자만 등록할 수 있습니다
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 안내 박스 */}
@@ -564,6 +628,7 @@ export default function AccountManagement() {
           onClose={() => setSheetAccount(null)}
           onSetPrimary={handleSetPrimary}
           onDelete={handleDeleteRequest}
+          canManageAccount={canManageAccount}
         />
 
         {/* 삭제 확인 */}

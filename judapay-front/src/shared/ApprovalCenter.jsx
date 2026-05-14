@@ -70,7 +70,6 @@ const DONE_META = {
 
 const TYPE_FILTER_TYPES = {
   approval: ['execute', 'card', 'mcc', 'wallet'],
-  review:   ['review'],
   claim:    ['claim'],
   evidence: ['evidence'],
 }
@@ -251,7 +250,7 @@ const INIT_APPROVALS = [
 
   // [검수] 외주 개발 결과물 검수 — 중도금 단계 검수 대기
   {
-    id:'a6', status:'pending', direction:'outgoing', type:'review',
+    id:'a6', status:'pending', direction:'incoming', type:'review',
     requester:'박철수', requestedAt:'30분 전', deadline:'2026.05.13',
     title:'앱 기능 개발 외주 결과물 검수',
     desc:'㈜테크솔루션 · 결제 모듈 개발 1차 완료 보고',
@@ -284,7 +283,7 @@ const INIT_APPROVALS = [
 
   // [검수] 부동산 근저당 해지 서류 검수 (단계 없는 문서 검수)
   {
-    id:'a7', status:'pending', direction:'outgoing', type:'review',
+    id:'a7', status:'pending', direction:'incoming', type:'review',
     requester:'이유진', requestedAt:'1시간 전',
     title:'사무실 근저당 해지 완료 서류 검수',
     desc:'부동산 실행 완료 · 해지 서류 3건 첨부',
@@ -435,7 +434,7 @@ const INIT_APPROVALS = [
 
   // [검수] 마케팅 외주 결과물 검수 완료
   {
-    id:'a13', status:'done', doneType:'approved', direction:'outgoing', type:'review',
+    id:'a13', status:'done', doneType:'approved', direction:'incoming', type:'review',
     requester:'이민형', requestedAt:'2일 전',
     title:'SNS 마케팅 캠페인 결과물 검수',
     desc:'㈜애드캠프 · 4월 SNS 광고 집행 결과 보고',
@@ -759,6 +758,78 @@ const INIT_APPROVALS = [
       { action:'상환 요청', actor:'김출장', time:'05.11 18:00', note:'영수증 3건 첨부 · 출장보고서 미제출' },
     ],
   },
+
+  // ── 일반구성원 채팅 요청 (조회 전용) ─────────────────────
+
+  // [정산요청] 채팅에서 요청한 정산
+  {
+    id:'a25', status:'pending', direction:'outgoing', type:'wallet',
+    requester:'나 (일반구성원)', requestedAt:'2시간 전',
+    title:'프리랜서 디자이너 정산 요청',
+    desc:'채팅에서 요청 · 프리랜서 디자인 비용 정산',
+    amount:450000,
+    keyPoint:'계약서 첨부 완료 · 1차 승인 대기 중',
+    riskLevel:'low', canApprove:false, staffRequested:true,
+    wallet:'운영비 지갑',
+    executionData:{
+      expenseType:'외주 용역비',
+      recipient:'박디자인 (프리랜서)',
+      account:'카카오뱅크 333-123456-789',
+      amount:450000,
+      memo:'랜딩페이지 디자인 작업비 — 1차 결과물 납품 완료',
+      attachments:['계약서.pdf','작업산출물.zip'],
+    },
+    history:[
+      { action:'정산 요청', actor:'나 (일반구성원)', time:'05.15 10:00', note:'채팅에서 정산 요청 전송' },
+    ],
+  },
+
+  // [상환요청] 채팅에서 요청한 상환
+  {
+    id:'a26', status:'inprogress', direction:'outgoing', type:'refund',
+    requester:'나 (일반구성원)', requestedAt:'어제',
+    title:'업무용 소모품 구매 상환 요청',
+    desc:'채팅에서 요청 · 개인카드 선지출 후 상환',
+    amount:32000,
+    keyPoint:'영수증 첨부 완료 · 처리 중',
+    riskLevel:'low', canApprove:false, staffRequested:true,
+    executionData:{
+      expenseType:'소모품비',
+      items:[
+        { name:'A4 용지 2박스', amount:24000, status:'영수증 첨부됨' },
+        { name:'볼펜 세트', amount:8000, status:'영수증 첨부됨' },
+      ],
+      memo:'팀 사무용품 긴급 구매 · 개인카드 결제 후 상환 요청',
+      attachments:['영수증_소모품.jpg'],
+    },
+    history:[
+      { action:'상환 요청', actor:'나 (일반구성원)', time:'05.14 16:30', note:'채팅에서 상환 요청 전송' },
+      { action:'1차 검토 중', actor:'김관리 (관리자)', time:'05.14 17:00', note:'내용 확인 중' },
+    ],
+  },
+
+  // [자료요청] 채팅에서 요청한 자료
+  {
+    id:'a27', status:'done', doneType:'approved', direction:'outgoing', type:'dataRequest',
+    requester:'나 (일반구성원)', requestedAt:'3일 전',
+    title:'세금계산서 발행 요청',
+    desc:'채팅에서 요청 · 거래처 세금계산서 발행 요청',
+    amount:null,
+    keyPoint:'발행 완료',
+    riskLevel:'low', canApprove:false, staffRequested:true,
+    executionData:{
+      expenseType:'세금계산서',
+      requester:'㈜테스트컴퍼니',
+      requiredDocs:'세금계산서 원본 (공급가액 1,200,000원)',
+      deadline:'2026.05.13',
+      memo:'5월 용역 계약 세금계산서 발행 요청',
+      attachments:[],
+    },
+    history:[
+      { action:'자료 요청', actor:'나 (일반구성원)', time:'05.12 09:00', note:'채팅에서 자료 요청 전송' },
+      { action:'세금계산서 발행 완료', actor:'김관리 (관리자)', time:'05.12 14:00', note:'발행 완료 · PDF 첨부' },
+    ],
+  },
 ]
 
 // ─── 필터 헬퍼 ────────────────────────────────────────────
@@ -779,10 +850,10 @@ function matchType(a, tf, authority) {
   }
   // 받은 요청 카테고리 — direction:'incoming' 아이템만
   if (tf === 'evidenceIn') return a.type === 'evidenceIn'
+  if (tf === 'reviewReq')   return a.type === 'review'
   if (tf === 'dataRequest') return a.type === 'dataRequest'
   if (tf === 'refund') return a.type === 'refund'
   if (tf === 'settlement')  return a.type === 'wallet'
-  if (tf === 'evidenceReq') return a.type === 'evidence' || a.type === 'evidenceIn'
   if (tf === 'refundReq')   return a.type === 'refund'
   if (tf === 'dataReq')     return a.type === 'dataRequest'
   const types = TYPE_FILTER_TYPES[tf]
@@ -1421,7 +1492,7 @@ function DetailSheet({ item, theme, onClose, onApprove, onReject, onRequest }) {
         </div>
 
         {/* 액션 버튼 */}
-        {!isDone && item.canApprove && (
+        {!isDone && item.canApprove && !item.staffCanView && (
           <>
             {/* review: 검수 승인 시 입금 안내 */}
             {item.type === 'review' && item.executionData?.stages && (() => {
@@ -1480,7 +1551,8 @@ function DetailSheet({ item, theme, onClose, onApprove, onReject, onRequest }) {
 // ─── 개별 카드 ────────────────────────────────────────────
 function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail }) {
   const [showHistory, setShowHistory] = useState(false)
-  const locked       = !item.canApprove
+  const locked       = !item.canApprove   // canApprove=false면 잠금 (staffViewOnly 포함)
+  const staffViewOnly = item.staffCanView === true
   const isDone       = item.status === 'done'
   const isInProgress = item.status === 'inprogress'
   const doneMeta     = isDone ? DONE_META[item.doneType] : null
@@ -1498,7 +1570,7 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
       background:'#fff', borderRadius:'16px', marginBottom:'10px',
       boxShadow:'0 1px 8px rgba(0,0,0,0.07)',
       borderLeft: `3px solid ${accentColor}`,
-      opacity: locked ? 0.72 : 1,
+      opacity: locked && !staffViewOnly ? 0.72 : 1,
     }}>
       <div style={{ padding:'14px 16px' }}>
 
@@ -1522,6 +1594,11 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
               {!isDone && !isInProgress && isUrgent(item) && (
                 <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
                   color:'#DC2626', background:'#FEF2F2', border:'1px solid #FECACA' }}>🔴 긴급</span>
+              )}
+              {/* 일반구성원 조회 전용 배지 */}
+              {staffViewOnly && (
+                <span style={{ padding:'2px 8px', borderRadius:'20px', fontSize:'10px', fontWeight:700,
+                  color:'#059669', background:'#F0FDF4', border:'1px solid #BBF7D0' }}>👤 내가 요청</span>
               )}
               {/* 사용내역 추가 상태 */}
               {item.claimStatus === 'completed' && (
@@ -1622,8 +1699,18 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
           </div>
         )}
 
+        {/* ── staffCanView: 조회 전용 안내 배너 ── */}
+        {staffViewOnly && (
+          <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 10px',
+            borderRadius:'9px', background:'#F0FDF4', marginBottom:'10px', border:'1px solid #BBF7D0' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+            </svg>
+            <span style={{ fontSize:'11px', fontWeight:600, color:'#047857' }}>내가 채팅에서 요청한 항목 — 조회 전용</span>
+          </div>
+        )}
         {/* ── 권한 외 안내 ── */}
-        {locked && (
+        {locked && !staffViewOnly && (
           <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 10px',
             borderRadius:'9px', background:'#F5F3FF', marginBottom:'10px' }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1651,7 +1738,7 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
         {!isDone && <div style={{ height:'1px', background:'#F4F5F7', marginBottom:'12px' }} />}
 
         {/* ── 액션 버튼: 미완료 + 권한 있음 ── */}
-        {!isDone && !locked && (
+        {!isDone && !locked && !staffViewOnly && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:'6px' }}>
             <button onClick={() => onDetail(item)}
               style={{ height:'36px', borderRadius:'10px', fontSize:'11px', fontWeight:600,
@@ -1683,8 +1770,17 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
           </div>
         )}
 
+        {/* ── staffCanView: 조회 전용 버튼 ── */}
+        {!isDone && staffViewOnly && (
+          <div style={{ display:'flex', justifyContent:'flex-end' }}>
+            <button onClick={() => onDetail(item)}
+              style={{ height:'36px', padding:'0 18px', borderRadius:'10px', fontSize:'11px', fontWeight:600,
+                background:'#F0FDF4', color:'#047857', border:'1px solid #BBF7D0',
+                cursor:'pointer', fontFamily:'inherit' }}>상세보기</button>
+          </div>
+        )}
         {/* ── 미완료 + 권한 외 ── */}
-        {!isDone && locked && (
+        {!isDone && locked && !staffViewOnly && (
           <div style={{ display:'flex', gap:'8px' }}>
             <button onClick={() => onDetail(item)}
               style={{ flex:1, height:'36px', borderRadius:'10px', fontSize:'12px', fontWeight:600,
@@ -2159,10 +2255,8 @@ const STATUS_TABS = [
 const OUTGOING_CHIPS = [
   { id:'all',         label:'전체',   activeBg: '#111827',  activeColor:'#fff' },
   { id:'approval',    label:'승인필요', activeBg:'#1D4ED8',  activeColor:'#fff' },
-  { id:'review',      label:'검수확인', activeBg:'#7C3AED',  activeColor:'#fff' },
   { id:'usageCheck',  label:'내역확인', activeBg:'#D97706',  activeColor:'#fff' },
   { id:'settlement',  label:'정산요청', activeBg:'#059669',  activeColor:'#fff' },
-  { id:'evidenceReq', label:'증빙요청', activeBg:'#0891B2',  activeColor:'#fff' },
   { id:'refundReq',   label:'상환요청', activeBg:'#DC2626',  activeColor:'#fff' },
   { id:'dataReq',     label:'자료요청', activeBg:'#6D28D9',  activeColor:'#fff' },
 ]
@@ -2170,6 +2264,7 @@ const OUTGOING_CHIPS = [
 const INCOMING_CHIPS = [
   { id:'all',         label:'전체',       activeBg:'#111827', activeColor:'#fff' },
   { id:'evidenceIn',  label:'내역증빙',   activeBg:'#0891B2', activeColor:'#fff' },
+  { id:'reviewReq',   label:'검수요청',   activeBg:'#7C3AED', activeColor:'#fff' },
   { id:'dataRequest', label:'자료요청',   activeBg:'#6D28D9', activeColor:'#fff' },
   { id:'refund',      label:'상환요청',   activeBg:'#DC2626', activeColor:'#fff' },
 ]
@@ -2182,8 +2277,10 @@ export default function ApprovalCenter() {
 
   // 현재 로그인 사용자의 승인 권한 동적 계산
   const myAuthority = useMemo(() => {
-    if (!currentUser) return 1
-    return ROLE_TO_AUTHORITY[currentUser.role] ?? 1
+    const ssRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+    const role = ssRole || currentUser?.role || ''
+    const auth = ROLE_TO_AUTHORITY[role]
+    return auth !== undefined ? auth : 0
   }, [currentUser])
   const isSuperAdmin = myAuthority === 'super'
 
@@ -2196,13 +2293,37 @@ export default function ApprovalCenter() {
   const [detailItem, setDetailItem]     = useState(null)
   const [stageFilter, setStageFilter]   = useState('all')  // 최고관리자는 전체, 나머지는 첫 렌더 후 조정
 
+  // 일반구성원: 채팅에서 본인이 요청한 항목만 조회 가능
+  const STAFF_VIEWABLE_TYPES = ['wallet', 'refund', 'dataRequest']
+  const isStaff = !isSuperAdmin && myAuthority === null &&
+    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : '') === 'staff'
+
   // 최고관리자는 모든 항목 canApprove 처리
   const effectiveApprovals = useMemo(() => {
-    if (!isSuperAdmin) return approvals
-    return approvals.map(a => ({ ...a, canApprove: true }))
-  }, [approvals, isSuperAdmin])
+    if (isSuperAdmin)
+      return approvals.map(a => ({ ...a, canApprove: true }))
+    if (isStaff) {
+      // staff: 승인 권한 없음, 단 본인이 채팅에서 요청한 타입(outgoing)은 staffCanView=true
+      return approvals.map(a => ({
+        ...a,
+        canApprove: false,
+        staffCanView: a.staffRequested === true &&
+          STAFF_VIEWABLE_TYPES.includes(a.type) &&
+          (a.direction || 'outgoing') === 'outgoing',
+      }))
+    }
+    if (!myAuthority)  // null(viewer) 또는 0
+      return approvals.map(a => ({ ...a, canApprove: false }))
+    // accounting(1)/manager(1): 1단계만 · admin(2): 1~2단계
+    return approvals.map(a => ({
+      ...a,
+      canApprove: a.canApprove && (!a.approvalStage || a.approvalStage <= myAuthority),
+    }))
+  }, [approvals, isSuperAdmin, myAuthority, isStaff])
 
-  const myItems = effectiveApprovals.filter(a => a.canApprove && (a.direction || 'outgoing') === reqDir)
+  const myItems = effectiveApprovals.filter(a =>
+    (a.canApprove || a.staffCanView) && (a.direction || 'outgoing') === reqDir
+  )
   const tabCounts = {
     all:        myItems.length,
     inprogress: myItems.filter(a => a.status==='pending' || a.status==='inprogress').length,
@@ -2213,6 +2334,15 @@ export default function ApprovalCenter() {
 
   const filtered = effectiveApprovals.filter(a => {
     if ((a.direction || 'outgoing') !== reqDir) return false
+    // staff 조회 전용 항목: 방향만 맞으면 전체 탭 + 해당 타입 탭에서 표시
+    if (a.staffCanView) {
+      if (!matchStatus(a, activeStatus)) return false
+      if (typeFilter === 'all') return true
+      if (typeFilter === 'settlement'  && a.type === 'wallet')      return true
+      if (typeFilter === 'refundReq'   && a.type === 'refund')      return true
+      if (typeFilter === 'dataReq'     && a.type === 'dataRequest') return true
+      return false
+    }
     if (!matchStatus(a, activeStatus)) return false
     if (!matchType(a, typeFilter, myAuthority)) return false
     if (typeFilter === 'approval' && stageFilter !== 'all' && a.approvalStage) {
@@ -2590,6 +2720,27 @@ export default function ApprovalCenter() {
         {/* ── 콘텐츠 ── */}
         <div style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'12px 14px 32px' }}>
 
+          {/* staff 조회 전용 안내 배너 */}
+          {isStaff && reqDir === 'outgoing' && (
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 14px',
+              borderRadius:'13px', background:'#F0FDF4', border:'1px solid #BBF7D0', marginBottom:'12px' }}>
+              <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:'#D1FAE5',
+                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize:'12px', fontWeight:700, color:'#047857', marginBottom:'2px' }}>
+                  일반구성원 — 조회 전용
+                </div>
+                <div style={{ fontSize:'11px', color:'#6B7280', lineHeight:1.5 }}>
+                  채팅에서 요청한 정산·상환·자료 항목을 확인할 수 있습니다.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 받은 요청 — 아이템 있으면 리스트, 없으면 빈 상태 */}
           {reqDir === 'incoming' && (filtered.length === 0 ? (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
@@ -2651,6 +2802,7 @@ export default function ApprovalCenter() {
                   :activeStatus==='done'?'승인이 완료된 항목이\n여기에 표시됩니다.'
                   :activeStatus==='inprogress'?'추가 서류 요청 후\n응답 대기 항목이 표시됩니다.'
                   :typeFilter!=='all'?'다른 유형을 선택하거나\n전체 탭을 확인해 보세요.'
+                  :isStaff?'채팅 메시지에서 정산·상환·자료 요청을\n보내면 여기에 표시됩니다.'
                   :'모든 요청이 처리됐거나\n아직 접수된 요청이 없습니다.'}
               </div>
             </div>

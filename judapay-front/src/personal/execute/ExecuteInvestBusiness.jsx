@@ -367,6 +367,7 @@ export default function ExecuteInvestBusiness() {
   const [profitShare, setProfitShare] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
   const [mccItems, setMccItems] = useState(DEFAULT_MCC)
+  const [singleLimit, setSingleLimit] = useState(null)
   const [period, setPeriod] = useState('3y')
   const [customPeriod, setCustomPeriod] = useState('')
   const [reportFreq, setReportFreq] = useState('monthly')
@@ -1038,6 +1039,8 @@ export default function ExecuteInvestBusiness() {
             items={mccItems}
             onChange={setMccItems}
             recipientName={recipient?.name}
+            singleLimit={singleLimit}
+            onLimitChange={setSingleLimit}
           />
 
           {/* 자금 사용처 자동 추적 안내 (파란 박스) */}
@@ -1196,6 +1199,12 @@ export default function ExecuteInvestBusiness() {
             label:'사용 통제',
             value: blockedCount > 0 ? `${blockedCount}개 카테고리 차단` : '제한 없음',
             sub: blockedCount > 0 ? mccItems.filter(m => m.block).map(m => m.label).join(', ') : null,
+            editStep: 2,
+            editAction: () => setStep(2),
+          },
+          {
+            label:'1회 결제 한도',
+            value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음',
             editStep: 2,
             editAction: () => setStep(2),
           },

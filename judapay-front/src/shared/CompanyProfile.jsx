@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -109,7 +109,7 @@ function GoalInput({ goals, onChange, placeholder }) {
 }
 
 // ─── 탭: 소개 ─────────────────────────────────────────────
-function IntroTab({ lang, theme }) {
+function IntroTab({ lang, theme, canEditProfile }) {
   useProfileStore()
   const msg          = getMsg()
   const yearGoals    = getYearGoals()
@@ -180,10 +180,17 @@ function IntroTab({ lang, theme }) {
         ) : (
           <div>
             <div style={{ fontSize:'13px', color:COLORS.t2, lineHeight:1.8, whiteSpace:'pre-line', marginBottom:'12px' }}>{msg}</div>
-            <button onClick={startEditMsg}
-              style={{ padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-              ✏️ 수정
-            </button>
+            {canEditProfile ? (
+              <button onClick={startEditMsg}
+                style={{ padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                ✏️ 수정
+              </button>
+            ) : (
+              <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'5px 12px', background:'#F3F4F6', borderRadius:'20px' }}>
+                <span style={{ fontSize:'12px' }}>🔒</span>
+                <span style={{ fontSize:'11px', color:COLORS.t4, fontWeight:600 }}>최고관리자·관리자만 수정 가능</span>
+              </div>
+            )}
           </div>
         )}
       </SRow>
@@ -206,10 +213,17 @@ function IntroTab({ lang, theme }) {
                 <span style={{ fontSize:'13px', color:COLORS.t1 }}>{g}</span>
               </div>
             ))}
-            <button onClick={startEditYear}
-              style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-              ✏️ 수정
-            </button>
+            {canEditProfile ? (
+              <button onClick={startEditYear}
+                style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                ✏️ 수정
+              </button>
+            ) : (
+              <div style={{ marginTop:'12px', display:'inline-flex', alignItems:'center', gap:'4px', padding:'5px 12px', background:'#F3F4F6', borderRadius:'20px' }}>
+                <span style={{ fontSize:'12px' }}>🔒</span>
+                <span style={{ fontSize:'11px', color:COLORS.t4, fontWeight:600 }}>최고관리자·관리자만 수정 가능</span>
+              </div>
+            )}
           </div>
         )}
       </SRow>
@@ -249,10 +263,17 @@ function IntroTab({ lang, theme }) {
                 {curQDone[i] && <span style={{ fontSize:'10px', fontWeight:700, color:'#047857', flexShrink:0 }}>완료</span>}
               </div>
             ))}
-            <button onClick={startEditQ}
-              style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-              ✏️ {activeQ} 수정
-            </button>
+            {canEditProfile ? (
+              <button onClick={startEditQ}
+                style={{ marginTop:'12px', padding:'7px 16px', background:theme.brandDark+'10', border:'1px solid '+theme.brandDark+'30', borderRadius:'20px', color:theme.brandDark, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                ✏️ {activeQ} 수정
+              </button>
+            ) : (
+              <div style={{ marginTop:'12px', display:'inline-flex', alignItems:'center', gap:'4px', padding:'5px 12px', background:'#F3F4F6', borderRadius:'20px' }}>
+                <span style={{ fontSize:'12px' }}>🔒</span>
+                <span style={{ fontSize:'11px', color:COLORS.t4, fontWeight:600 }}>최고관리자·관리자만 수정 가능</span>
+              </div>
+            )}
           </div>
         )}
       </SRow>
@@ -361,7 +382,7 @@ function OperationTab({ lang, theme }) {
 }
 
 // ─── 탭: 프로젝트 ─────────────────────────────────────────
-function ProjectTab({ lang, theme }) {
+function ProjectTab({ lang, theme, canEditProfile }) {
   useProfileStore()
   const projects = getProjects()
   const vis      = getVis()
@@ -397,16 +418,18 @@ function ProjectTab({ lang, theme }) {
                     <div style={{ fontSize:'14px', fontWeight:700, color:COLORS.t1, marginBottom:'3px' }}>{pr.name}</div>
                     <span style={{ fontSize:'11px', color:COLORS.t4 }}>{CATEGORY_CFG[pr.category]?.ko || '기타'}</span>
                   </div>
-                  <button onClick={() => removeProject(pr.id)}
-                    style={{ background:'none', border:'none', cursor:'pointer', color:COLORS.t4, fontSize:'18px', padding:'0 4px', flexShrink:0 }}>×</button>
+                  {canEditProfile && (
+                    <button onClick={() => removeProject(pr.id)}
+                      style={{ background:'none', border:'none', cursor:'pointer', color:COLORS.t4, fontSize:'18px', padding:'0 4px', flexShrink:0 }}>×</button>
+                  )}
                 </div>
                 <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
                   {(CATEGORY_STATUSES[pr.category]||CATEGORY_STATUSES.dev).map(key => {
                     const cfg = STATUS_CFG[key]
                     return (
                       <button key={key}
-                        onClick={() => updateProjectStatus(pr.id, key)}
-                        style={{ padding:'3px 10px', borderRadius:'20px', border:'none', background:pr.status===key?cfg.bg:COLORS.bgMuted, color:pr.status===key?cfg.color:COLORS.t4, fontSize:'11px', fontWeight:pr.status===key?700:400, cursor:'pointer', fontFamily:'inherit' }}>
+                        onClick={() => canEditProfile && updateProjectStatus(pr.id, key)}
+                        style={{ padding:'3px 10px', borderRadius:'20px', border:'none', background:pr.status===key?cfg.bg:COLORS.bgMuted, color:pr.status===key?cfg.color:COLORS.t4, fontSize:'11px', fontWeight:pr.status===key?700:400, cursor:canEditProfile?'pointer':'default', fontFamily:'inherit', opacity:canEditProfile?1:0.7 }}>
                         {cfg.ko}
                       </button>
                     )
@@ -418,10 +441,17 @@ function ProjectTab({ lang, theme }) {
         </div>
       </div>
 
-      <button onClick={() => setAdding(true)}
-        style={{ width:'100%', padding:'14px', background:COLORS.bgCard, border:'1.5px dashed '+theme.brandDark+'40', borderRadius:'18px', color:theme.brandDark, fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:SHADOWS.card }}>
-        + 프로젝트 추가
-      </button>
+      {canEditProfile ? (
+        <button onClick={() => setAdding(true)}
+          style={{ width:'100%', padding:'14px', background:COLORS.bgCard, border:'1.5px dashed '+theme.brandDark+'40', borderRadius:'18px', color:theme.brandDark, fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow:SHADOWS.card }}>
+          + 프로젝트 추가
+        </button>
+      ) : (
+        <div style={{ width:'100%', padding:'14px', background:'#F9FAFB', border:'1.5px dashed '+COLORS.border, borderRadius:'18px', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow:SHADOWS.card }}>
+          <span style={{ fontSize:'14px' }}>🔒</span>
+          <span style={{ fontSize:'13px', color:COLORS.t4, fontWeight:600 }}>최고관리자·관리자만 추가 가능</span>
+        </div>
+      )}
 
       {adding && (
         <div style={{ position:'absolute', inset:0, zIndex:100, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
@@ -764,10 +794,16 @@ function PublicPreview({ theme, onClose }) {
 // ─── 메인 ─────────────────────────────────────────────────
 export default function CompanyProfile() {
   const navigate = useNavigate()
+  const location = useLocation()
   const theme = getAccountTheme()
   const [lang, setLang] = useState(getLang())
-  const [tab, setTab] = useState('intro')
+  const [tab, setTab] = useState(location.state?.tab || 'intro')
   const [showPreview, setShowPreview] = useState(false)
+
+  // [권한] 기업 프로필 수정·프로젝트 추가/삭제는 master/admin만 가능
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const PROFILE_EDIT_ROLES = ['master', 'admin']
+  const canEditProfile = PROFILE_EDIT_ROLES.includes(bizRole)
 
   useEffect(() => {
     const h = () => setLang(getLang())
@@ -820,10 +856,10 @@ export default function CompanyProfile() {
           {/* 미리보기 오버레이 */}
           {showPreview && <PublicPreview theme={theme} onClose={() => setShowPreview(false)} />}
 
-          {tab==='intro'     && <IntroTab     lang={lang} theme={theme} />}
+          {tab==='intro'     && <IntroTab     lang={lang} theme={theme} canEditProfile={canEditProfile} />}
           {tab==='activity'  && <ActivityTab  lang={lang} theme={theme} />}
           {tab==='operation' && <OperationTab lang={lang} theme={theme} />}
-          {tab==='projects'  && <ProjectTab   lang={lang} theme={theme} />}
+          {tab==='projects'  && <ProjectTab   lang={lang} theme={theme} canEditProfile={canEditProfile} />}
         </div>
       </div>
     </PhoneShell>

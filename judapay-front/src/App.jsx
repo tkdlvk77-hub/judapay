@@ -20,6 +20,7 @@ import PaymentAlerts from './shared/PaymentAlerts'
 import EvidenceCenter from './shared/EvidenceCenter'
 import MyWallet from './shared/MyWallet'
 import WalletDetail from './shared/WalletDetail'
+import CompletedWallets from './shared/CompletedWallets'
 import SecuritySettings from './shared/SecuritySettings'
 import Messages from './shared/Messages'
 import More from './shared/More'
@@ -33,12 +34,14 @@ import ExecuteRealEstate from './shared/execute/ExecuteRealEstate'
 
 // personal
 import HomePersonal from './personal/HomePersonal'
+import PersonalProfile from './personal/PersonalProfile'
 import ExecutePersonal from './personal/execute/ExecutePersonal'
 import ExecuteToBusiness from './personal/execute/ExecuteToBusiness'
 import ExecuteBusiness from './business/execute/ExecuteBusiness'
 import SelectRecipient from './personal/execute/SelectRecipient'
 import SelectBusiness from './personal/execute/SelectBusiness'
 import ExecuteGift from './personal/execute/ExecuteGift'
+import ExecuteLiving from './personal/execute/ExecuteLiving'
 import ExecuteLend from './personal/execute/ExecuteLend'
 import ExecuteInvest from './personal/execute/ExecuteInvest'
 import ExecuteInvestBusiness from './personal/execute/ExecuteInvestBusiness'
@@ -72,6 +75,7 @@ import ExecuteVendorInvestBusiness from './business/execute/ExecuteVendorInvestB
 import SelectRecipientBusiness from './business/execute/SelectRecipientBusiness'
 import SelectVendor from './business/execute/SelectVendor'
 import Support from './shared/Support'
+import HelpFaq from './shared/HelpFaq'
 import Notices from './shared/Notices'
 import NoticeDetail from './shared/NoticeDetail'
 import Refund from './shared/Refund'
@@ -82,6 +86,7 @@ import AdminManagementBiz from './shared/AdminManagementBiz'
 import CompanyProfile from './shared/CompanyProfile'
 import MonthlyReport from './shared/MonthlyReport'
 import ApprovalCenter from './shared/ApprovalCenter'
+import TaxAccountant from './shared/TaxAccountant'
 
 // 가드: sessionStorage bizType 직접 확인 (Context 의존 제거)
 function Protected({ children, requireType }) {
@@ -243,6 +248,9 @@ export default function App() {
         <Route path="/execute/personal/gift" element={
           <Protected requireType="personal"><ExecuteGift /></Protected>
         } />
+        <Route path="/execute/personal/living" element={
+          <Protected requireType="personal"><ExecuteLiving /></Protected>
+        } />
         <Route path="/execute/personal/lend" element={
           <Protected requireType="personal"><ExecuteLend /></Protected>
         } />
@@ -279,6 +287,7 @@ export default function App() {
         <Route path="/other-payments" element={<Protected><OtherPayments /></Protected>} />
         <Route path="/payment-alerts" element={<Protected><PaymentAlerts /></Protected>} />
         <Route path="/wallet" element={<Protected><MyWallet /></Protected>} />
+        <Route path="/wallet/completed" element={<Protected><CompletedWallets /></Protected>} />
         <Route path="/wallet/:id" element={<Protected><WalletDetail /></Protected>} />
         <Route path="/evidence-center" element={<Protected><EvidenceCenter /></Protected>} />
         <Route path="/stats" element={<Protected><ExecutionStats /></Protected>} />
@@ -288,14 +297,17 @@ export default function App() {
         <Route path="/accounts" element={<Protected><AccountManagement /></Protected>} />
         <Route path="/admin-management" element={<Protected><AdminManagement /></Protected>} />
         <Route path="/admin-management-biz" element={<Protected><AdminManagementBiz /></Protected>} />
-        <Route path="/company-profile" element={<Protected><CompanyProfile /></Protected>} />
+        <Route path="/company-profile"  element={<Protected><CompanyProfile /></Protected>} />
+        <Route path="/personal-profile" element={<Protected><PersonalProfile /></Protected>} />
         <Route path="/notices" element={<Protected><Notices /></Protected>} />
         <Route path="/notices/:id" element={<Protected><NoticeDetail /></Protected>} />
         <Route path="/refund" element={<Protected><Refund /></Protected>} />
         <Route path="/dispute" element={<Protected><Dispute /></Protected>} />
         <Route path="/support" element={<Protected><Support /></Protected>} />
+        <Route path="/help-faq" element={<Protected><HelpFaq /></Protected>} />
         <Route path="/control-center/recipient/:id" element={<Protected><RecipientDetail /></Protected>} />
         <Route path="/approval-center" element={<Protected><ApprovalCenter /></Protected>} />
+        <Route path="/tax-accountant" element={<Protected><TaxAccountant /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

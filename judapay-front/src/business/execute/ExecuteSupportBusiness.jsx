@@ -73,6 +73,7 @@ export default function ExecuteSupportBusiness() {
   const [reportCycleId, setReportCycleId] = useState('quarterly')
   const [expiryDate, setExpiryDate] = useState(defaultExpiryByReportCycle('quarterly'))
   const [mccItems, setMccItems] = useState(DEFAULT_MCC)
+  const [singleLimit, setSingleLimit] = useState(null)
   const [expiryTouched, setExpiryTouched] = useState(false)
 
   if (!recipient) return null
@@ -598,6 +599,8 @@ export default function ExecuteSupportBusiness() {
               onChange={setMccItems}
               recipientName={recipient.name}
               showInfoBox={false}
+              singleLimit={singleLimit}
+              onLimitChange={setSingleLimit}
             />
           </div>
 
@@ -677,6 +680,11 @@ export default function ExecuteSupportBusiness() {
         ? fill(t('execSupport.row.blocked'), { count: blockedCount })
         : t('execSupport.row.allAllowed'),
       sub: blockedCount > 0 ? blockedItems.map(b => b.label).join(', ') : null,
+      editAction: () => setStep(2),
+    })
+    rows.push({
+      label: '1회 결제 한도',
+      value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음',
       editAction: () => setStep(2),
     })
 
@@ -760,6 +768,7 @@ export default function ExecuteSupportBusiness() {
             value: blockedCount > 0
               ? fill(t('execSupport.row.blocked'), { count: blockedCount })
               : t('execSupport.row.allAllowed') },
+          { label: '1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음' },
           { label: t('execSupport.wallet.label'), value: walletLabel },
         ]}
         noteYellow={t('execSupport.done.note')}

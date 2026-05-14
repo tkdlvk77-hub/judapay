@@ -5,6 +5,13 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import MccBlock, { DEFAULT_MCC } from './execute/MccBlock'
 
+function getUserType() {
+  const s = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizType') : null
+  if (s === 'business') return 'business'
+  if (s === 'public')   return 'public'
+  return 'personal'
+}
+
 // ─── 카드별 색상 팔레트 (순환 사용) ─────────────────────
 const CARD_PALETTES = [
   { grad: 'linear-gradient(135deg,#0A1628 0%,#0F2035 40%,#1E3A5F 70%,#0A1628 100%)', glow:'rgba(30,90,160,0.45)', tint:'#EFF6FF', tintBorder:'#BFDBFE' },  // 네이비 (주 카드)
@@ -66,9 +73,19 @@ const CARD_MONTHLY_LIMIT = {
 }
 
 const WALLET_PRIORITY = [
-  { id:'edu', label:'서울시 · 4월 교육비', sub:'만료 D-3',    amount:50000,  dotColor:'#10B981' },
-  { id:'mom', label:'엄마 · 용돈',        sub:'식비·마트만',  amount:450000, dotColor:'#F59E0B' },
-  { id:'my',  label:'MY 지갑',            sub:'제한 없음',    amount:932000, dotColor:'#9CA3AF' },
+  { id:'edu', label:'서울시 · 4월 교육비', sub:'만료 D-3', amount:50000, dotColor:'#10B981',
+    mccItems:[
+      { id:'gambling', label:'유흥·도박',   block:true },
+      { id:'crypto',   label:'암호화폐',    block:true },
+      { id:'overseas', label:'해외 결제',   block:true },
+      { id:'luxury',   label:'명품',        block:true },
+      { id:'gaming',   label:'게임 아이템', block:true },
+      { id:'dining',   label:'고급 음식점', block:true },
+    ],
+  },
+  { id:'my', label:'MY 지갑', sub:'제한 없음', amount:932000, dotColor:'#9CA3AF',
+    mccItems:[], // 본인 지갑 — 지갑 레이어 제한 없음
+  },
 ]
 
 function fmt(n) { return Number(n || 0).toLocaleString('ko-KR') }
@@ -158,34 +175,40 @@ function PhysicalCard({ card, paused, revealed, onDetailClick, palette }) {
 // ─────────────────────────────────────────────────────────
 // 액션 4버튼
 // ─────────────────────────────────────────────────────────
-function ActionGrid({ paused, onToggle, onQR, onIssue, onMCC }) {
+function ActionGrid({ paused, onToggle, onQR, onIssue, onMCC, canSetMCC = false, isPersonal = false, canToggle = true, canQR = true, canIssue = true }) {
   const theme = getAccountTheme()
   const items = [
     {
       label: paused ? '재개' : '일시정지',
-      grad: paused ? 'linear-gradient(135deg,#9CA3AF,#6B7280)' : 'linear-gradient(135deg,#F97316,#EA580C)',
+      locked: !canToggle,
+      grad: !canToggle ? 'linear-gradient(135deg,#D1D5DB,#9CA3AF)' : paused ? 'linear-gradient(135deg,#9CA3AF,#6B7280)' : 'linear-gradient(135deg,#F97316,#EA580C)',
       icon: paused
         ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
       onClick: onToggle,
     },
     {
-      label: 'QR 결제',
-      grad: 'linear-gradient(135deg,#0EA5E9,#0284C7)',
+      label: isPersonal ? '결제하기' : 'QR 결제',
+      locked: !canQR,
+      grad: !canQR ? 'linear-gradient(135deg,#D1D5DB,#9CA3AF)' : 'linear-gradient(135deg,#0EA5E9,#0284C7)',
       icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><line x1="14" y1="14" x2="20" y2="14"/><line x1="14" y1="20" x2="20" y2="20"/><line x1="14" y1="14" x2="14" y2="20"/><line x1="17" y1="17" x2="21" y2="17"/></svg>,
       onClick: onQR,
     },
     {
-      label: '발급',
-      grad: `linear-gradient(135deg,${theme.brand},${theme.brandDark})`,
+      label: isPersonal ? '카드발급' : '발급',
+      locked: !canIssue,
+      grad: !canIssue ? 'linear-gradient(135deg,#D1D5DB,#9CA3AF)' : `linear-gradient(135deg,${theme.brand},${theme.brandDark})`,
       icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/><line x1="12" y1="15" x2="12" y2="18"/><line x1="10" y1="16.5" x2="14" y2="16.5"/></svg>,
-      onClick: onIssue,
+      onClick: canIssue ? onIssue : null,
     },
     {
-      label: 'MCC 설정',
-      grad: 'linear-gradient(135deg,#10B981,#059669)',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-      onClick: onMCC,
+      label: isPersonal ? '보안설정' : 'MCC 설정',
+      grad: canSetMCC ? 'linear-gradient(135deg,#10B981,#059669)' : 'linear-gradient(135deg,#D1D5DB,#9CA3AF)',
+      icon: canSetMCC
+        ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+      onClick: canSetMCC ? onMCC : null,
+      locked: !canSetMCC,
     },
   ]
 
@@ -269,9 +292,122 @@ function IssueCardSheet({ onClose, onIssue }) {
 }
 
 // ─────────────────────────────────────────────────────────
+// 보안 설정 바텀시트 (개인용)
+// ─────────────────────────────────────────────────────────
+function SecuritySheet({ settings, onChange, onClose }) {
+  const theme = getAccountTheme()
+
+  const items = [
+    {
+      id: 'blockOverseas',
+      label: '해외 결제 제한',
+      sub: '해외 가맹점·해외 사이트 결제 차단',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      ),
+      color: '#0EA5E9',
+    },
+    {
+      id: 'blockOnline',
+      label: '온라인 결제 제한',
+      sub: '인터넷 쇼핑몰·앱 내 결제 차단',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      ),
+      color: '#8B5CF6',
+    },
+    {
+      id: 'alertUsage',
+      label: '실시간 사용 알림',
+      sub: '결제 발생 즉시 푸시 알림 수신',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      ),
+      color: '#F59E0B',
+    },
+  ]
+
+  return (
+    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+      <div style={{ background: COLORS.bgCard, borderRadius:`${RADIUS.lg} ${RADIUS.lg} 0 0`, padding:'20px 16px 36px' }}>
+        <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto 18px' }} />
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+          <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:`${theme.brandDark}15`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.brandDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style={{ fontSize:'16px', fontWeight:700, color:COLORS.t1 }}>보안 설정</div>
+        </div>
+        <div style={{ fontSize:'12px', color:COLORS.t4, marginBottom:'20px' }}>카드 결제 보안 옵션을 설정하세요</div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:'10px', marginBottom:'20px' }}>
+          {items.map(item => {
+            const on = !!settings[item.id]
+            return (
+              <div key={item.id} onClick={() => onChange({ ...settings, [item.id]: !on })}
+                style={{
+                  display:'flex', alignItems:'center', gap:'12px',
+                  padding:'14px 14px',
+                  background: on ? `${item.color}0D` : COLORS.bg,
+                  border: `1px solid ${on ? item.color + '30' : COLORS.borderSoft}`,
+                  borderRadius: RADIUS.lg,
+                  cursor:'pointer', transition:'all .15s',
+                }}>
+                <div style={{
+                  width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
+                  background: on ? `${item.color}18` : COLORS.bgMuted,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  color: on ? item.color : COLORS.t4,
+                  transition:'all .15s',
+                }}>
+                  {item.icon}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'14px', fontWeight:700, color: on ? COLORS.t1 : COLORS.t2, marginBottom:'2px' }}>
+                    {item.label}
+                  </div>
+                  <div style={{ fontSize:'11px', color:COLORS.t4, lineHeight:1.4 }}>{item.sub}</div>
+                </div>
+                {/* 토글 */}
+                <div style={{
+                  width:'44px', height:'24px', borderRadius:'12px', flexShrink:0,
+                  background: on ? item.color : COLORS.border,
+                  position:'relative', transition:'background .2s',
+                }}>
+                  <div style={{
+                    position:'absolute', top:'3px',
+                    left: on ? '23px' : '3px',
+                    width:'18px', height:'18px', borderRadius:'50%',
+                    background:'#fff',
+                    boxShadow:'0 1px 4px rgba(0,0,0,0.25)',
+                    transition:'left .2s',
+                  }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <button onClick={onClose} style={{ width:'100%', height:'50px', background:theme.brandDark, color:'#fff', border:'none', borderRadius:RADIUS.md, fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+          확인
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
 // MCC 설정 바텀시트
 // ─────────────────────────────────────────────────────────
-function MCCSheet({ mccItems, onChange, onClose }) {
+function MCCSheet({ mccItems, onChange, onClose, singleLimit, onLimitChange }) {
   const theme = getAccountTheme()
   const blockedCount = mccItems.filter(m => m.block).length
   return (
@@ -287,7 +423,13 @@ function MCCSheet({ mccItems, onChange, onClose }) {
           )}
         </div>
         <div style={{ fontSize:'12px', color: COLORS.t4, marginBottom:'16px' }}>차단 항목은 이 카드로 결제 불가합니다.</div>
-        <MccBlock items={mccItems} onChange={onChange} theme={theme} />
+        <MccBlock
+          items={mccItems}
+          onChange={onChange}
+          theme={theme}
+          singleLimit={singleLimit}
+          onLimitChange={onLimitChange}
+        />
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginTop:'16px' }}>
           <button onClick={onClose} style={{ height:'50px', background: COLORS.bgMuted, color: COLORS.t2, border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
             취소
@@ -301,12 +443,18 @@ function MCCSheet({ mccItems, onChange, onClose }) {
   )
 }
 
+
 // ─────────────────────────────────────────────────────────
 // 메인
 // ─────────────────────────────────────────────────────────
 export default function CardPayment() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const userType = getUserType()
+  const isPersonal = userType === 'personal'
+  const bizRoleNow = !isPersonal ? (sessionStorage.getItem('bizRole') || '') : ''
+  const isViewer      = bizRoleNow === 'viewer'              // 일시정지·QR 포함 전체 잠금
+  const isActionLocked = ['viewer','staff'].includes(bizRoleNow) // 발급·지갑변경 잠금
 
   // 카드 목록 state
   const [cards, setCards] = useState(INITIAL_CARDS)
@@ -319,6 +467,7 @@ export default function CardPayment() {
       revealed: false,
       mccItems: DEFAULT_MCC.map(m => ({ ...m })),
       walletId: 'my',
+      securitySettings: { blockOverseas:false, blockOnline:false, alertUsage:true },
     }]))
   )
 
@@ -328,6 +477,7 @@ export default function CardPayment() {
   const [showMCC, setShowMCC] = useState(false)
 
   const [showWalletPicker, setShowWalletPicker] = useState(false)
+  const [showSecurity, setShowSecurity] = useState(false)
 
   const card = cards[selectedIdx]
   const cs = cardStates[card?.id] || { paused:false, revealed:false, mccItems: DEFAULT_MCC, walletId:'my' }
@@ -353,7 +503,7 @@ export default function CardPayment() {
       balance: 0,
     }
     setCards(prev => [...prev, newCard])
-    setCardStates(prev => ({ ...prev, [newCard.id]: { paused:false, revealed:false, mccItems: DEFAULT_MCC.map(m=>({...m})), walletId:'my' } }))
+    setCardStates(prev => ({ ...prev, [newCard.id]: { paused:false, revealed:false, mccItems: DEFAULT_MCC.map(m=>({...m})), walletId:'my', securitySettings:{ blockOverseas:false, blockOnline:false, alertUsage:true, lockPayment:false } } }))
     setSelectedIdx(cards.length)
     setShowIssue(false)
   }
@@ -384,8 +534,11 @@ export default function CardPayment() {
               </button>
               <span style={{ fontSize:'17px', fontWeight:700, color:'#fff' }}>카드 관리</span>
             </div>
-            <button onClick={() => setShowIssue(true)} style={{ display:'flex', alignItems:'center', gap:'4px', background:'rgba(255,255,255,0.15)', border:'none', borderRadius: RADIUS.pill, padding:'6px 12px', cursor:'pointer', fontFamily:'inherit' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button onClick={!isActionLocked ? () => setShowIssue(true) : undefined} style={{ display:'flex', alignItems:'center', gap:'4px', background: isActionLocked ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.15)', border:'none', borderRadius: RADIUS.pill, padding:'6px 12px', cursor: isActionLocked ? 'default' : 'pointer', fontFamily:'inherit', opacity: isActionLocked ? 0.5 : 1 }}>
+              {isActionLocked
+                ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              }
               <span style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>카드 발급</span>
             </button>
           </div>
@@ -417,10 +570,15 @@ export default function CardPayment() {
           <div style={{ marginBottom:'14px' }}>
             <ActionGrid
               paused={cs.paused}
-              onToggle={() => updateCardState(card.id, { paused: !cs.paused })}
-              onQR={() => alert('QR 결제 (추후 구현)')}
-              onIssue={() => setShowIssue(true)}
-              onMCC={() => setShowMCC(true)}
+              onToggle={!isViewer ? () => updateCardState(card.id, { paused: !cs.paused }) : undefined}
+              onQR={!isViewer ? () => alert('QR 결제 (추후 구현)') : undefined}
+              canToggle={!isViewer}
+              canQR={!isViewer}
+              canIssue={!isActionLocked}
+              onIssue={!isActionLocked ? () => setShowIssue(true) : undefined}
+              onMCC={() => isPersonal ? setShowSecurity(true) : setShowMCC(true)}
+              canSetMCC={isPersonal || ['master','admin'].includes(sessionStorage.getItem('bizRole') || '')}
+              isPersonal={isPersonal}
             />
           </div>
 
@@ -433,7 +591,9 @@ export default function CardPayment() {
                 <span style={{ width:'7px', height:'7px', borderRadius:'50%', background: w.dotColor, flexShrink:0 }} />
                 <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flex:1, minWidth:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{w.label}</span>
                 <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, flexShrink:0 }}>{fmt(w.amount)}원</span>
-                <button onClick={() => setShowWalletPicker(true)} style={{ flexShrink:0, padding:'5px 10px', background: `${theme.brandDark}12`, color: theme.brandDark, border:`1px solid ${theme.brandDark}25`, borderRadius: RADIUS.pill, fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>변경</button>
+                <button onClick={!isActionLocked ? () => setShowWalletPicker(true) : undefined} style={{ flexShrink:0, padding:'5px 10px', background: isActionLocked ? '#F3F4F6' : `${theme.brandDark}12`, color: isActionLocked ? '#9CA3AF' : theme.brandDark, border: isActionLocked ? '1px solid #E5E7EB' : `1px solid ${theme.brandDark}25`, borderRadius: RADIUS.pill, fontSize:'11px', fontWeight:700, cursor: isActionLocked ? 'default' : 'pointer', fontFamily:'inherit' }}>
+                  {isActionLocked ? '🔒 변경' : '변경'}
+                </button>
               </div>
             )
           })()}
@@ -509,6 +669,7 @@ export default function CardPayment() {
               })}
             </div>
           )}
+
         </div>
       </div>
 
@@ -528,12 +689,23 @@ export default function CardPayment() {
         />
       )}
 
+      {/* 보안 설정 시트 (개인) */}
+      {showSecurity && (
+        <SecuritySheet
+          settings={cs.securitySettings || {}}
+          onChange={s => updateCardState(card.id, { securitySettings: s })}
+          onClose={() => setShowSecurity(false)}
+        />
+      )}
+
       {/* MCC 설정 시트 */}
       {showMCC && (
         <MCCSheet
           mccItems={cs.mccItems}
           onChange={items => updateCardState(card.id, { mccItems: items })}
           onClose={() => setShowMCC(false)}
+          singleLimit={cs.singleLimit}
+          onLimitChange={limit => updateCardState(card.id, { singleLimit: limit })}
         />
       )}
 

@@ -1,5 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('ko-KR')
+}
 
 // ─────────────────────────────────────────────────────────
 // MCC 차단 카테고리 — 자금 집행 흐름 공통 컴포넌트
@@ -42,8 +46,36 @@ export default function MccBlock({
   onChange,
   recipientName,
   showInfoBox = true,
+  singleLimit,        // null | number — 1회 결제 한도 (null = 제한 없음)
+  onLimitChange,      // (null | number) => void
 }) {
   const [showAddMcc, setShowAddMcc] = useState(false)
+  const [limitInput, setLimitInput] = useState(singleLimit ? String(singleLimit) : '')
+  const limitInputRef = useRef(null)
+
+  const limitActive = singleLimit !== null && singleLimit !== undefined
+  const LIMIT_PRESETS = [30000, 50000, 100000, 300000]
+
+  const handleLimitToggle = () => {
+    if (!onLimitChange) return
+    if (limitActive) {
+      onLimitChange(null)
+      setLimitInput('')
+    } else {
+      onLimitChange(100000)
+      setLimitInput('100000')
+      setTimeout(() => limitInputRef.current?.focus(), 50)
+    }
+  }
+
+  const handleLimitInput = (val) => {
+    const digits = val.replace(/\D/g, '')
+    setLimitInput(digits)
+    if (onLimitChange) onLimitChange(digits ? Number(digits) : null)
+  }
+  // 해외 결제 — 카테고리 목록에서 분리, 별도 토글로 표시
+  const overseasItem = items.find(m => m.id === 'overseas')
+  const mainItems = items.filter(m => m.id !== 'overseas')
   const blockedCount = items.filter(m => m.block).length
   const availablePool = EXTRA_MCC_POOL.filter(p => !items.find(m => m.id === p.id))
 
@@ -64,18 +96,6 @@ export default function MccBlock({
 
   return (
     <>
-      {/* 안내 박스 */}
-      {showInfoBox && (
-        <div style={{
-          background:'#EDF3FA', borderRadius: RADIUS.md,
-          padding:'12px 14px',
-          fontSize:'11px', color:'#1E5294', lineHeight:1.65,
-          marginBottom:'18px',
-        }}>
-          MCC 차단은 카드 결제 시 실시간으로 작동합니다. 차단 시도 시 양측에 자동 알림.
-        </div>
-      )}
-
       {/* 헤더 */}
       <div style={{
         display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -97,7 +117,7 @@ export default function MccBlock({
         overflow:'hidden',
         marginBottom:'10px',
       }}>
-        {items.map((opt, i) => {
+        {mainItems.map((opt, i) => {
           const isCustom = !DEFAULT_MCC.find(d => d.id === opt.id)
           return (
             <div key={opt.id}
@@ -105,7 +125,7 @@ export default function MccBlock({
                 width:'100%', padding:'14px 16px',
                 display:'flex', alignItems:'center', gap:'12px',
                 background: opt.block ? '#FEF2F2' : COLORS.bgCard,
-                borderBottom: i < items.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none',
+                borderBottom: i < mainItems.length-1 ? `1px solid ${COLORS.borderSoft}` : 'none',
               }}>
               <button onClick={() => toggleMcc(opt.id)}
                 style={{
@@ -175,18 +195,90 @@ export default function MccBlock({
         </span>
       </button>
 
-      {/* 하단 요약 */}
-      <div style={{
-        padding:'12px 14px',
-        background: COLORS.bgMuted,
-        borderRadius: RADIUS.md,
-        fontSize:'11px', color: COLORS.t3, lineHeight:1.65,
-      }}>
-        {blockedCount === 0
-          ? '제한 없음 · 어디든 카드 결제 가능'
-          : `${blockedCount}개 카테고리 차단 중 · 그 외에는 자유롭게 카드 결제 가능`
-        }
+      {/* 해외 결제 제한 + 1회 결제 한도 */}
+      <div style={{ background:COLORS.bgCard, boxShadow:SHADOWS.card, borderRadius:RADIUS.lg, overflow:'hidden', marginBottom:'10px' }}>
+        {/* 해외 결제 제한 토글 */}
+        {overseasItem && (
+          <button onClick={() => onChange(items.map(m => m.id==='overseas' ? {...m,block:!m.block} : m))}
+            style={{ width:'100%', padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px',
+              background:'none', border:'none', borderBottom:`1px solid ${COLORS.borderSoft}`,
+              cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:'13px', fontWeight:700, color:COLORS.t1, marginBottom:'2px' }}>해외 결제 제한</div>
+              <div style={{ fontSize:'11px', color:COLORS.t4 }}>해외 가맹점·해외 송금 차단</div>
+            </div>
+            <div style={{ width:'44px', height:'26px', borderRadius:'13px',
+              background: overseasItem.block ? '#EF4444' : COLORS.t5,
+              position:'relative', flexShrink:0, transition:'background 0.2s' }}>
+              <div style={{ position:'absolute', top:'3px',
+                left: overseasItem.block ? '21px' : '3px',
+                width:'20px', height:'20px', borderRadius:'50%',
+                background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)', transition:'left 0.2s' }} />
+            </div>
+          </button>
+        )}
+
+        {/* 1회 결제 한도 */}
+        {onLimitChange && (
+          <>
+            <button onClick={handleLimitToggle}
+              style={{ width:'100%', padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px',
+                background:'none', border:'none',
+                borderBottom: limitActive ? `1px solid ${COLORS.borderSoft}` : 'none',
+                cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:'13px', fontWeight:700, color:COLORS.t1, marginBottom:'2px' }}>1회 결제 한도</div>
+                <div style={{ fontSize:'11px', color:COLORS.t4 }}>
+                  {limitActive ? `결제 1건당 최대 ${fmt(singleLimit)}원` : '결제 1건당 최대 금액 제한 없음'}
+                </div>
+              </div>
+              <div style={{ width:'44px', height:'26px', borderRadius:'13px',
+                background: limitActive ? '#10B981' : COLORS.t5,
+                position:'relative', flexShrink:0, transition:'background 0.2s' }}>
+                <div style={{ position:'absolute', top:'3px',
+                  left: limitActive ? '21px' : '3px',
+                  width:'20px', height:'20px', borderRadius:'50%',
+                  background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)', transition:'left 0.2s' }} />
+              </div>
+            </button>
+            {limitActive && (
+              <div style={{ padding:'14px 16px' }}>
+                <div style={{ display:'flex', gap:'6px', marginBottom:'10px' }}>
+                  {LIMIT_PRESETS.map(v => {
+                    const isActive = singleLimit === v
+                    return (
+                      <button key={v} onClick={() => { onLimitChange(v); setLimitInput(String(v)) }}
+                        style={{ flex:1, height:'34px',
+                          background: isActive ? '#10B981' : COLORS.bgMuted,
+                          color: isActive ? '#fff' : COLORS.t2,
+                          border:'none', borderRadius:'8px',
+                          fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                        {v >= 10000 ? `${v/10000}만` : fmt(v)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div style={{ position:'relative' }}>
+                  <input ref={limitInputRef} type='number' inputMode='numeric'
+                    value={limitInput} onChange={e => handleLimitInput(e.target.value)}
+                    placeholder='직접 입력'
+                    style={{ width:'100%', height:'44px', background:COLORS.bg,
+                      border:`1px solid ${COLORS.border}`, borderRadius:'10px',
+                      padding:'0 40px 0 14px', fontSize:'14px', fontWeight:600, color:COLORS.t1,
+                      outline:'none', fontFamily:'inherit', boxSizing:'border-box',
+                      WebkitAppearance:'none', MozAppearance:'textfield' }} />
+                  <span style={{ position:'absolute', right:'14px', top:'50%', transform:'translateY(-50%)',
+                    fontSize:'13px', fontWeight:600, color:COLORS.t4, pointerEvents:'none' }}>원</span>
+                </div>
+                {singleLimit && singleLimit < 1000 && (
+                  <div style={{ fontSize:'11px', color:COLORS.danger, marginTop:'6px' }}>최소 1,000원 이상으로 설정해주세요</div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
+
 
       {/* 업종 추가 모달 */}
       {showAddMcc && (

@@ -29,17 +29,17 @@ const ROLES = {
 // ── 역할별 권한 매트릭스 ────────────────────────────────────
 const ROLE_PERMISSIONS = {
   master: {
-    can: ['구성원 초대/삭제','관리자 지정','승인 설정 변경','지갑·카드 관리','자금 집행','최종 승인자 지정','최고관리자 권한 이전','회사 탈퇴·해지'],
+    can: ['구성원 초대/삭제','관리자 지정','승인 설정 변경','지갑·카드 관리','카드 출금 지갑 변경','자금 집행','최종 승인자 지정','최고관리자 권한 이전','회사 탈퇴·해지'],
     cannot: [],
     approvalScope: '모든 금액 · 모든 카테고리',
   },
   admin: {
-    can: ['일반 구성원 초대/삭제','승인라인 설정','자금 집행 관리','증빙 관리','보고서 관리','자동지급 관리'],
+    can: ['일반 구성원 초대/삭제','승인라인 설정','자금 집행 관리','증빙 관리','보고서 관리','자동지급 관리','카드 출금 지갑 변경'],
     cannot: ['최고관리자 삭제/권한 변경','회사 해지','본인 권한 상향'],
     approvalScope: '위임받은 범위',
   },
   accounting: {
-    can: ['자금 집행 요청','자동지급 등록·관리','세금·4대보험 관리','증빙 관리','카드 내역 분류','월간 보고서 생성'],
+    can: ['자금 집행 요청','자동지급 등록·관리','세금·4대보험 관리','증빙 관리','카드 내역 분류','월간 보고서 생성','카드 출금 지갑 변경'],
     cannot: ['승인 설정 변경','최고관리자 권한 변경','단독 고액 집행'],
     approvalScope: '세금·보험·정기지출',
   },
@@ -212,7 +212,7 @@ function Avatar({ name, role, size = 44 }) {
 // ═══════════════════════════════════════════════════════════
 // ── 1. 메인 허브 (리디자인)
 // ═══════════════════════════════════════════════════════════
-function MainHub({ members, onNav }) {
+function MainHub({ members, onNav, bizRole }) {
   const navigate    = useNavigate()
   const { currentUser } = useUser()
   const active   = members.filter(m => m.status === 'active').length
@@ -238,8 +238,11 @@ function MainHub({ members, onNav }) {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
     { id:'company',  label:'기업 설정',   sub:'회사정보 · 계좌 · API 연동',          iconBg:'#FEF3E0', iconColor:'#92590A',
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92590A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> },
-    { id:'security', label:'보안 및 감사', sub:'활동로그 · 이상탐지 · 디바이스',    badge: 1, iconBg:'#FEE9E9', iconColor:'#C0392B',
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> },
+    // [권한] 보안 및 감사: master 전용. admin은 잠금 표시.
+    { id:'security', label:'보안 및 감사', sub: bizRole === 'master' ? '활동로그 · 이상탐지 · 디바이스' : '최고관리자 전용 메뉴', badge: bizRole === 'master' ? 1 : null, locked: bizRole !== 'master', iconBg: bizRole === 'master' ? '#FEE9E9' : '#F3F4F6', iconColor: bizRole === 'master' ? '#C0392B' : '#9CA3AF',
+      icon: bizRole === 'master'
+        ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
     { id:'approval', label:'승인 설정', sub:'승인 흐름 · 승인자 배정 · 조건',       iconBg:'#EDE9FE', iconColor:'#7C3AED',
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
   ]
@@ -313,27 +316,34 @@ function MainHub({ members, onNav }) {
         <div style={{ fontSize:'11px', fontWeight:700, color:'#9CA3AF', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:'9px' }}>메뉴</div>
         <div style={{ background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #EAECF0', boxShadow:'0 1px 4px rgba(0,0,0,0.05)', marginBottom:'24px' }}>
           {modules.map((mod, i) => (
-            <button key={mod.id} onClick={() => onNav(mod.id)}
-              style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'16px', background:'transparent', border:'none', borderBottom: i < modules.length-1 ? '1px solid #F0F1F3' : 'none', borderLeft:'3px solid transparent', cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'all 0.12s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderLeft = `3px solid ${mod.iconColor}` }}
+            <button key={mod.id}
+              onClick={() => !mod.locked && onNav(mod.id)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'16px', background:'transparent', border:'none', borderBottom: i < modules.length-1 ? '1px solid #F0F1F3' : 'none', borderLeft:'3px solid transparent', cursor: mod.locked ? 'not-allowed' : 'pointer', fontFamily:'inherit', textAlign:'left', transition:'all 0.12s', opacity: mod.locked ? 0.6 : 1 }}
+              onMouseEnter={e => { if (!mod.locked) { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderLeft = `3px solid ${mod.iconColor}` } }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeft = '3px solid transparent' }}>
               <div style={{ width:'42px', height:'42px', borderRadius:'12px', background:mod.iconBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                 {mod.icon}
               </div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'3px' }}>
-                  <span style={{ fontSize:'14px', fontWeight:700, color:'#111827' }}>{mod.label}</span>
+                  <span style={{ fontSize:'14px', fontWeight:700, color: mod.locked ? '#9CA3AF' : '#111827' }}>{mod.label}</span>
                   {mod.badge && (
                     <span style={{ padding:'1px 7px', borderRadius:'20px', background: mod.id === 'security' ? '#FEE9E9' : '#FEF3E0', color: mod.id === 'security' ? '#C0392B' : '#92590A', fontSize:'10px', fontWeight:800 }}>
                       {mod.badge}
                     </span>
                   )}
+                  {mod.locked && (
+                    <span style={{ padding:'1px 7px', borderRadius:'20px', background:'#F3F4F6', color:'#9CA3AF', fontSize:'10px', fontWeight:700 }}>
+                      최고관리자 전용
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize:'11px', color:'#9CA3AF' }}>{mod.sub}</div>
               </div>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+              {mod.locked
+                ? <span style={{ fontSize:'14px' }}>🔒</span>
+                : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              }
             </button>
           ))}
         </div>
@@ -380,13 +390,20 @@ function MainHub({ members, onNav }) {
     </>
   )
 }
-function MembersView({ members, setMembers, onBack, onInvite }) {
+function MembersView({ members, setMembers, onBack, onInvite, bizRole }) {
   const theme = getAccountTheme()
   const [filter, setFilter]   = useState('all')
   const [editMember, setEdit] = useState(null)
 
+  // [권한] admin은 master/admin 권한 보유자 편집 불가 (권한 상향 방지)
+  const canEditMember = (m) => {
+    if (bizRole === 'master') return m.role !== 'master' // master는 자신 제외 모두 편집
+    if (bizRole === 'admin')  return m.role !== 'master' && m.role !== 'admin' // admin은 master·admin 편집 불가
+    return false
+  }
+
   if (editMember) return (
-    <MemberDetailView member={editMember} onBack={() => setEdit(null)}
+    <MemberDetailView member={editMember} onBack={() => setEdit(null)} bizRole={bizRole}
       onSave={updated => { setMembers(ms => ms.map(m => m.id === updated.id ? updated : m)); setEdit(null) }}
       onResign={id => { setMembers(ms => ms.map(m => m.id === id ? { ...m, status:'resigned' } : m)); setEdit(null) }}
     />
@@ -464,16 +481,16 @@ function MembersView({ members, setMembers, onBack, onInvite }) {
         {/* ── 멤버 목록 */}
         <div style={{ background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #EAECF0', boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
           {filtered.map((m, i) => {
-            const isMaster = m.role === 'master'
+            const editable = canEditMember(m)
             const usagePct = m.monthlyLimit && m.monthlyUsed
               ? Math.min(100, m.monthlyUsed / m.monthlyLimit * 100) : 0
             const sm = STATUS_STYLE[m.status] || STATUS_STYLE.inactive
             const rs = ROLE_STYLE[m.role] || ROLE_STYLE.staff
 
             return (
-              <button key={m.id} onClick={() => !isMaster && setEdit(m)}
-                style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'15px 16px', background:'transparent', border:'none', borderBottom: i < filtered.length-1 ? '1px solid #F0F1F3' : 'none', cursor: isMaster ? 'default' : 'pointer', fontFamily:'inherit', textAlign:'left', transition:'background 0.12s' }}
-                onMouseEnter={e => { if (!isMaster) e.currentTarget.style.background = '#FAFAFA' }}
+              <button key={m.id} onClick={() => editable && setEdit(m)}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'15px 16px', background:'transparent', border:'none', borderBottom: i < filtered.length-1 ? '1px solid #F0F1F3' : 'none', cursor: editable ? 'pointer' : 'default', fontFamily:'inherit', textAlign:'left', transition:'background 0.12s' }}
+                onMouseEnter={e => { if (editable) e.currentTarget.style.background = '#FAFAFA' }}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
 
                 {/* 아바타 */}
@@ -511,11 +528,10 @@ function MembersView({ members, setMembers, onBack, onInvite }) {
                   <span style={{ fontSize:'10px', fontWeight:600, color: sm.color, background: sm.bg, padding:'2px 8px', borderRadius:'5px' }}>
                     {sm.label}
                   </span>
-                  {!isMaster && (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                  )}
+                  {editable
+                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    : <span style={{ fontSize:'12px', opacity:0.5 }}>🔒</span>
+                  }
                 </div>
               </button>
             )
@@ -539,7 +555,7 @@ function MembersView({ members, setMembers, onBack, onInvite }) {
   )
 }
 
-function MemberDetailView({ member, onBack, onSave, onResign }) {
+function MemberDetailView({ member, onBack, onSave, onResign, bizRole }) {
   const theme = getAccountTheme()
   const [role, setRole]               = useState(member.role)
   const [dept, setDept]               = useState(member.dept)
@@ -554,6 +570,13 @@ function MemberDetailView({ member, onBack, onSave, onResign }) {
   const isOver80 = usagePct > 80
   const r = ROLES[member.role] || ROLES.viewer
 
+  // [권한] 퇴사 버튼: master는 자신 제외 모두 가능. admin은 master·admin 퇴사 불가.
+  const canResign = bizRole === 'master'
+    ? member.role !== 'master'
+    : bizRole === 'admin'
+      ? (member.role !== 'master' && member.role !== 'admin')
+      : false
+
   // 섹션 구분자
   const Divider = () => <div style={{ height:'1px', background:'#F0F1F3', margin:'0 -16px' }} />
 
@@ -561,7 +584,7 @@ function MemberDetailView({ member, onBack, onSave, onResign }) {
     <>
       {/* ── 헤더 */}
       <Header onBack={onBack} title={member.name} sub={`${r.label} · ${member.dept}`}
-        right={member.role !== 'master' && (
+        right={canResign && (
           <button onClick={() => setShowResign(true)}
             style={{ padding:'6px 14px', background:'rgba(239,68,68,0.1)', color:'#EF4444', border:'none', borderRadius:'20px', fontSize:'11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
             퇴사
@@ -644,20 +667,27 @@ function MemberDetailView({ member, onBack, onSave, onResign }) {
           <div style={{ padding:'16px 16px 10px' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#9CA3AF', letterSpacing:'0.6px', textTransform:'uppercase' }}>권한 (역할)</div>
           </div>
-          {['admin','accounting','manager','staff','viewer'].map((rid, i, arr) => {
+          {/* [권한] admin은 master·admin 역할 부여 불가 (권한 상향 방지) */}
+          {['admin','accounting','manager','staff','viewer'].map((rid) => {
             const info = ROLES[rid]
             const active = role === rid
+            // admin은 admin 역할 부여 불가 (자신과 동급 권한 생성 방지)
+            const roleBlocked = bizRole === 'admin' && rid === 'admin'
             return (
-              <button key={rid} onClick={() => setRole(rid)}
-                style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'13px 16px', background: active ? '#FAFAFA' : 'transparent', border:'none', borderTop:'1px solid #F0F1F3', borderLeft: active ? `3px solid #111827` : '3px solid transparent', cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'all 0.15s' }}>
+              <button key={rid}
+                onClick={() => !roleBlocked && setRole(rid)}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:'14px', padding:'13px 16px', background: active ? '#FAFAFA' : 'transparent', border:'none', borderTop:'1px solid #F0F1F3', borderLeft: active ? `3px solid #111827` : '3px solid transparent', cursor: roleBlocked ? 'not-allowed' : 'pointer', fontFamily:'inherit', textAlign:'left', transition:'all 0.15s', opacity: roleBlocked ? 0.45 : 1 }}>
                 {/* 라디오 도트 */}
                 <div style={{ width:'18px', height:'18px', borderRadius:'50%', border: active ? '6px solid #111827' : '2px solid #D1D5DB', flexShrink:0, transition:'all 0.15s' }} />
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:'13px', fontWeight: active ? 700 : 500, color: active ? '#111827' : '#374151', marginBottom:'2px' }}>{info.label}</div>
                   <div style={{ fontSize:'11px', color:'#9CA3AF' }}>{info.desc}</div>
                 </div>
-                {active && (
+                {active && !roleBlocked && (
                   <div style={{ fontSize:'11px', fontWeight:700, color:'#111827', background:'#F3F4F6', padding:'2px 9px', borderRadius:'6px' }}>선택됨</div>
+                )}
+                {roleBlocked && (
+                  <span style={{ fontSize:'11px', color:'#9CA3AF' }}>🔒</span>
                 )}
               </button>
             )
@@ -901,7 +931,7 @@ function CompanySettingsView({ onBack }) {
 // ═══════════════════════════════════════════════════════════
 // ── 4. 보안 및 감사 (리디자인)
 // ═══════════════════════════════════════════════════════════
-function SecurityView({ onBack }) {
+function SecurityView({ onBack, bizRole }) {
   const [tab,             setTab]             = useState('activity')
   const [activeDisp,      setActiveDisp]      = useState('all')
   const [showFilterSheet, setShowFilterSheet] = useState(false)
@@ -1112,10 +1142,17 @@ function SecurityView({ onBack }) {
                   </div>
                 ))}
               </div>
-              <button style={{ width:'100%', height:'46px', background:'#fff', color:'#C0392B', border:'1px solid #FCCFCF', borderRadius:'13px', fontSize:'13px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                모든 디바이스 강제 로그아웃
-              </button>
+              {/* [권한] 모든 디바이스 강제 로그아웃: 최고관리자 전용 */}
+              {bizRole === 'master' ? (
+                <button style={{ width:'100%', height:'46px', background:'#fff', color:'#C0392B', border:'1px solid #FCCFCF', borderRadius:'13px', fontSize:'13px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  모든 디바이스 강제 로그아웃
+                </button>
+              ) : (
+                <div style={{ width:'100%', height:'46px', background:'#F9FAFB', color:'#9CA3AF', border:'1px solid #EAECF0', borderRadius:'13px', fontSize:'13px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                  🔒 모든 디바이스 강제 로그아웃 (최고관리자 전용)
+                </div>
+              )}
             </>
           )}
 
@@ -1147,9 +1184,16 @@ function SecurityView({ onBack }) {
                   </div>
                 ))}
                 <div style={{ padding:'14px 16px', display:'flex', gap:'8px' }}>
-                  <button style={{ flex:1, height:'42px', background:'#111827', color:'#fff', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-                    IP 영구 차단
-                  </button>
+                  {/* [권한] IP 영구 차단: 최고관리자 전용 */}
+                  {bizRole === 'master' ? (
+                    <button style={{ flex:1, height:'42px', background:'#111827', color:'#fff', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                      IP 영구 차단
+                    </button>
+                  ) : (
+                    <div style={{ flex:1, height:'42px', background:'#F3F4F6', color:'#9CA3AF', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' }}>
+                      🔒 IP 차단
+                    </div>
+                  )}
                   <button style={{ flex:1, height:'42px', background:'#F3F4F6', color:'#6B7280', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
                     무시
                   </button>
@@ -1548,18 +1592,55 @@ function ApprovalSettingsView({ onBack, members }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// ── 권한 없음 화면
+// ═══════════════════════════════════════════════════════════
+function AccessDeniedView() {
+  const navigate = useNavigate()
+  const bizRole  = sessionStorage.getItem('bizRole') || 'viewer'
+  const roleInfo = ROLES[bizRole] || ROLES.viewer
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+      <div style={{ width:'72px', height:'72px', borderRadius:'22px', background:'#FEE9E9', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px', fontSize:'32px' }}>
+        🔒
+      </div>
+      <div style={{ fontSize:'18px', fontWeight:700, color:'#111827', marginBottom:'6px' }}>접근 권한이 없습니다</div>
+      <div style={{ fontSize:'13px', color:'#9CA3AF', lineHeight:1.7, marginBottom:'20px' }}>
+        관리자 화면은 <b>최고관리자</b>와 <b>관리자</b>만<br/>접근할 수 있습니다.
+      </div>
+      <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', padding:'8px 18px', borderRadius:'20px', background:roleInfo.bg, color:roleInfo.color, fontSize:'12px', fontWeight:700, marginBottom:'32px' }}>
+        <span>{roleInfo.icon}</span>
+        <span>내 권한: {roleInfo.label}</span>
+      </div>
+      <button onClick={() => navigate(-1)}
+        style={{ width:'100%', maxWidth:'280px', height:'48px', background:'#111827', color:'#fff', border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+        이전 화면으로
+      </button>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
 export default function AdminManagementBiz() {
   const [view, setView]       = useState('main')
   const [members, setMembers] = useState(DEMO_MEMBERS)
 
+  // ── 권한 체크 ─────────────────────────────────────────────
+  // 관리자 화면은 최고관리자(master)와 관리자(admin)만 접근 가능
+  // accounting / manager / staff / viewer → 화면 진입 차단
+  const bizRole = sessionStorage.getItem('bizRole') || 'viewer'
+  const ADMIN_SCREEN_ALLOWED = ['master', 'admin']
+  if (!ADMIN_SCREEN_ALLOWED.includes(bizRole)) {
+    return <PhoneShell><AccessDeniedView /></PhoneShell>
+  }
+
   const renderView = () => {
     switch (view) {
-      case 'members': return <MembersView members={members} setMembers={setMembers} onBack={() => setView('main')} onInvite={() => setView('invite')} />
-      case 'company': return <CompanySettingsView onBack={() => setView('main')} />
-      case 'security':return <SecurityView onBack={() => setView('main')} />
+      case 'members': return <MembersView members={members} setMembers={setMembers} onBack={() => setView('main')} onInvite={() => setView('invite')} bizRole={bizRole} />
+      case 'company': return <CompanySettingsView onBack={() => setView('main')} bizRole={bizRole} />
+      case 'security':return <SecurityView onBack={() => setView('main')} bizRole={bizRole} />
       case 'invite':  return <InviteView   onBack={() => setView('members')} />
       case 'approval':return <ApprovalSettingsView onBack={() => setView('main')} members={members} />
-      default:        return <MainHub members={members} onNav={v => setView(v)} />
+      default:        return <MainHub members={members} onNav={v => setView(v)} bizRole={bizRole} />
     }
   }
 

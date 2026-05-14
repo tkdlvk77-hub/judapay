@@ -12,6 +12,13 @@ export default function Login() {
 
   const completeLogin = (type) => {
     login(type)
+    // 기업 로그인 시 bizRole 저장 (데모 기본값: master/최고관리자)
+    // 실제 개발 시: 백엔드 인증 응답의 role 값으로 교체
+    if (type === 'business') {
+      sessionStorage.setItem('bizRole', 'master')
+    } else {
+      sessionStorage.removeItem('bizRole')
+    }
     navigate(type === 'business' ? '/home-business' : '/home')
   }
 

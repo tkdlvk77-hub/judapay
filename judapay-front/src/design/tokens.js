@@ -74,6 +74,11 @@ export const FUND_COLORS = {
     bg: '#FCE7F3',
     border: '#F9A8D4',
   },
+  living: { // 생활비 — 시안
+    main: '#0E7490',
+    bg: '#E0F7FA',
+    border: '#67E8F9',
+  },
   salary: { // 급여 — 진한 녹색
     main: '#047857',
     bg: '#D1FAE5',

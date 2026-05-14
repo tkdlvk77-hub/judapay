@@ -170,6 +170,29 @@ export default function ExecuteRent() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  // ── 권한 체크: staff/viewer는 조회 전용 — 이 화면 접근 차단 ──
+  const _bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canEdit  = !['viewer', 'staff'].includes(_bizRole)
+  if (!canEdit) return (
+    <PhoneShell>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+        <div style={{ width:'72px', height:'72px', borderRadius:'22px', background:'#FFF7ED', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px', fontSize:'32px' }}>🔒</div>
+        <div style={{ fontSize:'18px', fontWeight:700, color:'#111827', marginBottom:'6px' }}>설정 권한이 없습니다</div>
+        <div style={{ fontSize:'13px', color:'#9CA3AF', lineHeight:1.7, marginBottom:'24px' }}>
+          {_bizRole === 'staff' ? '일반구성원 권한으로는 자동지급 설정을 변경할 수 없습니다.\n관리자에게 설정 변경을 요청하세요.' : '조회전용 권한으로는 이 화면에 접근할 수 없습니다.'}
+        </div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', padding:'8px 18px', borderRadius:'20px', background:'#FFF7ED', color:'#92400E', fontSize:'12px', fontWeight:700, marginBottom:'28px' }}>
+          <span>{_bizRole === 'staff' ? '👤' : '👁️'}</span>
+          <span>내 권한: {_bizRole === 'staff' ? '일반구성원' : '조회전용'}</span>
+        </div>
+        <button onClick={() => navigate(-1)}
+          style={{ width:'100%', maxWidth:'280px', height:'48px', background:'#111827', color:'#fff', border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+          뒤로가기
+        </button>
+      </div>
+    </PhoneShell>
+  )
+
   const [showExitModal, setShowExitModal] = useState(false)
 
   // store 구독

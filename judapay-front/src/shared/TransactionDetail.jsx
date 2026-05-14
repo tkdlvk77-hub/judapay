@@ -237,6 +237,12 @@ export default function TransactionDetail() {
 
   const tx = TX_DETAILS[id]
   const [showActionSheet, setShowActionSheet] = useState(null)
+  // 집행 취소 다이얼로그 (상대방 서명 대기 상태에서만)
+  const [txCancelDialog, setTxCancelDialog] = useState(null) // null | { step:1|2 }
+  const [txCancelReason, setTxCancelReason] = useState('')
+  const [txCancelManager, setTxCancelManager] = useState('')
+  const [txCancelConfirmText, setTxCancelConfirmText] = useState('')
+  const [txCancelled, setTxCancelled] = useState(false)
 
   if (!tx) {
     return (
@@ -752,19 +758,39 @@ export default function TransactionDetail() {
           </div>
         )}
 
-        {isWaitingForCounterpartySignature && (
-          <button onClick={() => navigate(`/messages?with=${tx.counterparty.name}`)}
-            style={{
-              width:'100%', height:'52px',
-              background: theme.brandDark, color:'#fff',
-              border:'none',
-              borderRadius: RADIUS.md,
-              fontSize:'15px', fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit',
-              boxShadow: SHADOWS.buttonBrand,
-            }}>
-            {tx.counterparty.name}과 메시지
-          </button>
+        {isWaitingForCounterpartySignature && !txCancelled && (
+          <div style={{ display:'flex', gap:'8px' }}>
+            <button
+              onClick={() => { setTxCancelReason(''); setTxCancelManager(''); setTxCancelConfirmText(''); setTxCancelDialog({ step:1 }) }}
+              style={{
+                flex:1, height:'52px',
+                background:'transparent', color:'#DC2626',
+                border:'1px solid #FECACA',
+                borderRadius: RADIUS.md,
+                fontSize:'13px', fontWeight:600,
+                cursor:'pointer', fontFamily:'inherit',
+              }}>
+              집행 취소
+            </button>
+            <button onClick={() => navigate(`/messages?with=${tx.counterparty.name}`)}
+              style={{
+                flex:1.4, height:'52px',
+                background: theme.brandDark, color:'#fff',
+                border:'none',
+                borderRadius: RADIUS.md,
+                fontSize:'14px', fontWeight:700,
+                cursor:'pointer', fontFamily:'inherit',
+                boxShadow: SHADOWS.buttonBrand,
+              }}>
+              {tx.counterparty.name}과 메시지
+            </button>
+          </div>
+        )}
+
+        {isWaitingForCounterpartySignature && txCancelled && (
+          <div style={{ padding:'16px', background:'#F3F4F6', borderRadius: RADIUS.lg, textAlign:'center', fontSize:'13px', color:'#6B7280', fontWeight:600 }}>
+            🚫 집행이 취소되었습니다
+          </div>
         )}
 
         {!isWaitingForMySignature && !isWaitingForCounterpartySignature && (
@@ -782,6 +808,103 @@ export default function TransactionDetail() {
           </button>
         )}
       </div>
+
+      {/* ── 집행 취소 다이얼로그 — 1단계 ── */}
+      {txCancelDialog?.step === 1 && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(15,20,35,0.55)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:'0 24px' }}
+          onClick={() => setTxCancelDialog(null)}>
+          <div style={{ background:'#fff', borderRadius:'20px', padding:'28px 22px 22px', width:'100%', maxWidth:'320px', boxShadow:'0 20px 60px rgba(0,0,0,0.22)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign:'center', marginBottom:'16px' }}>
+              <div style={{ fontSize:'32px', marginBottom:'8px' }}>🚫</div>
+              <div style={{ fontSize:'16px', fontWeight:800, color:'#111827', marginBottom:'6px' }}>집행을 취소하시겠습니까?</div>
+              <div style={{ fontSize:'12px', color:'#6B7280', lineHeight:1.6 }}>
+                상대방이 아직 서명하지 않은 계약입니다.<br/>
+                취소하면 집행이 무효 처리됩니다.
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:'8px', marginTop:'20px' }}>
+              <button onClick={() => setTxCancelDialog(null)}
+                style={{ flex:1, padding:'13px', background:'#F3F4F6', border:'none', borderRadius:'12px',
+                  fontSize:'13px', fontWeight:600, color:'#374151', cursor:'pointer', fontFamily:'inherit' }}>
+                돌아가기
+              </button>
+              <button onClick={() => setTxCancelDialog({ step:2 })}
+                style={{ flex:1, padding:'13px', background:'linear-gradient(135deg,#DC2626,#EF4444)', border:'none',
+                  borderRadius:'12px', fontSize:'13px', fontWeight:700, color:'#fff', cursor:'pointer', fontFamily:'inherit' }}>
+                취소 진행
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 집행 취소 다이얼로그 — 2단계: 사유 입력 ── */}
+      {txCancelDialog?.step === 2 && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(15,20,35,0.55)',
+          display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
+          onClick={() => setTxCancelDialog(null)}>
+          <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'0 0 32px', width:'100%' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
+              <div style={{ width:'40px', height:'4px', borderRadius:'2px', background:'#E4E6EA' }} />
+            </div>
+            <div style={{ padding:'8px 22px 0' }}>
+              <div style={{ fontSize:'15px', fontWeight:800, color:'#111827', marginBottom:'4px' }}>집행 취소 확인</div>
+              <div style={{ fontSize:'12px', color:'#9CA3AF', marginBottom:'18px' }}>아래 정보를 입력하고 '삭제'를 입력해야 취소가 완료됩니다</div>
+
+              <label style={{ fontSize:'11px', fontWeight:700, color:'#6B7280', display:'block', marginBottom:'6px' }}>취소 사유 <span style={{ color:'#DC2626' }}>*</span></label>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'14px' }}>
+                {['단순 변심','계약 조건 변경','상대방 요청','내부 결재 미승인','기타'].map(r => (
+                  <button key={r} onClick={() => setTxCancelReason(r)}
+                    style={{ padding:'5px 12px', borderRadius:'20px', border:'1px solid', fontFamily:'inherit', fontSize:'11px', fontWeight:600, cursor:'pointer',
+                      background: txCancelReason === r ? '#FEF2F2' : '#F9FAFB',
+                      color: txCancelReason === r ? '#DC2626' : '#6B7280',
+                      borderColor: txCancelReason === r ? '#FECACA' : '#E4E6EA',
+                    }}>{r}</button>
+                ))}
+              </div>
+
+              <label style={{ fontSize:'11px', fontWeight:700, color:'#6B7280', display:'block', marginBottom:'6px' }}>담당자 이름 <span style={{ color:'#DC2626' }}>*</span></label>
+              <input value={txCancelManager} onChange={e => setTxCancelManager(e.target.value)}
+                placeholder="취소를 승인한 담당자 이름" maxLength={20}
+                style={{ width:'100%', boxSizing:'border-box', padding:'10px 12px', background:'#F9FAFB', border:'1px solid #E4E6EA', borderRadius:'10px', fontSize:'13px', color:'#111827', fontFamily:'inherit', outline:'none', marginBottom:'14px' }} />
+
+              <label style={{ fontSize:'11px', fontWeight:700, color:'#6B7280', display:'block', marginBottom:'6px' }}>아래 칸에 <span style={{ fontWeight:800, color:'#DC2626' }}>"삭제"</span> 를 입력하세요</label>
+              <input value={txCancelConfirmText} onChange={e => setTxCancelConfirmText(e.target.value)}
+                placeholder="삭제"
+                style={{ width:'100%', boxSizing:'border-box', padding:'10px 12px',
+                  background: txCancelConfirmText === '삭제' ? '#FEF2F2' : '#F9FAFB',
+                  border:`1px solid ${txCancelConfirmText === '삭제' ? '#FECACA' : '#E4E6EA'}`,
+                  borderRadius:'10px', fontSize:'14px', fontWeight:700, color:'#DC2626', fontFamily:'inherit', outline:'none', marginBottom:'18px', textAlign:'center', letterSpacing:'0.05em' }} />
+
+              <div style={{ display:'flex', gap:'8px' }}>
+                <button onClick={() => setTxCancelDialog(null)}
+                  style={{ flex:1, padding:'14px', background:'#F3F4F6', border:'none', borderRadius:'14px',
+                    fontSize:'14px', fontWeight:600, color:'#374151', cursor:'pointer', fontFamily:'inherit' }}>
+                  취소
+                </button>
+                <button
+                  disabled={txCancelConfirmText !== '삭제' || !txCancelReason || !txCancelManager.trim()}
+                  onClick={() => {
+                    setTxCancelled(true)
+                    setTxCancelDialog(null)
+                  }}
+                  style={{ flex:1, padding:'14px',
+                    background: txCancelConfirmText === '삭제' && txCancelReason && txCancelManager.trim()
+                      ? 'linear-gradient(135deg,#DC2626,#EF4444)' : '#E5E7EB',
+                    border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700,
+                    color: txCancelConfirmText === '삭제' && txCancelReason && txCancelManager.trim() ? '#fff' : '#9CA3AF',
+                    cursor: txCancelConfirmText === '삭제' && txCancelReason && txCancelManager.trim() ? 'pointer' : 'not-allowed',
+                    fontFamily:'inherit', transition:'all 0.2s' }}>
+                  집행 취소 확정
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 거절/협상 바텀시트 */}
       {showActionSheet && (

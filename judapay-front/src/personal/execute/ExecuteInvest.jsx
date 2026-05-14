@@ -102,6 +102,7 @@ export default function ExecuteInvest() {
 
   // 2단계
   const [mccItems, setMccItems] = useState(MCC_DEFAULT)
+  const [singleLimit, setSingleLimit] = useState(null)
 
   // 3단계
   const [reportFreq, setReportFreq] = useState('quarterly')
@@ -382,6 +383,8 @@ export default function ExecuteInvest() {
             items={mccItems}
             onChange={setMccItems}
             recipientName={recipient.name}
+            singleLimit={singleLimit}
+            onLimitChange={setSingleLimit}
           />
         </div>
       </div>
@@ -677,6 +680,11 @@ export default function ExecuteInvest() {
             editAction: () => setStep(2),
           },
           {
+            label: '1회 결제 한도',
+            value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음',
+            editAction: () => setStep(2),
+          },
+          {
             label: '보고 주기',
             value: `${reportLabel} PDF 자동 발송`,
             editAction: () => setStep(3),
@@ -865,6 +873,7 @@ export default function ExecuteInvest() {
         { label:'지원 목적', value: PURPOSE_TAGS.find(t => t.id === purposeTag)?.label || purposeTag },
         { label:'보고 주기', value: REPORT_FREQUENCIES.find(f => f.id === reportFreq)?.label || '' },
         { label:'사용 통제', value: blockedCount > 0 ? `${blockedCount}개 차단` : '제한 없음' },
+        { label:'1회 결제 한도', value: singleLimit ? `${Number(singleLimit).toLocaleString('ko-KR')}원` : '제한 없음' },
         { label:'출금 지갑', value: selectedWallet?.label || 'MY 지갑' },
       ]}
       noteYellow={`3일 내 ${recipient.name} 미서명 시 자동 취소 · 알림센터 + 메시지에서 진행 상태 확인 가능`}

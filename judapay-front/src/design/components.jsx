@@ -63,37 +63,81 @@ export function PageTitle({ title, subtitle, badge, right }) {
 
 // ─────────────────────────────────────────────────────────
 // ProfileBadge — 프로필 영역 (이름 + 부제, 아이콘과 함께)
+// onIconClick 있을 때: 글로우 링 + 전환 배지 + '전환' 칩 표시
 // ─────────────────────────────────────────────────────────
-export function ProfileBadge({ icon, label, name, sub, action, accent = 'PERSONAL' }) {
+export function ProfileBadge({ icon, label, name, sub, action, accent = 'PERSONAL', onIconClick, iconBadge }) {
+  const switchable = !!onIconClick
   return (
     <div style={{ padding: '4px 20px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{
-        width: '44px', height: '44px',
-        background: GRADIENTS.brandSubtle,
-        borderRadius: RADIUS.md,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-        boxShadow: SHADOWS.glass,
-      }}>
-        {icon}
+      {switchable && (
+        <style>{`@keyframes pb-glow{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}`}</style>
+      )}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        {switchable && (
+          <div style={{
+            position: 'absolute', inset: '-5px', borderRadius: '18px',
+            border: '2px solid rgba(255,255,255,0.6)',
+            animation: 'pb-glow 2s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
+        )}
+        <div
+          onClick={onIconClick}
+          style={{
+            width: switchable ? '50px' : '44px',
+            height: switchable ? '50px' : '44px',
+            background: GRADIENTS.brandSubtle,
+            borderRadius: RADIUS.md,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: switchable ? '0 0 0 3px rgba(255,255,255,0.22), ' + SHADOWS.glass : SHADOWS.glass,
+            cursor: switchable ? 'pointer' : 'default',
+            position: 'relative',
+          }}>
+          {icon}
+          {switchable && (
+            <div style={{
+              position: 'absolute', bottom: '-7px', right: '-7px',
+              width: '22px', height: '22px',
+              background: iconBadge ? '#1D4ED8' : 'rgba(255,255,255,0.95)',
+              borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+              border: iconBadge ? '2px solid rgba(255,255,255,0.2)' : '2px solid rgba(99,102,241,0.3)',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke={iconBadge ? '#fff' : '#6366F1'}
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="17 1 21 5 17 9"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         {accent && (
           <div style={{
             fontSize: '10px', color: COLORS.tInverseMuted,
-            letterSpacing: '1.5px', fontWeight: 600,
-            marginBottom: '2px',
+            letterSpacing: '1.5px', fontWeight: 600, marginBottom: '2px',
           }}>
             {accent}
           </div>
         )}
-        <div style={{ fontSize: '17px', fontWeight: 700, color: COLORS.tInverse }}>
-          {name}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ fontSize: '17px', fontWeight: 700, color: COLORS.tInverse }}>{name}</div>
+          {switchable && (
+            <div style={{
+              fontSize: '10px', fontWeight: 600,
+              color: 'rgba(255,255,255,0.75)',
+              background: 'rgba(255,255,255,0.15)',
+              padding: '2px 7px', borderRadius: '10px',
+            }}>전환</div>
+          )}
         </div>
         {sub && (
-          <div style={{ fontSize: '11px', color: COLORS.tInverseSoft, marginTop: '1px' }}>
-            {sub}
-          </div>
+          <div style={{ fontSize: '11px', color: COLORS.tInverseSoft, marginTop: '1px' }}>{sub}</div>
         )}
       </div>
       {action}
@@ -167,25 +211,30 @@ export function BalanceCard({ label, amount, sub, secondary, action, dark = true
 // CircleAction — 라운드 사각형 액션 버튼 (충전/지급집행/카드결제/출금)
 // 이름은 호환성 위해 유지하되 모양은 라운드 사각형
 // ─────────────────────────────────────────────────────────
-export function CircleAction({ icon, label, onClick, active = false }) {
+export function CircleAction({ icon, label, onClick, active = false, locked = false }) {
   return (
     <button
-      onClick={onClick}
+      onClick={locked ? undefined : onClick}
       style={{
         background: 'transparent', border: 'none',
         padding: '4px',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
-        cursor: 'pointer', fontFamily: 'inherit',
+        cursor: locked ? 'default' : 'pointer', fontFamily: 'inherit',
+        opacity: locked ? 0.65 : 1,
       }}>
       <div style={{
         width: '54px', height: '54px',
         borderRadius: '14px',
-        background: active ? GRADIENTS.brand : 'rgba(255,255,255,0.12)',
+        background: locked ? 'rgba(255,255,255,0.07)' : active ? GRADIENTS.brand : 'rgba(255,255,255,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: active ? SHADOWS.buttonBrand : 'none',
+        boxShadow: active && !locked ? SHADOWS.buttonBrand : 'none',
         transition: 'all .15s',
+        position: 'relative',
       }}>
-        {icon}
+        {locked
+          ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          : icon
+        }
       </div>
       <span style={{ fontSize: '11px', color: COLORS.tInverse, fontWeight: 500 }}>
         {label}
@@ -450,5 +499,52 @@ export function MenuListItem({ icon, iconBg, title, sub, badge, badgeColor, badg
       )}
       <span style={{ color: COLORS.t5, fontSize: '18px', flexShrink: 0, marginLeft: badge ? '4px' : 0 }}>›</span>
     </button>
+  )
+}
+
+
+// ─────────────────────────────────────────────────────────
+// AccountTransition — 계정 전환 시 풀스크린 애니메이션 오버레이
+// visible=true 이면 페이드인, 이후 navigate 호출
+// ─────────────────────────────────────────────────────────
+export function AccountTransition({ visible, message, gradient }) {
+  if (!visible) return null
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 999,
+      background: gradient || 'linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#1D4ED8 100%)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '20px',
+      animation: 'at-fadein .28s ease both',
+    }}>
+      <style>{`
+        @keyframes at-fadein  { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
+        @keyframes at-fadeout { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
+        @keyframes at-check   { 0%{transform:scale(0) rotate(-20deg)} 65%{transform:scale(1.18) rotate(4deg)} 100%{transform:scale(1) rotate(0)} }
+        .at-out { animation: at-fadeout .25s ease both !important; }
+      `}</style>
+      {/* 체크 원 */}
+      <div style={{
+        width: '68px', height: '68px', borderRadius: '50%',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.4)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'at-check .45s .1s cubic-bezier(.34,1.56,.64,1) both',
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white"
+          strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      {/* 메시지 */}
+      <div style={{
+        fontSize: '16px', fontWeight: 700, color: '#fff',
+        textAlign: 'center', lineHeight: 1.5,
+        padding: '0 32px',
+        animation: 'at-fadein .35s .2s ease both',
+      }}>
+        {message}
+      </div>
+    </div>
   )
 }

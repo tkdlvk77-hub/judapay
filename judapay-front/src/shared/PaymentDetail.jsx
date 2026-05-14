@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useUser } from '../contexts/UserContext'
 import MccBlock, { DEFAULT_MCC } from './execute/MccBlock'
 
 // ─── 데모 데이터 ──────────────────────────────────────────
@@ -136,11 +137,21 @@ export default function PaymentDetail() {
   const theme = getAccountTheme()
   const { id } = useParams()
   const navigate = useNavigate()
+  const _pdRole  = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const isViewer = _pdRole === 'viewer'
+  const location = useLocation()
+  const { userType } = useUser()
   const payment = PAYMENTS[id] || PAYMENTS.p1
 
   const isBlocked  = payment.status === 'blocked'
   const isIncoming = payment.status === 'incoming'
   const isDone     = payment.status === 'done'
+
+  // PaymentAlerts에서 navigate 시 state로 넘어온 결제 타입으로 판별
+  const paymentType       = location.state?.paymentType ?? null
+  const isPersonal        = userType === 'personal'
+  const isMinePayment     = isPersonal && paymentType === 'mine'
+  const isExternalPayment = isPersonal && paymentType === 'external'
 
   const [tempAllowed, setTempAllowed] = useState(false)
   const [showMCC, setShowMCC] = useState(false)
@@ -433,39 +444,67 @@ export default function PaymentDetail() {
           padding:'12px 14px 28px',
           borderTop:'1px solid #E9EAEC',
           background:'#FFFFFF',
-          display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px',
+          display:'grid',
+          gridTemplateColumns: (isPersonal && isMinePayment) ? '1fr' : '1fr 1fr',
+          gap:'8px',
         }}>
-          {/* 소명 요청 */}
-          <button onClick={() => setShowClaimModal(true)}
-            style={{
-              height:'50px', background:'#F4F5F7', color:'#374151',
-              border:'1px solid #E9EAEC', borderRadius:'12px',
-              fontSize:'13px', fontWeight:600,
-              cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
-            }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            소명 요청
-          </button>
-          {/* MCC 설정 */}
-          <button onClick={() => setShowMCC(true)}
-            style={{
-              height:'50px',
-              background: theme.activeBtnGrad || theme.headerGrad || '#1D4ED8',
-              color:'#fff',
-              border:'none', borderRadius:'12px',
-              fontSize:'13px', fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
-              boxShadow: theme.activeShadow || 'none',
-            }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-            </svg>
-            MCC 설정
-          </button>
+          {/* 개인 + 내 결제 → 닫기 버튼만 */}
+          {isPersonal && isMinePayment ? (
+            <button onClick={() => navigate(-1)}
+              style={{
+                height:'50px', background:'#F4F5F7', color:'#374151',
+                border:'1px solid #E9EAEC', borderRadius:'12px',
+                fontSize:'13px', fontWeight:600,
+                cursor:'pointer', fontFamily:'inherit',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+              }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              닫기
+            </button>
+          ) : (
+            <>
+              {/* 소명 요청 — viewer는 잠금 */}
+              <button
+                onClick={() => {
+                  if (isExternalPayment) {
+                    !isViewer && navigate('/messages', { state: { prefillMsg: '해당 내역 소명 부탁드립니다.' } })
+                  } else {
+                    setShowClaimModal(true)
+                  }
+                }}
+                style={{
+                  height:'50px', background:'#F4F5F7', color:'#374151',
+                  border:'1px solid #E9EAEC', borderRadius:'12px',
+                  fontSize:'13px', fontWeight:600,
+                  cursor:'pointer', fontFamily:'inherit',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                {isViewer ? '🔒 소명 요청' : '소명 요청'}
+              </button>
+              {/* MCC 설정 */}
+              <button onClick={() => !isViewer && setShowMCC(true)} disabled={isViewer} title={isViewer ? "조회 전용 권한" : undefined}
+                style={{
+                  height:'50px',
+                  background: theme.activeBtnGrad || theme.headerGrad || '#1D4ED8',
+                  color:'#fff',
+                  border:'none', borderRadius:'12px',
+                  fontSize:'13px', fontWeight:700,
+                  cursor:'pointer', fontFamily:'inherit',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                  boxShadow: theme.activeShadow || 'none',
+                }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                </svg>
+                MCC 설정
+              </button>
+            </>
+          )}
         </div>
       </div>
       {/* ── MCC 설정 바텀시트 ── */}

@@ -67,6 +67,7 @@ export const TX_TYPE_META = {
   tax:              { icon: '🧾', labelKo: '세금',       labelEn: 'Tax' },
   // 개인 자금집행
   gift:             { icon: '🎁', labelKo: '용돈/선물',  labelEn: 'Gift' },
+  living:           { icon: '🛒', labelKo: '생활비',     labelEn: 'Living' },
   personalLend:     { icon: '💸', labelKo: '빌려주기',   labelEn: 'Lend' },
   realestate:       { icon: '🏠', labelKo: '부동산',     labelEn: 'Real Estate' },
 }
@@ -442,6 +443,26 @@ function _appendActivity(tx, meta) {
   _activities = [activity, ..._activities]
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 알림 생성 — 양방향 설계 원칙
+//
+// 거래 1건이 발생하면 알림이 최대 2개 생성됨:
+//   1) _appendAlertSender   → 보낸 사람(fromUserId) 에게: "집행 완료" 확인용
+//   2) _appendAlertReceiver → 받은 사람(toRecipientId) 에게: "입금" 수신 알림
+//
+// [direction 필드]
+//   'sent'     : 보낸 사람의 알림 (Alerts.jsx에서 tag: '집행' 파란색으로 표시)
+//   'received' : 받은 사람의 알림 (Alerts.jsx에서 tag: '입금' 초록색으로 표시)
+//
+// [getMyAlerts({ userId }) 셀렉터]
+//   userId 기준으로 _alerts를 필터링 — 보낸/받은 모두 포함해서 반환
+//   Alerts.jsx의 storeAlerts가 이 셀렉터를 구독함
+//
+// [비가입자 처리]
+//   _appendAlertReceiver: toRecipientVerified 가 false면 알림 생성 안함
+//   (비가입자는 외부링크 SMS로 안내되므로 앱 알림 불필요)
+// ─────────────────────────────────────────────────────────────────────────────
+
 // 보낸 사람 본인 알림
 function _appendAlertSender(tx, meta) {
   let title = ''
@@ -471,10 +492,16 @@ function _appendAlertSender(tx, meta) {
       title = `${meta.labelKo} 예약 완료`
       body = `${tx.toRecipientName}님에게 ${tx.scheduledDate}에 ${fmt(tx.netAmount)}원 입금 예정`
     } else {
-      title = `${meta.labelKo} 집행 완료`
-      body = `${tx.toRecipientName}님에게 ${fmt(tx.netAmount)}원이 입금됐어요.`
+      title = `${tx.toRecipientName}님에게 ${meta.labelKo} 집행 완료`
+      body = `${fmt(tx.netAmount)}원이 입금됐어요.`
     }
   }
+
+  // 생활비 집행 시 알림 탭하면 해당 생활비 지갑 상세로 이동
+  // TODO: 실제 개발 시 tx.walletId (집행에 사용된 지갑 ID) 기반으로 동적 라우팅 필요
+  //   현재는 데모용으로 living_minjun 하드코딩
+  //   실제: const walletRoute = tx.type === 'living' ? `/wallet/${tx.walletId}` : null
+  const walletRoute = tx.type === 'living' ? '/wallet/living_minjun' : null
 
   const alert = {
     id: nextId('alt', _alerts),
@@ -486,6 +513,7 @@ function _appendAlertSender(tx, meta) {
     body,
     isRead: false,
     createdAt: tx.createdAt,
+    walletRoute,
   }
   _alerts = [alert, ..._alerts]
 }

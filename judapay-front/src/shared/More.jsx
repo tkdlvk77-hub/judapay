@@ -24,10 +24,10 @@ function SectionHeader({ children }) {
 // ─────────────────────────────────────────────────────────
 // 메뉴 카드
 // ─────────────────────────────────────────────────────────
-function MenuItem({ icon, iconBg, title, sub, badge, badgeColor, badgeBg, active, right, onClick }) {
+function MenuItem({ icon, iconBg, title, sub, badge, badgeColor, badgeBg, active, right, onClick, locked = false }) {
   return (
     <button
-      onClick={onClick}
+      onClick={locked ? undefined : onClick}
       style={{
         width:'100%',
         padding:'14px 14px',
@@ -36,7 +36,8 @@ function MenuItem({ icon, iconBg, title, sub, badge, badgeColor, badgeBg, active
         boxShadow: active ? 'none' : SHADOWS.card,
         borderRadius: RADIUS.lg,
         display:'flex', alignItems:'center', gap:'12px',
-        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+        cursor: locked ? 'default' : 'pointer', fontFamily:'inherit', textAlign:'left',
+        opacity: locked ? 0.55 : 1,
       }}>
       <div style={{
         width:'40px', height:'40px',
@@ -84,12 +85,37 @@ function MenuItem({ icon, iconBg, title, sub, badge, badgeColor, badgeBg, active
   )
 }
 
+const ROLES = [
+  { key:'master',     label:'최고관리자', emoji:'👑', color:'#7C3AED', bg:'#F5F3FF' },
+  { key:'admin',      label:'관리자',     emoji:'🛡️', color:'#1D4ED8', bg:'#EFF6FF' },
+  { key:'accounting', label:'재무담당자', emoji:'💰', color:'#047857', bg:'#F0FDF4' },
+  { key:'manager',    label:'승인자',     emoji:'✅', color:'#D97706', bg:'#FFFBEB' },
+  { key:'staff',      label:'일반구성원', emoji:'👤', color:'#374151', bg:'#F9FAFB' },
+  { key:'viewer',     label:'조회전용',   emoji:'👁️', color:'#6B7280', bg:'#F3F4F6' },
+]
+
 export default function More() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
   const [showLangSheet, setShowLangSheet] = useState(false)
   const [currentLang, setCurrentLang] = useState(getLang())
   const { logout, userType } = useUser()
+  const bizRole = userType === 'business'
+    ? (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : '')
+    : ''
+  const canManageAccount = !['viewer', 'staff'].includes(bizRole)
+
+  // ── 테스트 역할 전환 ──────────────────────────────────────
+  const [showRoleSheet, setShowRoleSheet] = useState(false)
+  const [currentBizRole, setCurrentBizRole] = useState(
+    () => sessionStorage.getItem('bizRole') || 'master'
+  )
+  const handleRoleChange = (roleKey) => {
+    sessionStorage.setItem('bizRole', roleKey)
+    setCurrentBizRole(roleKey)
+    setShowRoleSheet(false)
+    navigate(0)
+  }
 
   const todo = (label) => () => {
     alert(`${label}\n\n개발 예정 기능입니다.`)
@@ -112,10 +138,22 @@ export default function More() {
 
         {/* 다크 그라데이션 헤더 */}
         <GradientHeader paddingBottom="20px" bg={theme.headerGrad}>
-          <div style={{ padding:'4px 20px 18px' }}>
+          <div style={{ padding:'4px 20px 18px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ fontSize:'24px', fontWeight:700, color:'#fff', letterSpacing:'-0.5px' }}>
               더보기
             </div>
+            {userType === 'business' && (
+              <button onClick={() => setShowRoleSheet(true)} style={{
+                display:'flex', alignItems:'center', gap:'5px',
+                background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.2)',
+                borderRadius: RADIUS.pill, padding:'5px 10px',
+                cursor:'pointer', fontFamily:'inherit',
+              }}>
+                <span style={{ fontSize:'12px' }}>{ROLES.find(r=>r.key===currentBizRole)?.emoji || '👑'}</span>
+                <span style={{ fontSize:'11px', fontWeight:600, color:'#fff' }}>{ROLES.find(r=>r.key===currentBizRole)?.label || '최고관리자'}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            )}
           </div>
 
           {/* 프로필 카드 (헤더 안 글래스) */}
@@ -287,7 +325,8 @@ export default function More() {
               }
               iconBg="#6B7280"
               title="연결 계좌 관리"
-              sub="국민 2개 등록됨"
+              sub={canManageAccount ? "국민 2개 등록됨" : "🔒 관리자 이상 권한 필요"}
+              locked={!canManageAccount}
               onClick={() => navigate('/accounts')}
             />
           </div>
@@ -317,7 +356,7 @@ export default function More() {
               }
               iconBg="#6B7280"
               title="도움말 / FAQ"
-              onClick={todo('도움말 / FAQ')}
+              onClick={() => navigate('/help-faq')}
             />
             <MenuItem
               icon={
@@ -417,6 +456,37 @@ export default function More() {
       </div> {/* 스크롤 영역 끝 */}
 
       <BottomTab />
+
+      {/* 역할 전환 바텀시트 (기업 데모용) */}
+      {showRoleSheet && (
+        <div style={{ position:'absolute', inset:0, zIndex:50, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+          <div onClick={() => setShowRoleSheet(false)} style={{ flex:1, background:'rgba(0,0,0,0.4)' }} />
+          <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'20px 0 32px' }}>
+            <div style={{ width:'36px', height:'4px', borderRadius:'2px', background:COLORS.bgMuted, margin:'0 auto 20px' }} />
+            <div style={{ fontSize:'16px', fontWeight:700, color:COLORS.t1, padding:'0 20px 4px' }}>권한 역할 선택</div>
+            <div style={{ fontSize:'11px', color:COLORS.t4, padding:'0 20px 16px' }}>데모용 — 역할에 따라 기능이 제한됩니다</div>
+            {ROLES.map(role => (
+              <button key={role.key}
+                onClick={() => handleRoleChange(role.key)}
+                style={{
+                  width:'100%', padding:'13px 20px',
+                  display:'flex', alignItems:'center', gap:'12px',
+                  background: currentBizRole === role.key ? role.bg : 'none',
+                  border:'none', cursor:'pointer', fontFamily:'inherit',
+                  borderBottom: '1px solid ' + COLORS.borderSoft,
+                }}>
+                <span style={{ fontSize:'20px' }}>{role.emoji}</span>
+                <span style={{ fontSize:'14px', fontWeight:600, color: role.color, flex:1, textAlign:'left' }}>{role.label}</span>
+                {currentBizRole === role.key && (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={role.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 언어 선택 바텀시트 */}
       {showLangSheet && (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomTab from '../components/BottomTab'
 import {
@@ -113,6 +113,14 @@ const TRANSACTIONS = [
 
 const SYSTEM_ALERTS = [
   {
+    id:'invite1', isRead:false, type:'invite',
+    title:'㈜주다컴퍼니 기업 초대',
+    desc:'이대표님이 재무담당자로 초대했습니다. 수락하면 기업 계정으로 전환할 수 있어요.',
+    time:'방금', tag:'초대', tagColor:'#1D4ED8', tagBg:'#EFF6FF',
+    route: null,
+    inviteMeta: { company:'㈜주다컴퍼니', role:'재무담당자', inviter:'이대표' },
+  },
+  {
     id:'a1', isRead:false, type:'block',
     title:'MCC 차단 — GS강남게임센터',
     desc:'박철수 지갑 · MCC 7993 (오락/게임) 결제 시도 차단됨',
@@ -218,9 +226,27 @@ function getActionStyle(action, type) {
   }
 }
 
-// store alert → SYSTEM_ALERTS 형태로 변환
-// store alert: { id, txId, userId, direction, icon, title, body, isRead, createdAt }
-// SYSTEM_ALERTS 형태: { id, isRead, type, title, desc, time, tag, tagColor, tagBg, route }
+// ─────────────────────────────────────────────────────────────────────────────
+// [헷갈림 주의] adaptStoreAlert — store 알림 → UI 알림 형태 변환
+//
+// store(transactionStore.js)가 생성하는 알림 객체와
+// 이 파일의 SYSTEM_ALERTS 객체는 필드명이 다름 → 반드시 변환 필요
+//
+// store 알림 원본 필드:
+//   id, txId, userId, direction('sent'|'received'), icon, title, body,
+//   isRead(bool), createdAt(ISO string), walletRoute(string|null)
+//
+// 변환 후 UI 필드:
+//   id, isRead, type, title(icon+title 합침), desc(body), time(상대 시간),
+//   tag, tagColor, tagBg, route(walletRoute),
+//   _fromStore: true   ← 정렬 로직에서 store 출처 구분용 (반드시 포함)
+//   _createdAt         ← 정확한 timestamp 정렬용 (ISO string 그대로)
+//   _txId              ← 거래 상세 연결 시 사용 (현재 미사용, 추후 라우팅 확장용)
+//
+// 실제 개발 시 주의:
+//   - direction 'sent'    → 사용자가 돈을 보낸 집행 완료 (예: 생활비 자동지급)
+//   - direction 'received' → 사용자에게 입금이 들어온 알림
+// ─────────────────────────────────────────────────────────────────────────────
 function adaptStoreAlert(a) {
   // direction 'sent' (내가 보낸 거 — 집행 완료) / 'received' (입금 받음)
   const tag = a.direction === 'sent' ? '집행' : '입금'
@@ -236,13 +262,26 @@ function adaptStoreAlert(a) {
     tag,
     tagColor,
     tagBg,
-    route: null,                  // 추후 거래 상세 라우트 연결 가능
+    route: a.walletRoute || null,  // 생활비 등 지갑 상세 연결
     _fromStore: true,             // store 출처 표시 (정렬/클릭 처리용)
     _createdAt: a.createdAt,      // 정렬용 raw timestamp
     _txId: a.txId,                // 거래 상세로 연결 시 사용
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// [헷갈림 주의] 정적 알림 정렬 — 문자열 "3시간 전" → 분(minute) 수치 변환
+//
+// SYSTEM_ALERTS(정적 데이터)는 createdAt(Date)이 없고 time: '3시간 전' 같은
+// 한국어 문자열만 존재. store 알림은 createdAt ISO string이 있음.
+//
+// 두 출처를 하나의 배열로 정렬하려면 단위를 통일해야 함:
+//   store 알림  → Math.floor((now - new Date(createdAt)) / 60000) = 분 전
+//   정적 알림   → staticAlertSortValue(time) = 분 전(근사치)
+//
+// 값이 작을수록 최신(화면 위). 큰 값(99999999)은 아주 오래된 항목으로 간주.
+// 단 정적 데이터는 매 렌더마다 same value → 상대 순서는 SYSTEM_ALERTS 배열 순서 유지.
+// ─────────────────────────────────────────────────────────────────────────────
 // 기존 SYSTEM_ALERTS에 임의 정렬용 timestamp 부여
 // (데모 데이터는 _createdAt 없으니 'time' 문자열 기반으로 대충 매핑)
 const STATIC_TIME_MAP = {
@@ -345,20 +384,92 @@ export default function Alerts() {
   const [mainTab, setMainTab] = useState('transactions') // 'transactions' | 'system'
   const [roleFilter, setRoleFilter] = useState('all')
 
+  // ── 권한 체크 ──────────────────────────────────────────
+  // 기업 viewer는 계약 서명·검수 등 액션 버튼 비활성
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canAct = userType !== 'business' || !['viewer'].includes(bizRole)
+
+  // ── 기업 초대 상태 ─────────────────────────────────────
+  const [inviteStatus, setInviteStatus] = useState(
+    () => sessionStorage.getItem('bizInviteStatus') || 'pending' // 'pending'|'accepted'|'declined'
+  )
+
+  const handleInviteAccept = () => {
+    sessionStorage.setItem('bizInviteAccepted', 'true')
+    sessionStorage.setItem('bizInviteStatus', 'accepted')
+    sessionStorage.setItem('bizInviteCompany', '㈜주다컴퍼니')
+    sessionStorage.setItem('bizInviteRole', '재무담당자')
+    setInviteStatus('accepted')
+  }
+
+  const handleInviteDecline = () => {
+    sessionStorage.setItem('bizInviteStatus', 'declined')
+    setInviteStatus('declined')
+  }
+
+  // 생활비 자동지급 알림 (개인 전용)
+  const [autoPayAlerts, setAutoPayAlerts] = useState([])
+  useEffect(() => {
+    if (userType !== 'personal') return
+    let cancelled = false
+    import('../personal/execute/autoPayLivingStore').then(({ subscribeAutoPayLiving, getAutoPayAlerts }) => {
+      if (cancelled) return
+      return subscribeAutoPayLiving(() => {
+        setAutoPayAlerts(getAutoPayAlerts())
+      })
+    })
+    return () => { cancelled = true }
+  }, [userType])
+
   // store에서 본인 알림 구독 (자동 리렌더)
   const storeAlerts = useStoreData(
     () => getMyAlerts({ userId: currentUserId })
   )
 
-  // 합쳐진 시스템 알림 — store alert + 정적 SYSTEM_ALERTS, 시간 역순
+  // ─────────────────────────────────────────────────────────────────────────────
+  // [헷갈림 주의] 시스템 알림 3중 병합 — fromStore + fromAutoPay + fromStatic
+  //
+  // 알림 출처가 3개인 이유:
+  //   1. fromStore      → transactionStore.js의 실시간 알림 (거래 발생 즉시 생성됨)
+  //                       예: 생활비 집행, 외주비 입금 등 실제 거래 기반
+  //   2. fromAutoPay    → autoPayLivingStore.js의 자동지급 알림 (개인 전용)
+  //                       생활비 자동지급 결과 (충전 성공/잔액 부족 등)
+  //                       개인 userType에서만 구독 (useEffect에서 userType 체크)
+  //   3. fromStatic     → 이 파일의 SYSTEM_ALERTS 배열 (데모 전용 하드코딩)
+  //                       차단, 만료, 한도, 공지 등 시스템 알림 예시
+  //                       실제 개발 시 백엔드 API 또는 별도 store로 대체 예정
+  //
+  // 정렬 기준: "몇 분 전" 단위로 통일 후 오름차순 (작을수록 최신 → 화면 위)
+  //   - fromStore: _createdAt(ISO string) → 분 단위 계산 (정확)
+  //   - fromAutoPay/fromStatic: _staticSort(분 근사값) 사용 (부정확하나 데모용)
+  //
+  // 동점 처리: fromStore를 배열 앞에 두므로 같은 분이면 store 알림이 우선
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 합쳐진 시스템 알림 — auto-pay 알림 + store alert + 정적 SYSTEM_ALERTS, 시간 역순
   const mergedSystemAlerts = (() => {
+    // 생활비 자동지급 알림을 SYSTEM_ALERTS 형태로 변환
+    const fromAutoPay = autoPayAlerts.map(a => ({
+      id: a.id,
+      isRead: false,
+      type: a.type === 'auto_pay_insufficient' ? 'warning' : 'limit',
+      title: a.title,
+      desc: a.body,
+      time: a.time,
+      tag: a.type === 'auto_pay_insufficient' ? '잔액부족' : '자동지급',
+      tagColor: a.type === 'auto_pay_insufficient' ? '#C2410C' : '#047857',
+      tagBg: a.type === 'auto_pay_insufficient' ? '#FFF7ED' : '#ECFDF5',
+      route: a.route,
+      _fromStore: false,
+      _staticSort: staticAlertSortValue(a.time),  // 실시간 timestamp 기반 정렬
+    }))
     const fromStore = storeAlerts.map(adaptStoreAlert)
     const fromStatic = SYSTEM_ALERTS.map(a => ({
       ...a,
       _fromStore: false,
       _staticSort: staticAlertSortValue(a.time),
     }))
-    return [...fromStore, ...fromStatic].sort((a, b) => {
+    // fromStore를 배열 앞에 두면 동점(같은 분) 시 store 알림이 앞에 위치
+    return [...fromStore, ...fromAutoPay, ...fromStatic].sort((a, b) => {
       // store 항목은 _createdAt 사용 (최신이 위)
       // 정적 항목은 _staticSort (작을수록 최신)
       // 둘 다 같이 정렬: store 거를 정확한 timestamp 기반,
@@ -379,6 +490,24 @@ export default function Alerts() {
     () => getMyContractDeals({ userId: currentUserId })
   )
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // [헷갈림 주의] allTx = storeDeals + TRANSACTIONS 병합
+  //
+  // 거래 탭에는 두 출처의 거래가 합쳐짐:
+  //   1. storeDeals  → transactionStore.js에서 실시간으로 생성된 거래
+  //                    사용자가 앱 안에서 새로 진행한 계약/집행 등
+  //   2. TRANSACTIONS → 이 파일 상단의 하드코딩 데모 거래 목록
+  //                    실제 개발 시 전부 storeDeals로 대체 예정
+  //
+  // storeDeals가 앞에 오므로 실시간 거래가 최신 순으로 앞에 위치.
+  // 각 항목은 adaptStoreDeal()로 UI 카드 형태(TRANSACTIONS 구조)로 변환됨.
+  //
+  // adaptStoreDeal: store deal { fromUserId, toRecipientName, ... }
+  //              → UI   { id, type, role, counterparty, amount, ... }
+  //   - role: fromUserId === currentUserId → 'sender', 아니면 'receiver'
+  //   - counterparty: role에 따라 상대방 정보 다르게 추출
+  //   - counterpartyRead: 데모에서는 항상 true, 실제는 read 상태 API 필요
+  // ─────────────────────────────────────────────────────────────────────────────
   // 거래 탭: 정적 TRANSACTIONS + store 거래형 합침
   const allTx = [
     ...storeDeals.map(d => adaptStoreDeal(d, currentUserId)),
@@ -643,17 +772,31 @@ export default function Alerts() {
                             counterpartyRead={tx.counterpartyRead}
                           />
                           {tx.myAction && actionStyle && (
-                            <span style={{
-                              display:'inline-flex', alignItems:'center', gap:'5px',
-                              padding:'6px 12px',
-                              background: actionStyle.bg,
-                              color: actionStyle.color,
-                              borderRadius:'8px',
-                              fontSize:'11px', fontWeight:700,
-                            }}>
-                              {tx.myAction.label}
-                              <span style={{ fontSize:'13px' }}>→</span>
-                            </span>
+                            canAct ? (
+                              <span style={{
+                                display:'inline-flex', alignItems:'center', gap:'5px',
+                                padding:'6px 12px',
+                                background: actionStyle.bg,
+                                color: actionStyle.color,
+                                borderRadius:'8px',
+                                fontSize:'11px', fontWeight:700,
+                              }}>
+                                {tx.myAction.label}
+                                <span style={{ fontSize:'13px' }}>→</span>
+                              </span>
+                            ) : (
+                              <span style={{
+                                display:'inline-flex', alignItems:'center', gap:'4px',
+                                padding:'6px 10px',
+                                background: COLORS.bgMuted,
+                                color: COLORS.t4,
+                                borderRadius:'8px',
+                                fontSize:'11px', fontWeight:600,
+                                cursor:'not-allowed',
+                              }}>
+                                🔒 {tx.myAction.label}
+                              </span>
+                            )
                           )}
                         </div>
                       </div>
@@ -687,6 +830,79 @@ export default function Alerts() {
               <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
                 {mergedSystemAlerts.map(a => {
                   const clickable = !!a.route || a._fromStore
+
+                  // ── 기업 초대 카드 (특별 렌더) ──
+                  if (a.type === 'invite') {
+                    const accepted = inviteStatus === 'accepted'
+                    const declined = inviteStatus === 'declined'
+                    return (
+                      <div key={a.id} style={{
+                        background: accepted ? '#EFF6FF' : declined ? COLORS.bgMuted : COLORS.bgCard,
+                        borderRadius: RADIUS.md,
+                        boxShadow: SHADOWS.card,
+                        border: accepted ? '1.5px solid #93C5FD' : declined ? `1px solid ${COLORS.borderSoft}` : '1.5px solid #BFDBFE',
+                        padding:'14px',
+                        display:'flex', flexDirection:'column', gap:'10px',
+                        position:'relative',
+                      }}>
+                        {/* 헤더 */}
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                            <span style={{ padding:'2px 7px', background: a.tagBg, color: a.tagColor, borderRadius:'4px', fontSize:'10px', fontWeight:700 }}>
+                              {a.tag}
+                            </span>
+                            <span style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>{a.title}</span>
+                          </div>
+                          <span style={{ fontSize:'10px', color: COLORS.t4, flexShrink:0 }}>{a.time}</span>
+                        </div>
+
+                        {/* 초대 정보 */}
+                        <div style={{ background:'rgba(29,78,216,0.06)', borderRadius:'10px', padding:'10px 12px', display:'flex', flexDirection:'column', gap:'4px' }}>
+                          <div style={{ display:'flex', gap:'8px', fontSize:'12px' }}>
+                            <span style={{ color: COLORS.t4, minWidth:'40px' }}>회사</span>
+                            <span style={{ fontWeight:700, color: COLORS.t1 }}>{a.inviteMeta.company}</span>
+                          </div>
+                          <div style={{ display:'flex', gap:'8px', fontSize:'12px' }}>
+                            <span style={{ color: COLORS.t4, minWidth:'40px' }}>직책</span>
+                            <span style={{ fontWeight:600, color:'#1D4ED8' }}>{a.inviteMeta.role}</span>
+                          </div>
+                          <div style={{ display:'flex', gap:'8px', fontSize:'12px' }}>
+                            <span style={{ color: COLORS.t4, minWidth:'40px' }}>초대자</span>
+                            <span style={{ fontWeight:500, color: COLORS.t2 }}>{a.inviteMeta.inviter}</span>
+                          </div>
+                        </div>
+
+                        {/* 수락/거절 or 상태 표시 */}
+                        {!accepted && !declined && (
+                          <div style={{ display:'flex', gap:'8px' }}>
+                            <button
+                              onClick={handleInviteDecline}
+                              style={{ flex:1, height:'40px', background: COLORS.bgMuted, color: COLORS.t3, border:'none', borderRadius:'10px', fontSize:'13px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+                              거절
+                            </button>
+                            <button
+                              onClick={handleInviteAccept}
+                              style={{ flex:2, height:'40px', background:'#1D4ED8', color:'#fff', border:'none', borderRadius:'10px', fontSize:'13px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                              수락 → 기업 전환
+                            </button>
+                          </div>
+                        )}
+                        {accepted && (
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 12px', background:'#DBEAFE', borderRadius:'10px' }}>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#1D4ED8"/><path d="M4 7l2 2 4-4" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <span style={{ fontSize:'12px', fontWeight:700, color:'#1D4ED8' }}>수락 완료 — 홈 아이콘으로 기업 전환 가능</span>
+                          </div>
+                        )}
+                        {declined && (
+                          <div style={{ fontSize:'12px', color: COLORS.t4, textAlign:'center', padding:'4px 0' }}>
+                            초대를 거절했습니다
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  // ── 일반 시스템 알림 카드 ──
                   return (
                     <button
                       key={a.id}

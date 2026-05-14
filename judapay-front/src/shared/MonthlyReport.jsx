@@ -527,7 +527,7 @@ function MonthHeader({ month }) {
 }
 
 // ─── 보고서 상세 ──────────────────────────────────────────
-function ReportDetail({ r, theme, onClose }) {
+function ReportDetail({ r, theme, onClose, canExportReport }) {
   const [notifSent, setNotifSent] = useState(false)
   const meta = TYPE_META[r.type]
 
@@ -593,11 +593,6 @@ function ReportDetail({ r, theme, onClose }) {
             </div>
             <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>{r.genDate}</div>
           </div>
-          <button style={{ padding:'6px 14px', background:'rgba(255,255,255,0.18)',
-            border:'1px solid rgba(255,255,255,0.3)', borderRadius:'20px',
-            color:'#fff', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-            PDF ↓
-          </button>
         </div>
 
         {/* 수신자 */}
@@ -1357,13 +1352,26 @@ function ReportDetail({ r, theme, onClose }) {
                 </div>
               ))}
             </div>
+            {/* [권한] 다운로드·전송: master · admin · accounting 전용 */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-              <button style={{ padding:'13px', background:COLORS.bg, border:`1.5px solid ${COLORS.borderSoft}`,
-                borderRadius:'12px', fontSize:'13px', fontWeight:700, color:COLORS.t1,
-                cursor:'pointer', fontFamily:'inherit' }}>ZIP 다운로드</button>
-              <button style={{ padding:'13px', background:theme.brandDark, border:'none',
-                borderRadius:'12px', fontSize:'13px', fontWeight:700, color:'#fff',
-                cursor:'pointer', fontFamily:'inherit' }}>세무사 자동 전송</button>
+              {canExportReport ? (
+                <button style={{ padding:'13px', background:COLORS.bg, border:`1.5px solid ${COLORS.borderSoft}`,
+                  borderRadius:'12px', fontSize:'13px', fontWeight:700, color:COLORS.t1,
+                  cursor:'pointer', fontFamily:'inherit' }}>ZIP 다운로드</button>
+              ) : (
+                <div style={{ padding:'13px', background:'#F9FAFB', border:'1.5px solid #E5E7EB',
+                  borderRadius:'12px', fontSize:'12px', fontWeight:600, color:'#9CA3AF',
+                  textAlign:'center' }}>🔒 ZIP</div>
+              )}
+              {canExportReport ? (
+                <button style={{ padding:'13px', background:theme.brandDark, border:'none',
+                  borderRadius:'12px', fontSize:'13px', fontWeight:700, color:'#fff',
+                  cursor:'pointer', fontFamily:'inherit' }}>세무사 자동 전송</button>
+              ) : (
+                <div style={{ padding:'13px', background:'#F9FAFB', border:'1.5px solid #E5E7EB',
+                  borderRadius:'12px', fontSize:'12px', fontWeight:600, color:'#9CA3AF',
+                  textAlign:'center' }}>🔒 전송</div>
+              )}
             </div>
           </SectionCard>
         )}
@@ -1489,13 +1497,26 @@ function ReportDetail({ r, theme, onClose }) {
                 </div>
               ))}
             </div>
+            {/* [권한] 다운로드·전송: master · admin · accounting 전용 */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-              <button style={{ padding:'13px', background:COLORS.bg, border:`1.5px solid ${COLORS.borderSoft}`,
-                borderRadius:'12px', fontSize:'13px', fontWeight:700, color:COLORS.t1,
-                cursor:'pointer', fontFamily:'inherit' }}>ZIP 다운로드</button>
-              <button style={{ padding:'13px', background:theme.brandDark, border:'none',
-                borderRadius:'12px', fontSize:'13px', fontWeight:700, color:'#fff',
-                cursor:'pointer', fontFamily:'inherit' }}>기관 담당자 전송</button>
+              {canExportReport ? (
+                <button style={{ padding:'13px', background:COLORS.bg, border:`1.5px solid ${COLORS.borderSoft}`,
+                  borderRadius:'12px', fontSize:'13px', fontWeight:700, color:COLORS.t1,
+                  cursor:'pointer', fontFamily:'inherit' }}>ZIP 다운로드</button>
+              ) : (
+                <div style={{ padding:'13px', background:'#F9FAFB', border:'1.5px solid #E5E7EB',
+                  borderRadius:'12px', fontSize:'12px', fontWeight:600, color:'#9CA3AF',
+                  textAlign:'center' }}>🔒 ZIP</div>
+              )}
+              {canExportReport ? (
+                <button style={{ padding:'13px', background:theme.brandDark, border:'none',
+                  borderRadius:'12px', fontSize:'13px', fontWeight:700, color:'#fff',
+                  cursor:'pointer', fontFamily:'inherit' }}>기관 담당자 전송</button>
+              ) : (
+                <div style={{ padding:'13px', background:'#F9FAFB', border:'1.5px solid #E5E7EB',
+                  borderRadius:'12px', fontSize:'12px', fontWeight:600, color:'#9CA3AF',
+                  textAlign:'center' }}>🔒 전송</div>
+              )}
             </div>
           </SectionCard>
         )}
@@ -1545,7 +1566,7 @@ function ReportDetail({ r, theme, onClose }) {
               textAlign:'center', color:'#047857', fontWeight:700 }}>
               ✓ 수신자에게 발송 완료
             </div>
-          ) : (
+          ) : canExportReport ? (
             <button onClick={() => setNotifSent(true)}
               style={{ width:'100%', padding:'14px',
                 background: theme.activeBtnGrad || theme.brandDark,
@@ -1553,6 +1574,13 @@ function ReportDetail({ r, theme, onClose }) {
                 fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
               📢 보고서 알림 발송
             </button>
+          ) : (
+            /* [권한] 보고서 알림 발송: master · admin · accounting 전용 */
+            <div style={{ width:'100%', padding:'14px', background:'#F9FAFB',
+              border:'1.5px solid #E5E7EB', borderRadius:'12px', color:'#9CA3AF',
+              fontSize:'13px', fontWeight:600, textAlign:'center' }}>
+              🔒 보고서 알림 발송 (권한 없음)
+            </div>
           )}
         </div>
 
@@ -1560,12 +1588,21 @@ function ReportDetail({ r, theme, onClose }) {
 
       <div style={{ padding:'12px 16px 20px', background:COLORS.bgCard,
         boxShadow:'0 -4px 20px rgba(0,0,0,0.06)', flexShrink:0 }}>
-        <button style={{ width:'100%', padding:'15px',
-          background: theme.activeBtnGrad || theme.brandDark,
-          border:'none', borderRadius:'14px', color:'#fff',
-          fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-          PDF 다운로드
-        </button>
+        {/* [권한] PDF 다운로드: master · admin · accounting 전용 */}
+        {canExportReport ? (
+          <button style={{ width:'100%', padding:'15px',
+            background: theme.activeBtnGrad || theme.brandDark,
+            border:'none', borderRadius:'14px', color:'#fff',
+            fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            PDF 다운로드
+          </button>
+        ) : (
+          <div style={{ width:'100%', padding:'15px', background:'#F3F4F6',
+            border:'1.5px solid #E5E7EB', borderRadius:'14px', color:'#9CA3AF',
+            fontSize:'14px', fontWeight:600, textAlign:'center' }}>
+            🔒 PDF 다운로드 (최고관리자·관리자·재무담당자 전용)
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1577,6 +1614,13 @@ export default function MonthlyReport() {
   const theme     = getAccountTheme()
   const [activeTab, setActiveTab] = useState('all')
   const [selected, setSelected]  = useState(null)
+
+  // ── [권한] 보고서 다운로드·전송 권한 ─────────────────────
+  // master · admin · accounting 만 다운로드 및 전송 가능
+  // manager · staff · viewer 는 열람만 가능
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const EXPORT_ROLES = ['master', 'admin', 'accounting']
+  const canExportReport = EXPORT_ROLES.includes(bizRole)
 
   const filtered = REPORTS.filter(r => activeTab === 'all' || r.type === activeTab)
 
@@ -1590,7 +1634,7 @@ export default function MonthlyReport() {
   return (
     <PhoneShell>
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
-        {selected && <ReportDetail r={selected} theme={theme} onClose={() => setSelected(null)} />}
+        {selected && <ReportDetail r={selected} theme={theme} onClose={() => setSelected(null)} canExportReport={canExportReport} />}
 
         <div style={{ flex:1, overflowY:'auto' }}>
           <div style={{ background:theme.headerGrad, padding:'24px 16px 0', flexShrink:0 }}>
@@ -1625,7 +1669,8 @@ export default function MonthlyReport() {
                       borderBottom:'none', borderRadius:'12px 12px 0 0',
                       color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
                       fontSize:'13px', fontWeight: isActive ? 700 : 500,
-                      cursor:'pointer', fontFamily:'inherit' }}>
+                      cursor:'pointer', fontFamily:'inherit',
+                      whiteSpace:'nowrap' }}>
                     {tab.label}
                   </button>
                 )
@@ -1657,12 +1702,21 @@ export default function MonthlyReport() {
           </div>
 
           <div style={{ padding:'0 16px 32px' }}>
-            <button style={{ width:'100%', padding:'14px', background:COLORS.bgCard,
-              border:`1.5px solid ${COLORS.borderSoft}`, borderRadius:'14px',
-              color:COLORS.t2, fontSize:'14px', fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit', boxShadow:SHADOWS.card }}>
-              전체 다운로드 (ZIP)
-            </button>
+            {/* [권한] 전체 다운로드: master · admin · accounting 전용 */}
+            {canExportReport ? (
+              <button style={{ width:'100%', padding:'14px', background:COLORS.bgCard,
+                border:`1.5px solid ${COLORS.borderSoft}`, borderRadius:'14px',
+                color:COLORS.t2, fontSize:'14px', fontWeight:700,
+                cursor:'pointer', fontFamily:'inherit', boxShadow:SHADOWS.card }}>
+                전체 다운로드 (ZIP)
+              </button>
+            ) : (
+              <div style={{ width:'100%', padding:'14px', background:'#F9FAFB',
+                border:'1.5px solid #E5E7EB', borderRadius:'14px',
+                color:'#9CA3AF', fontSize:'13px', fontWeight:600, textAlign:'center' }}>
+                🔒 전체 다운로드 (최고관리자·관리자·재무담당자 전용)
+              </div>
+            )}
           </div>
         </div>
 

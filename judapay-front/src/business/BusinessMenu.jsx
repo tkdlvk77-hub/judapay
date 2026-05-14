@@ -23,8 +23,21 @@ const LIMIT_WARNING = {
 const SCHEDULED = [
   { id:'s1', icon:'💼', iconBg:'#E6F5EF', date:'5.25', daysLater:20, amount:15400000, status:'auto', statusColor:'#085041', kind:'salary' },
   { id:'s2', icon:'🏢', iconBg:'#EDF3FA', date:'5.10', daysLater:5,  amount:5800000,  status:'auto', statusColor:'#085041', kind:'rent' },
-  { id:'s3', icon:'🧾', iconBg:'#FFF4E0', date:'5.15', daysLater:8,  amount:1500000,  status:'review', statusColor:'#C8821A', kind:'outsource' },
+  { id:'s3', icon:'💻', iconBg:'#F5F3FF', date:'5.15', daysLater:8,  amount:693200,   status:'approval', statusColor:'#1D4ED8', kind:'subscription' },
 ]
+
+// kind → 상세 화면 라우트 매핑
+const KIND_ROUTE = {
+  salary:       '/execute/business/operations/salary',
+  rent:         '/execute/business/operations/rent',
+  rentlease:    '/execute/business/operations/rent-lease',
+  subscription: '/execute/business/operations/subscription',
+  telecom:      '/execute/business/operations/telecom',
+  utility:      '/execute/business/operations/utility',
+  insurance:    '/execute/business/operations/insurance',
+  tax:          '/execute/business/operations/tax',
+  misc:         '/execute/business/operations/misc',
+}
 
 // 이번 달 누계
 const SPENT_SO_FAR = 32400000
@@ -123,11 +136,13 @@ export default function BusinessMenu() {
       sub = fill(t('businessMenu.sched.salarySub'), { date: s.date, days: s.daysLater })
     } else if (s.kind === 'rent') {
       sub = fill(t('businessMenu.sched.rentSub'), { date: s.date, days: s.daysLater })
-    } else if (s.kind === 'outsource') {
-      sub = fill(t('businessMenu.sched.outsourceSub'), { date: s.date })
+    } else if (s.kind === 'subscription') {
+      sub = fill(t('businessMenu.sched.subscriptionSub'), { date: s.date })
     }
     const statusLabel = s.status === 'auto'
       ? t('businessMenu.statusAuto')
+      : s.status === 'approval'
+      ? '승인 대기'
       : t('businessMenu.statusReview')
     return { ...s, label, sub, statusLabel }
   })
@@ -273,7 +288,7 @@ export default function BusinessMenu() {
               {scheduledItems.map((s, i, arr) => (
                 <button
                   key={s.id}
-                  onClick={todo(s.label)}
+                  onClick={() => navigate(KIND_ROUTE[s.kind])}
                   style={{
                     width:'100%', padding:'12px 14px',
                     background: COLORS.bgCard, border:'none',
@@ -426,8 +441,7 @@ export default function BusinessMenu() {
             </div>
           </div>
 
-        </div>
-
+        </div> {/* padding div 끝 */}
       </div>
       <BottomTab />
     </div>

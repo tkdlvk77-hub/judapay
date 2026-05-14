@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomTab from '../components/BottomTab'
 import {
-  PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction,
+  PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction, AccountTransition,
 } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
 
@@ -15,14 +15,21 @@ const CARD_STYLE = {
 }
 
 // ─── 처리 필요 항목 ───────────────────────────────────────
-const TODO_ITEMS = [
-  { id:'t1', text:'지급 실패',       count:1, urgent:true,  route:'/payment-alerts' },
-  { id:'t2', text:'이상거래 감지',   count:1, urgent:true,  route:'/payment-alerts' },
-  { id:'t3', text:'미분류 결제',     count:2, urgent:false, route:'/card-payment'   },
-  { id:'t4', text:'증빙 제출 대기',  count:1, urgent:false, route:'/payment-alerts' },
-  { id:'t5', text:'지원금 만료 임박',count:1, urgent:false, route:'/wallet'         },
-  { id:'t6', text:'잔액 부족 위험',  count:0, urgent:true,  route:'/wallet'         },
-].filter(t => t.count > 0)
+// 각 항목 클릭 시 → /messages 로 이동, threadId로 1:1 채팅 자동 진입
+const PENDING_ITEMS = [
+  { id:'p1', category:'입금 필요',       emoji:'💸', from:'이유진', fromInitial:'👧', avatarBg:'#FCD34D', avatarFg:'#92400E', desc:'생활비 지급 요청',  amount:'30,000원',  urgent:true,  threadId:'2' },
+  { id:'p2', category:'상환 필요',       emoji:'🔄', from:'박철수', fromInitial:'박', avatarBg:'#EF4444', avatarFg:'#FFFFFF', desc:'대여금 상환 요청',  amount:'200,000원', urgent:false, threadId:'1' },
+  { id:'p3', category:'자료 제출 필요',  emoji:'📁', from:'김창업', fromInitial:'김', avatarBg:'#7C3AED', avatarFg:'#FFFFFF', desc:'계약서 제출 요청',  amount:null,        urgent:false, threadId:'4' },
+]
+
+const CATEGORY_STYLE = {
+  '입금 필요':           { bg:'#EFF6FF', color:'#1D4ED8', border:'#BFDBFE', dot:'#2563EB' },
+  '상환 필요':           { bg:'#FEF2F2', color:'#DC2626', border:'#FECACA', dot:'#EF4444' },
+  '자료 제출 필요':      { bg:'#F0FDFA', color:'#0F766E', border:'#99F6E4', dot:'#14B8A6' },
+  '자동 지급 잔액 부족': { bg:'#FFF7ED', color:'#C2410C', border:'#FDBA74', dot:'#EA580C' },
+  '자동 지급 확인 필요': { bg:'#FFFBEB', color:'#B45309', border:'#FDE68A', dot:'#D97706' },
+  '자동 지급 예정':      { bg:'#ECFDF5', color:'#047857', border:'#6EE7B7', dot:'#10B981' },
+}
 
 // ─── 실시간 결제 ──────────────────────────────────────────
 const LIVE_PAYMENTS = [
@@ -75,6 +82,23 @@ export default function HomePersonal() {
   const theme = getAccountTheme()
   const [todoExpanded, setTodoExpanded] = useState(false)
 
+  // 기업 초대 수락 여부
+  const [bizInviteAccepted] = useState(
+    () => sessionStorage.getItem('bizInviteAccepted') === 'true'
+  )
+  const [transitioning, setTransitioning] = useState(false)
+
+  // 기업 계정으로 전환 (애니메이션 포함)
+  const handleSwitchToBusiness = () => {
+    const role = sessionStorage.getItem('bizInviteRole') || 'accounting'
+    setTransitioning(true)
+    setTimeout(() => {
+      sessionStorage.setItem('bizType', 'business')
+      sessionStorage.setItem('bizRole', role)
+      navigate('/home-business')
+    }, 750)
+  }
+
   return (
     <PhoneShell>
       <div style={{ flex:1, overflowY:'auto' }}>
@@ -86,6 +110,8 @@ export default function HomePersonal() {
             accent="PERSONAL"
             name="이호형"
             sub={null}
+            onIconClick={bizInviteAccepted ? handleSwitchToBusiness : undefined}
+            iconBadge={bizInviteAccepted}
             action={
               LIVE_PAYMENTS.filter(p => p.status === 'blocked').length > 0 ? (
                 <button onClick={() => navigate('/payment-alerts')} style={{ display:'flex', alignItems:'center', gap:'5px', padding:'5px 11px', background:'rgba(239,68,68,0.25)', border:'1px solid rgba(239,68,68,0.4)', borderRadius:'20px', cursor:'pointer', fontFamily:'inherit' }}>
@@ -145,7 +171,7 @@ export default function HomePersonal() {
         <div style={{ padding:'14px 14px 100px', display:'flex', flexDirection:'column', gap:'10px', background:'#F4F5F7' }}>
 
           {/* ── 1. 처리 필요 항목 ── */}
-          <div style={{ ...CARD_STYLE, border: TODO_ITEMS.length > 0 ? '1px solid #FECACA' : '1px solid #E9EAEC' }}>
+          <div style={{ ...CARD_STYLE, border: PENDING_ITEMS.some(p=>p.urgent) ? '1px solid #FECACA' : '1px solid #E9EAEC' }}>
             <button onClick={() => setTodoExpanded(v => !v)}
               style={{ width:'100%', padding:'14px 16px', background:'transparent', border:'none',
                 borderBottom: todoExpanded ? '1px solid #FEE2E2' : 'none',
@@ -153,17 +179,17 @@ export default function HomePersonal() {
                 cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
               <div>
                 <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'0.8px', marginBottom:'3px',
-                  color: TODO_ITEMS.length > 0 ? '#EF4444' : '#9CA3AF' }}>
-                  {TODO_ITEMS.length > 0 ? '⚠ 긴급' : 'TODAY'}
+                  color: PENDING_ITEMS.some(p=>p.urgent) ? '#EF4444' : '#9CA3AF' }}>
+                  {PENDING_ITEMS.some(p=>p.urgent) ? '⚠ 긴급' : 'TODAY'}
                 </div>
                 <div style={{ fontSize:'13px', fontWeight:700, color:'#111827' }}>처리 필요 항목</div>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                {TODO_ITEMS.length > 0 && (
+                {PENDING_ITEMS.length > 0 && (
                   <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <div className="p-pulse-ring" style={{ position:'absolute', width:'100%', height:'100%', borderRadius:'20px', background:'#EF4444', pointerEvents:'none' }} />
                     <span className="p-badge-beat" style={{ position:'relative', fontSize:'12px', fontWeight:800, color:'#fff', background:'#EF4444', padding:'3px 12px', borderRadius:'20px' }}>
-                      {TODO_ITEMS.reduce((s,t) => s+t.count, 0)}건
+                      {PENDING_ITEMS.length}건
                     </span>
                   </div>
                 )}
@@ -173,23 +199,43 @@ export default function HomePersonal() {
                 </svg>
               </div>
             </button>
-            {todoExpanded && TODO_ITEMS.map((item, i) => (
-              <button key={item.id} onClick={() => navigate(item.route)}
-                style={{ width:'100%', padding:'12px 16px', background:'transparent', border:'none',
-                  borderTop: i===0 ? 'none' : '1px solid #F0F1F3',
-                  display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
-                <div style={{ width:'7px', height:'7px', borderRadius:'50%', flexShrink:0,
-                  background: item.urgent ? '#EF4444' : '#9CA3AF' }} />
-                <span style={{ flex:1, fontSize:'13px', color:'#1F2937', fontWeight:500 }}>{item.text}</span>
-                <span style={{ fontSize:'13px', fontWeight:700,
-                  color: item.urgent ? '#DC2626' : '#374151',
-                  background: item.urgent ? '#FEF2F2' : '#F3F4F6',
-                  padding:'2px 10px', borderRadius:'20px', textAlign:'center' }}>
-                  {item.count}
-                </span>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-            ))}
+            {todoExpanded && PENDING_ITEMS.map((item, i) => {
+              const cs = CATEGORY_STYLE[item.category] || { bg:'#F3F4F6', color:'#374151', border:'#E5E7EB', dot:'#9CA3AF' }
+              return (
+                <button key={item.id}
+                  onClick={() => item.threadId ? navigate('/messages', { state:{ threadId: item.threadId } }) : navigate('/payment-alerts')}
+                  style={{ width:'100%', padding:'12px 16px', background:'transparent', border:'none',
+                    borderTop: i===0 ? 'none' : '1px solid #F0F1F3',
+                    display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+                  {/* 아바타 */}
+                  <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0,
+                    background: item.avatarBg || '#E5E7EB', display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:'15px', fontWeight:700, color: item.avatarFg || '#374151' }}>
+                    {item.fromInitial}
+                  </div>
+                  {/* 텍스트 */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'3px' }}>
+                      <span style={{ fontSize:'13px', fontWeight:600, color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.from}</span>
+                      <span style={{ fontSize:'10px', fontWeight:700, color: cs.color, background: cs.bg,
+                        border:`1px solid ${cs.border}`, padding:'1px 6px', borderRadius:'6px', flexShrink:0 }}>
+                        {item.category}
+                      </span>
+                    </div>
+                    <div style={{ fontSize:'11px', color:'#6B7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                  {/* 금액 */}
+                  {item.amount && (
+                    <span style={{ fontSize:'13px', fontWeight:700, color: item.urgent ? '#DC2626' : '#111827', flexShrink:0 }}>
+                      {item.amount}
+                    </span>
+                  )}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              )
+            })}
           </div>
 
           {/* ── 2. 실시간 결제 ── */}
@@ -274,6 +320,11 @@ export default function HomePersonal() {
       </div>
 
       <BottomTab />
+      <AccountTransition
+        visible={transitioning}
+        message="㈜주다컴퍼니로 전환되었습니다."
+        gradient="linear-gradient(160deg,#1E3A5F 0%,#0F2035 50%,#0A1628 100%)"
+      />
     </PhoneShell>
   )
 }

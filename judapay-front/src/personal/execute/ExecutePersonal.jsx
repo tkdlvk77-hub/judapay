@@ -17,6 +17,7 @@ const CASHABLE_FUNDS = [
 // ─────────────────────────────────────
 const PERMISSION_FUNDS = [
   { id:'gift',   emoji:'🎁', tKey:'gift',   iconBg: FUND_COLORS.gift.bg },
+  { id:'living', emoji:'🛒', tKey:'living', iconBg: FUND_COLORS.living.bg },
   { id:'lend',   emoji:'💸', tKey:'lend',   iconBg: FUND_COLORS.lend.bg },
   { id:'invest', emoji:'🌱', tKey:'invest', iconBg: FUND_COLORS.invest.bg },
 ]

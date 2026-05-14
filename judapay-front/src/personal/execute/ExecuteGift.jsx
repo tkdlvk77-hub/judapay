@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
-import MccBlock, { DEFAULT_MCC as MCC_DEFAULT } from '../../shared/execute/MccBlock'
 import WalletPicker from '../../shared/WalletPicker'
 import { getWalletById } from '../../shared/walletsData'
 import { addTransaction } from '../../shared/transactionStore'
@@ -122,7 +121,6 @@ export default function ExecuteGift() {
   const [amount, setAmount]   = useState('')
   const [category, setCategory] = useState('birthday')
   const [memo, setMemo]       = useState('')
-  const [mccItems, setMccItems] = useState(MCC_DEFAULT)
 
   if (!recipient) return null
 
@@ -134,17 +132,13 @@ export default function ExecuteGift() {
   const walletLabel    = selectedWallet?.label || 'MY 지갑'
   const remaining      = walletBalance - amtNum
   const categoryLabel  = t(CATEGORIES.find(c => c.id === category)?.tKey || CATEGORIES[0].tKey)
-  const blockedItems   = mccItems.filter(m => m.block)
-  const blockedCount   = blockedItems.length
-  const blockedLabels  = blockedItems.map(m => m.label)
   const canSend        = amtNum >= 1000 && amtNum <= walletBalance
 
   // ── 액션 ──────────────────────────────────────
   const changeRecipient = () => navigate('/execute/personal/select?purpose=gift')
 
   const goBack = () => {
-    if (step === 'input')   navigate(-1)
-    else if (step === 'mcc')    setStep('input')
+    if (step === 'input')    navigate(-1)
     else if (step === 'confirm') setStep('input')
     else if (step === 'pin')    setStep('confirm')
     else if (step === 'done')   return
@@ -154,23 +148,17 @@ export default function ExecuteGift() {
     const now = nowStr()
     const memoText = memo.trim()
 
-    const dealDescription = blockedLabels.length > 0
-      ? `${categoryLabel}${memoText ? ` · ${memoText}` : ''} · MCC 차단 ${blockedLabels.length}개`
-      : `${categoryLabel}${memoText ? ` · ${memoText}` : ''} · 즉시 입금`
+    const dealDescription = `${categoryLabel}${memoText ? ` · ${memoText}` : ''} · 즉시 입금`
 
     const timeline = [
       { time: now, label: `${recipient.name}에게 ${categoryLabel} 지급`, type: 'event' },
-      { time: now, label: '권한 자금 지갑 생성 완료', type: 'done' },
+      { time: now, label: '받은 지갑으로 입금 완료', type: 'done' },
     ]
 
     const safety = [
       `${recipient.name}의 받은 지갑으로 즉시 입금 (출금 불가, 카드 결제만)`,
-      ...(blockedLabels.length > 0
-        ? [`MCC 차단 ${blockedLabels.length}개: ${blockedLabels.slice(0, 3).join(', ')}${blockedLabels.length > 3 ? ' 외' : ''}`]
-        : ['MCC 차단 없음 — 자유롭게 사용 가능']
-      ),
       '지급 증빙 자동 보관 (5년)',
-      '이상거래 자동 감지 (MCC 차단 시도 즉시 알림)',
+      '이상거래 자동 감지',
     ]
 
     addTransaction({
@@ -193,9 +181,6 @@ export default function ExecuteGift() {
       dealStatus: 'completed',
       statusLabel: '지급 완료',
       myAction: null,
-      ...(blockedLabels.length > 0 ? {
-        investMeta: { type: 'support', blockedMcc: blockedLabels },
-      } : {}),
     })
   }
 
@@ -327,32 +312,6 @@ export default function ExecuteGift() {
             })}
           </div>
 
-          {/* 사용 통제 */}
-          <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.t2, marginBottom: '8px', padding: '0 4px' }}>
-            {t('execGift.mcc.label')}
-          </div>
-          <button
-            onClick={() => setStep('mcc')}
-            style={{
-              width: '100%', background: COLORS.bgCard, boxShadow: SHADOWS.card,
-              borderRadius: RADIUS.lg, border: 'none', padding: '14px 16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              marginBottom: '18px',
-            }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.t1, marginBottom: '2px' }}>
-                {blockedCount === 0
-                  ? t('execGift.mcc.none')
-                  : fill(t('execGift.mcc.blocked'), { count: blockedCount })}
-              </div>
-              <div style={{ fontSize: '11px', color: COLORS.t4, lineHeight: 1.45 }}>
-                {blockedCount === 0 ? t('execGift.mcc.noneDesc') : blockedLabels.join(', ')}
-              </div>
-            </div>
-            <span style={{ color: COLORS.t5, fontSize: '18px', flexShrink: 0, marginLeft: '8px' }}>›</span>
-          </button>
-
           {/* 메모 */}
           <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.t2, marginBottom: '8px', padding: '0 4px' }}>
             {t('execGift.memo.label')}
@@ -416,50 +375,7 @@ export default function ExecuteGift() {
   )
 
   // ─────────────────────────────────────────────
-  // Step 2: MCC 사용 통제
-  // ─────────────────────────────────────────────
-  if (step === 'mcc') return (
-    <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
-        <DarkHeader
-          smallTitle={t('execGift.mcc.step.smallTitle')}
-          bigTitle={t('execGift.mcc.step.title')}
-          sub={fill(t('execGift.mcc.step.sub'), { name: recipient.name })}
-          onBack={goBack}
-          headerGrad={theme.headerGrad}
-          exitTo="/home"
-        />
-        <div style={{ padding: '18px 16px 100px' }}>
-          <MccBlock
-            items={mccItems}
-            onChange={setMccItems}
-            recipientName={recipient.name}
-          />
-        </div>
-      </div>
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: '12px 16px 24px',
-        borderTop: `1px solid ${COLORS.borderSoft}`,
-        background: COLORS.bgCard,
-      }}>
-        <button onClick={() => setStep('confirm')}
-          style={{
-            width: '100%', height: '52px',
-            background: theme.brandDark, color: '#fff',
-            border: 'none', borderRadius: RADIUS.md,
-            fontSize: '15px', fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: SHADOWS.card,
-          }}>
-          {t('execGift.btn.next')}
-        </button>
-      </div>
-    </PhoneShell>
-  )
-
-  // ─────────────────────────────────────────────
-  // Step 3: 확인 (ConfirmStep 공용)
+  // Step 2: 확인 (ConfirmStep 공용)
   // ─────────────────────────────────────────────
   if (step === 'confirm') return (
     <ConfirmStep
@@ -487,14 +403,6 @@ export default function ExecuteGift() {
           value: categoryLabel,
           editAction: () => setStep('input'),
         },
-        {
-          label: t('execGift.row.mcc'),
-          value: blockedCount > 0
-            ? fill(t('execGift.row.mccBlocked'), { count: blockedCount })
-            : t('execGift.row.mccNone'),
-          sub: blockedCount > 0 ? blockedLabels.join(', ') : null,
-          editAction: () => setStep('mcc'),
-        },
         ...(memo.trim() ? [{
           label: t('execGift.row.memo'),
           value: memo,
@@ -518,7 +426,7 @@ export default function ExecuteGift() {
   )
 
   // ─────────────────────────────────────────────
-  // Step 4: PIN (PinStep 공용)
+  // Step 3: PIN (PinStep 공용)
   // ─────────────────────────────────────────────
   if (step === 'pin') return (
     <PinStep
@@ -533,7 +441,7 @@ export default function ExecuteGift() {
   )
 
   // ─────────────────────────────────────────────
-  // Step 5: 완료 (DoneStep 공용)
+  // Step 4: 완료 (DoneStep 공용)
   // ─────────────────────────────────────────────
   if (step === 'done') return (
     <DoneStep
@@ -545,12 +453,6 @@ export default function ExecuteGift() {
       summary={[
         { label: t('execGift.done.label.amount'), value: `${amtFmt}원`, accent: true },
         { label: t('execGift.row.category'),      value: categoryLabel },
-        {
-          label: t('execGift.row.mcc'),
-          value: blockedCount > 0
-            ? fill(t('execGift.done.mccBlocked'), { count: blockedCount })
-            : t('execGift.done.mccNone'),
-        },
         { label: t('execGift.done.label.remaining'), value: `${fmt(remaining)}원`, bold: true },
       ]}
       noteYellow={fill(t('execGift.done.note'), { name: recipient.name })}

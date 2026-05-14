@@ -170,6 +170,12 @@ export default function EvidenceCenter() {
   const [zipModal, setZipModal]               = useState(false)
   const [selectedPkg, setSelectedPkg]         = useState(null)
 
+  // ── [권한] 증빙 내보내기·전송 권한 ───────────────────────
+  // master · admin · accounting 만 ZIP 생성/다운로드 및 세무사 전송 가능
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const EXPORT_ROLES = ['master', 'admin', 'accounting']
+  const canExportEvidence = EXPORT_ROLES.includes(bizRole)
+
   const periodFiltered = filterByPeriod(PACKAGES, period, customDate)
   const filtered = periodFiltered.filter(pkg => {
     if (statusTab !== '전체') {
@@ -222,11 +228,20 @@ export default function EvidenceCenter() {
               <div style={{ fontSize:'17px', fontWeight:700 }}>통합 증빙센터</div>
               <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.65)', marginTop:'1px' }}>증빙 패키지 관리 및 내보내기</div>
             </div>
-            <button onClick={() => { setSelectedPkg(null); setZipModal(true) }}
-              style={{ background:'rgba(255,255,255,0.18)', border:'none', borderRadius:'10px',
-                padding:'7px 12px', fontSize:'12px', fontWeight:600, color:'#fff', cursor:'pointer', flexShrink:0 }}>
-              ZIP
-            </button>
+            {/* [권한] ZIP: master · admin · accounting 전용 */}
+            {canExportEvidence ? (
+              <button onClick={() => { setSelectedPkg(null); setZipModal(true) }}
+                style={{ background:'rgba(255,255,255,0.18)', border:'none', borderRadius:'10px',
+                  padding:'7px 12px', fontSize:'12px', fontWeight:600, color:'#fff', cursor:'pointer', flexShrink:0 }}>
+                ZIP
+              </button>
+            ) : (
+              <div title="최고관리자·관리자·재무담당자만 가능"
+                style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'10px',
+                  padding:'7px 12px', fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.35)', flexShrink:0 }}>
+                🔒 ZIP
+              </div>
+            )}
           </div>
 
           {/* 요약 4칸 */}
@@ -448,29 +463,48 @@ export default function EvidenceCenter() {
             </div>
           )}
 
-          {/* 하단 내보내기 */}
+          {/* 하단 내보내기 — [권한] master · admin · accounting 전용 */}
           <div style={{ background: COLORS.bgCard, borderRadius:'16px', border:`1px solid ${COLORS.borderSoft}`, padding:'16px' }}>
-            <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, marginBottom:'12px' }}>증빙 내보내기</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
+              <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1 }}>증빙 내보내기</div>
+              {!canExportEvidence && (
+                <span style={{ fontSize:'10px', fontWeight:700, color:'#9CA3AF', background:'#F3F4F6', padding:'2px 8px', borderRadius:'6px' }}>🔒 권한 필요</span>
+              )}
+            </div>
             <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-              <button onClick={() => { setSelectedPkg(null); setZipModal(true) }}
-                style={{ width:'100%', padding:'13px', background: COLORS.bgInverse, color:'#fff', border:'none',
-                  borderRadius:'12px', fontSize:'13px', fontWeight:700, cursor:'pointer',
+              {canExportEvidence ? (
+                <button onClick={() => { setSelectedPkg(null); setZipModal(true) }}
+                  style={{ width:'100%', padding:'13px', background: COLORS.bgInverse, color:'#fff', border:'none',
+                    borderRadius:'12px', fontSize:'13px', fontWeight:700, cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  전체 ZIP 생성
+                </button>
+              ) : (
+                <div style={{ width:'100%', padding:'13px', background:'#F9FAFB', color:'#9CA3AF',
+                  border:'1px solid #E5E7EB', borderRadius:'12px', fontSize:'13px', fontWeight:600, textAlign:'center' }}>
+                  🔒 전체 ZIP 생성
+                </div>
+              )}
+              {canExportEvidence ? (
+                <button style={{ width:'100%', padding:'13px', background: COLORS.bgMuted, color: COLORS.t2,
+                  border:`1px solid ${COLORS.borderSoft}`, borderRadius:'12px', fontSize:'13px', fontWeight:600, cursor:'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                전체 ZIP 생성
-              </button>
-              <button style={{ width:'100%', padding:'13px', background: COLORS.bgMuted, color: COLORS.t2,
-                border:`1px solid ${COLORS.borderSoft}`, borderRadius:'12px', fontSize:'13px', fontWeight:600, cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-                </svg>
-                세무사 전송 설정
-              </button>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+                  </svg>
+                  세무사 전송 설정
+                </button>
+              ) : (
+                <div style={{ width:'100%', padding:'13px', background:'#F9FAFB', color:'#9CA3AF',
+                  border:'1px solid #E5E7EB', borderRadius:'12px', fontSize:'13px', fontWeight:600, textAlign:'center' }}>
+                  🔒 세무사 전송 설정
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -546,12 +580,22 @@ export default function EvidenceCenter() {
                   </>
                 )}
               </div>
-              <button style={{ width:'100%', padding:'15px',
-                background:'linear-gradient(135deg,#6366F1,#8B5CF6)',
-                color:'#fff', border:'none', borderRadius:'14px',
-                fontSize:'14px', fontWeight:700, cursor:'pointer', marginBottom:'10px' }}>
-                ZIP 파일 생성 및 다운로드
-              </button>
+              {canExportEvidence ? (
+                <button style={{ width:'100%', padding:'15px',
+                  background:'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                  color:'#fff', border:'none', borderRadius:'14px',
+                  fontSize:'14px', fontWeight:700, cursor:'pointer', marginBottom:'10px' }}>
+                  ZIP 파일 생성 및 다운로드
+                </button>
+              ) : (
+                <div style={{ width:'100%', padding:'15px',
+                  background:'rgba(255,255,255,0.07)', color:'rgba(255,255,255,0.35)',
+                  border:'1px solid rgba(255,255,255,0.1)', borderRadius:'14px',
+                  fontSize:'14px', fontWeight:600, textAlign:'center',
+                  cursor:'not-allowed', marginBottom:'10px' }}>
+                  🔒 ZIP 생성 권한 없음 (최고관리자·관리자·재무담당자만)
+                </div>
+              )}
               <button onClick={() => setZipModal(false)}
                 style={{ width:'100%', padding:'13px', background:'rgba(255,255,255,0.08)',
                   color:'rgba(255,255,255,0.7)', border:'none', borderRadius:'14px',

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { useUser } from '../contexts/UserContext'
 import { autoClassify } from './merchantCategoryMapper'
 import BottomTab from '../components/BottomTab'
 
@@ -273,6 +274,7 @@ function ClassifySheet({ target, onSelect, onClose, theme }) {
 export default function PaymentAlerts() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const { userType } = useUser()
 
   const [activeTab, setActiveTab] = useState('all')
   const [purposeOverrides, setPurposeOverrides] = useState({})
@@ -344,19 +346,21 @@ export default function PaymentAlerts() {
             <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>
               실시간 결제
             </span>
-            {/* 소명요청 버튼 */}
-            <button onClick={() => { setSelectMode(v => !v); setSelected([]) }}
-              style={{ padding:'6px 14px', flexShrink:0,
-                background: selectMode ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.18)',
-                border:'1px solid rgba(255,255,255,0.3)', borderRadius:'20px',
-                color: selectMode ? theme.brandDark : '#fff',
-                fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                display:'flex', alignItems:'center', gap:'5px' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              내역확인요청
-            </button>
+            {/* 소명요청 버튼 — 개인은 숨김 */}
+            {userType !== 'personal' && (
+              <button onClick={() => { setSelectMode(v => !v); setSelected([]) }}
+                style={{ padding:'6px 14px', flexShrink:0,
+                  background: selectMode ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.18)',
+                  border:'1px solid rgba(255,255,255,0.3)', borderRadius:'20px',
+                  color: selectMode ? theme.brandDark : '#fff',
+                  fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                  display:'flex', alignItems:'center', gap:'5px' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                내역확인요청
+              </button>
+            )}
           </div>
 
           {/* 큰 타이틀 영역 */}
@@ -374,7 +378,7 @@ export default function PaymentAlerts() {
           {/* 탭 바 */}
           <div style={{ display:'flex', overflowX:'auto', padding:'0 16px',
             scrollbarWidth:'none', msOverflowStyle:'none' }}>
-            {TABS.map(tab => {
+            {(userType === 'personal' ? TABS.filter(t => t.key !== 'auto') : TABS).map(tab => {
               const count = tab.key === 'anomaly'
                 ? PROCESSED_PAYMENTS.filter(p => p.type === 'anomaly').length : 0
               const isActive = activeTab === tab.key
@@ -445,7 +449,7 @@ export default function PaymentAlerts() {
                   item={item}
                   override={purposeOverrides[item.id] ?? null}
                   onClassify={setClassifyTarget}
-                  onClick={() => navigate('/payments/' + item.id)}
+                  onClick={() => navigate('/payments/' + item.id, { state: { paymentType: item.type } })}
                   theme={theme}
                   selectMode={selectMode}
                   isSelected={selected.includes(item.id)}

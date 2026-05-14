@@ -41,6 +41,7 @@ const RECENT_RECIPIENTS = [
 
 const PURPOSE_META = {
   gift:       { title:'용돈선물', route:'/execute/personal/gift',       fund:'gift' },
+  living:     { title:'생활비',   route:'/execute/personal/living',     fund:'living' },
   lend:       { title:'빌려주기', route:'/execute/personal/lend',       fund:'lend' },
   freelance:  { title:'외주비',   route:'/execute/personal/freelance',  fund:'freelance' },
   realestate: { title:'부동산',   route:'/execute/personal/realestate', fund:'realestate' },
@@ -51,6 +52,7 @@ const PURPOSE_LABEL_MAP = {
   freelance:  '외주비',
   lend:       '빌려준 돈',
   gift:       '선물·용돈',
+  living:     '생활비',
   realestate: '임대료·보증금',
   invest:     '자금 지원',
 }
@@ -435,7 +437,7 @@ export default function SelectRecipient() {
                         background: COLORS.bgCard,
                         boxShadow: SHADOWS.card,
                         borderRadius: RADIUS.lg,
-                        border: isSamePurpose ? `1.5px solid ${fundColor.border}` : 'none',
+                        border: 'none',
                         display:'flex', alignItems:'center', gap:'12px',
                         cursor:'pointer', textAlign:'left', fontFamily:'inherit',
                       }}>

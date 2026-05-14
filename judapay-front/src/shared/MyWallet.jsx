@@ -1,220 +1,434 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
-import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 
-// ─── 배지 스타일 ───────────────────────────────────────────
-const BADGE = {
-  my:        { bg: '#EDE9FE', color: '#5B21B6', label: 'MY 지갑' },
-  withdraw:  { bg: '#D1FAE5', color: '#047857', label: '출금 가능' },
-  deadline:  { bg: '#FEF3C7', color: '#92400E' },
-  gift:      { bg: '#FEF3C7', color: '#92400E', label: '선물' },
-  lend:      { bg: '#DBEAFE', color: '#1E40AF', label: '대여금' },
-  invest:    { bg: '#EDE9FE', color: '#5B21B6', label: '지원금' },
-  freelance: { bg: '#FEF9C3', color: '#713F12', label: '외주비' },
-  muted:     { bg: '#F3F4F6', color: '#6B7280', label: '거의 완료' },
+const C = {
+  navy:   '#0F172A',
+  navy2:  '#1E293B',
+  navy3:  '#334155',
+  slate:  '#64748B',
+  slateL: '#94A3B8',
+  border: '#E2E8F0',
+  bg:     '#F8FAFC',
+  white:  '#FFFFFF',
+  green:  '#059669',
+  red:    '#DC2626',
 }
 
-function Badge({ text, tone }) {
-  const s = BADGE[tone] || BADGE.my
+// userType 판별 — sessionStorage.bizType 기준
+// 'business' 이면 기업 지갑 목록, 그 외 개인 지갑 목록 표시
+// 로그인 시 bizType을 sessionStorage에 저장해야 함 (→ 로그인 로직 참고)
+function getUserType() {
+  const s = sessionStorage.getItem('bizType')
+  return s === 'business' ? 'business' : 'personal'
+}
+
+const FUND_COLOR = {
+  my:           '#0F172A',
+  invest:       '#0EA5E9',
+  gift:         '#F59E0B',
+  lend:         '#6366F1',
+  freelance:    '#10B981',
+  living:       '#0E7490',
+  'invest-biz': '#8B5CF6',
+}
+
+const FUND_LABEL = {
+  my:           '내 지갑',
+  invest:       '지원금',
+  gift:         '선물',
+  lend:         '대여금',
+  freelance:    '외주비',
+  living:       '생활비',
+  'invest-biz': '투자',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 지갑 목록 데이터 구조
+//
+// [공통 필드]
+//   id           : WalletDetail.jsx WALLET_DATA 키와 반드시 일치
+//   fund         : FUND_COLOR / FUND_LABEL 키 (색상·라벨 자동 매핑)
+//   amount       : 현재 잔액 (프로그레스 바 numerator)
+//   totalAmount  : 총 수령액 또는 설정 한도 (프로그레스 바 denominator)
+//   deadlineDays : 집행 만료까지 남은 일수, null이면 표시 안함 (D-N 뱃지)
+//
+// [지갑 분류 원칙]
+//   개인→개인   : living(생활비), lend(빌려주기), gift(선물)
+//   개인→사업자 : freelance(외주비), invest(자금지원)
+//   기업→개인   : lend(대여금 tracker)
+//   기업→사업자 : invest-biz(투자 tracker)
+//   기업이 받음 : invest(지원금 새지갑 — MCC 제한 있음)
+//
+// [생활비 지갑 특이사항]
+//   최초 입금 시 새 지갑 생성 → 이후 동일 지갑에 월별 누적
+//   isRecurring: true 이면 WalletDetail에서 월별 탭 뷰로 렌더링
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 개인 지갑 예제 ───────────────────────────────────────────────────────────
+// 개인→개인: 생활비(새지갑), 자금지원(새지갑), 빌려주기(tracker)
+const PERSONAL_WALLETS = [
+  { id: 'my',          label: '내 지갑',           sub: '충전 · 노동 대가 통합',             amount: 1932000,  totalAmount: 1932000,  fund: 'my',     deadlineDays: null },
+  { id: 'living_mom',  label: '엄마 · 생활비',      sub: '매월 15일 자동입금 · 카드 결제만', amount: 285000,   totalAmount: 300000,   fund: 'living', deadlineDays: null },
+  { id: 'living_dad',  label: '아빠 · 생활비',      sub: '매월 1일 자동입금 · 7월 전환',     amount: 700000,   totalAmount: 760000,   fund: 'living', deadlineDays: null },
+  { id: 'edu',         label: '서울시 · 자금지원',  sub: '교육 목적 MCC 제한 · D-56',        amount: 240000,   totalAmount: 300000,   fund: 'invest', deadlineDays: 56   },
+  { id: 'lend_iho',    label: '이호준 · 빌려준 돈', sub: '차용증 · 상환 진행 중',            amount: 850000,   totalAmount: 1000000,  fund: 'lend',   deadlineDays: null },
+]
+
+const PERSONAL_COMPLETED = [
+  { id: 'c_living1', label: '엄마 · 4월 생활비',   sub: '잔액 소진 · 4/30' },
+  { id: 'c2',        label: '강남구 · 문화바우처',  sub: '잔액 12만원 완료 · 3/31' },
+  { id: 'c_iho',     label: '이호준 · 상환 완료',   sub: '전액 상환 · 2.15' },
+]
+
+// ── 기업 지갑 예제 ───────────────────────────────────────────────────────────
+// 기업→개인: 대여금 tracker / 기업→사업자: 투자 tracker
+// 기업이 받은: 창원진흥원 자금지원(새지갑)
+const BUSINESS_WALLETS = [
+  { id: 'my',             label: '내 지갑',              sub: '운영 자금 통합',                        amount: 8430000,   totalAmount: 8430000,  fund: 'my',           deadlineDays: null },
+  { id: 'changwon',       label: '창원진흥원 · 창업자금', sub: '사업 목적 MCC 제한 · 집행 시 진흥원 알림', amount: 3300000,  totalAmount: 5000000,  fund: 'invest',       deadlineDays: null },
+  { id: 'lend_minjun_biz',label: '박민준 · 대여금',       sub: '대여금 추적 · 상환 진행 중',             amount: 15000000, totalAmount: 30000000, fund: 'lend',         deadlineDays: null },
+  { id: 'invest_startup', label: '㈜스타트업A · 투자금',  sub: '시리즈A 투자 · 운영 현황 추적',          amount: 20000000, totalAmount: 60000000, fund: 'invest-biz',   deadlineDays: null },
+]
+
+const BUSINESS_COMPLETED = [
+  { id: 'bc1', label: '서울시 · 스타트업 지원금', sub: '잔액 소진 · 3/31' },
+  { id: 'bc2', label: '이영희 · 자금지원 완료',   sub: '전액 집행 · 4/15' },
+  { id: 'bc3', label: '정창업 · 대여금 상환',     sub: '전액 상환 · 5.01' },
+]
+
+function ChevronRight({ color = C.slateL }) {
   return (
-    <span style={{
-      padding: '2px 8px', borderRadius: '20px',
-      background: s.bg, color: s.color,
-      fontSize: '10px', fontWeight: 700, flexShrink: 0,
-    }}>
-      {text || s.label}
-    </span>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M5 3L9 7L5 11" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   )
 }
 
-// ─── 헤더 ─────────────────────────────────────────────────
-function Header({ total, walletCount, onBack }) {
-  const theme = getAccountTheme()
-  return (
-    <div style={{ background: theme.headerGrad, paddingTop: '20px', paddingBottom: '28px', flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 20px', gap: '8px' }}>
-        <button onClick={onBack} style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-          </svg>
-        </button>
-        <span style={{ fontSize: '17px', fontWeight: 700, color: '#fff', flex: 1 }}>내 지갑</span>
-      </div>
-      <div style={{ padding: '0 20px' }}>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '6px', fontWeight: 600 }}>총 보유 자금</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '10px' }}>
-          <span style={{ fontSize: '38px', fontWeight: 800, color: '#fff', letterSpacing: '-1.5px' }}>
-            {total.toLocaleString()}
-          </span>
-          <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>원</span>
-        </div>
-        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-          <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: theme.brand, marginRight: '6px', verticalAlign: 'middle' }} />
-          활성 지갑 {walletCount}개 · MY 지갑 + 받은 지갑 {walletCount - 1}개
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── MY 지갑 액션 버튼 ────────────────────────────────────
-function MyActionBtn({ label, icon, onClick }) {
-  const theme = getAccountTheme()
-  return (
-    <button onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', flex: 1 }}>
-      <div style={{ width: '52px', height: '52px', borderRadius: '18px', background: theme.activeBtnGrad, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: theme.activeShadow }}>
-        {icon}
-      </div>
-      <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.t2 }}>{label}</span>
-    </button>
-  )
-}
-
-// ─── 지갑 카드 ────────────────────────────────────────────
-function WalletCard({ wallet, onClick, isDragging, isDragOver, onDragStart, onDragOver, onDragEnd, onDrop }) {
-  const theme = getAccountTheme()
-  const isMy = wallet.id === 'my'
-  const barColor = wallet.fund === 'invest' ? '#0EA5E9' : wallet.fund === 'gift' ? '#F59E0B' : wallet.fund === 'lend' ? '#6366F1' : wallet.fund === 'freelance' ? '#10B981' : theme.brandDark
-  const pct = wallet.amount > 0 ? Math.min(100, Math.round((wallet.amount / (wallet.totalAmount || wallet.amount)) * 100)) : 2
+function WalletCard({ wallet, onClick, isMy, navigate, theme, editMode, isTop, canWithdraw = true }) {
+  const accentColor = FUND_COLOR[wallet.fund] || C.navy
+  const pct = wallet.totalAmount > 0
+    ? Math.max(2, Math.round((wallet.amount / wallet.totalAmount) * 100))
+    : 2
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(e) => { e.preventDefault(); onDragOver() }}
-      onDragEnd={onDragEnd}
-      onDrop={onDrop}
       onClick={onClick}
-      style={{ background: COLORS.bgCard, boxShadow: isDragging ? SHADOWS.cardHover : SHADOWS.card, borderRadius: RADIUS.lg, padding: '16px', marginBottom: '10px', opacity: isDragging ? 0.5 : 1, outline: isDragOver ? `2px solid ${theme.brandDark}` : 'none', cursor: 'grab', transition: 'opacity .15s' }}>
+      style={{
+        background: C.white,
+        border: editMode
+          ? isTop
+            ? `2px solid ${C.navy}`
+            : `1.5px dashed ${C.slateL}`
+          : `1px solid ${C.border}`,
+        borderRadius: '14px', overflow: 'hidden',
+        cursor: editMode ? 'pointer' : 'pointer',
+        transition: 'border .15s, box-shadow .15s',
+        boxShadow: editMode && isTop ? '0 4px 16px rgba(15,23,42,0.12)' : 'none',
+      }}
+    >
+      <div style={{ height: '3px', background: isTop && editMode ? C.navy : accentColor }} />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-          {isMy && <Badge tone="my" />}
-          {isMy && <Badge tone="withdraw" />}
-          {!isMy && wallet.deadlineDays && <Badge text={wallet.deadlineDays + "일 후 만료"} tone="deadline" />}
-          {!isMy && wallet.fund === 'gift' && <Badge tone="gift" />}
-          {!isMy && wallet.fund === 'lend' && <Badge tone="lend" />}
-          {!isMy && wallet.fund === 'invest' && <Badge tone="invest" />}
-          {!isMy && wallet.fund === 'freelance' && <Badge tone="freelance" />}
-          {!isMy && wallet.amount < 5000 && <Badge text="거의 완료" tone="muted" />}
+      <div style={{ padding: '16px 18px' }}>
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+              <div style={{
+                fontSize: '10px', fontWeight: 700,
+                color: accentColor, letterSpacing: '0.5px', textTransform: 'uppercase',
+              }}>
+                {FUND_LABEL[wallet.fund] || '지갑'}
+                {wallet.deadlineDays && (
+                  <span style={{ marginLeft: '8px', color: '#D97706', fontWeight: 700 }}>
+                    D-{wallet.deadlineDays}
+                  </span>
+                )}
+              </div>
+              {/* 최상단 뱃지 */}
+              {editMode && isTop && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '3px',
+                  background: C.navy, borderRadius: '5px',
+                  padding: '2px 7px',
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <path d="M4.5 1L5.8 3.7L8.8 4.1L6.65 6.2L7.1 9.1L4.5 7.7L1.9 9.1L2.35 6.2L0.2 4.1L3.2 3.7L4.5 1Z" fill="#fff"/>
+                  </svg>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: C.white, letterSpacing: '0.3px' }}>최상단</span>
+                </div>
+              )}
+              {/* 선택 유도 */}
+              {editMode && !isTop && (
+                <div style={{
+                  fontSize: '9px', fontWeight: 600, color: C.slateL,
+                  background: C.bg, border: `1px solid ${C.border}`,
+                  borderRadius: '5px', padding: '2px 7px', letterSpacing: '0.2px',
+                }}>탭하면 최상단</div>
+              )}
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: editMode && !isTop ? C.slate : C.navy, letterSpacing: '-0.4px' }}>
+              {wallet.label}
+            </div>
+            <div style={{ fontSize: '12px', color: C.slateL, marginTop: '2px' }}>{wallet.sub}</div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: editMode && !isTop ? C.slateL : C.navy, letterSpacing: '-0.7px' }}>
+              {wallet.amount.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '11px', color: C.slateL }}>원</div>
+          </div>
         </div>
-        <span style={{ fontSize: '14px', fontWeight: 700, color: COLORS.t1, flexShrink: 0 }}>{wallet.amount.toLocaleString()}원</span>
-      </div>
 
-      <div style={{ fontSize: '16px', fontWeight: 700, color: COLORS.t1, marginBottom: '3px' }}>{wallet.label}</div>
-      <div style={{ fontSize: '12px', color: COLORS.t3, marginBottom: '12px' }}>{wallet.sub}</div>
-
-      <div style={{ height: '3px', borderRadius: '2px', background: COLORS.bgMuted, overflow: 'hidden', marginBottom: isMy ? '14px' : '0' }}>
-        <div style={{ width: pct + '%', height: '100%', background: barColor, borderRadius: '2px', transition: 'width 0.4s ease' }} />
-      </div>
-
-      {isMy && (
-        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-          <MyActionBtn label="출금" onClick={(e) => e.stopPropagation()} icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>} />
-          <MyActionBtn label="집행" onClick={(e) => e.stopPropagation()} icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>} />
-          <MyActionBtn label="충전" onClick={(e) => e.stopPropagation()} icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>} />
+        {/* Progress bar */}
+        <div style={{
+          height: '3px', background: C.bg, borderRadius: '2px',
+          overflow: 'hidden', marginBottom: (isMy && !editMode) ? '16px' : '0',
+        }}>
+          <div style={{
+            width: pct + '%', height: '100%',
+            background: isTop && editMode ? C.navy : accentColor, borderRadius: '2px',
+            opacity: wallet.amount < 5000 ? 0.35 : 1,
+          }} />
         </div>
-      )}
+
+        {/* MY wallet action buttons — 일반 모드에서만 */}
+        {isMy && !editMode && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+            {canWithdraw ? (
+              <button
+                onClick={e => { e.stopPropagation(); navigate('/withdraw') }}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: '9px',
+                  background: C.bg, color: C.navy2,
+                  border: `1.5px solid ${C.border}`,
+                  fontSize: '13px', fontWeight: 700,
+                  cursor: 'pointer', letterSpacing: '-0.3px',
+                }}
+              >출금</button>
+            ) : (
+              <div style={{
+                flex: 1, padding: '11px 0', borderRadius: '9px',
+                background: '#F9FAFB', color: '#9CA3AF',
+                border: `1.5px solid #E5E7EB`,
+                fontSize: '12px', fontWeight: 700,
+                textAlign: 'center', letterSpacing: '-0.3px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+              }}>
+                🔒 출금
+              </div>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); navigate('/charge') }}
+              style={{
+                flex: 1, padding: '11px 0', borderRadius: '9px',
+                background: theme ? theme.activeBtnGrad : C.navy,
+                color: C.white, border: 'none',
+                fontSize: '13px', fontWeight: 700,
+                cursor: 'pointer', letterSpacing: '-0.3px',
+                boxShadow: theme ? theme.activeShadow : 'none',
+              }}
+            >충전</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-// ─── 완료된 지갑 ─────────────────────────────────────────
-function CompletedCard({ wallet, isLast }) {
-  return (
-    <div style={{ borderBottom: isLast ? 'none' : '1px solid ' + COLORS.borderSoft, padding: '13px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: COLORS.bgMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={COLORS.t4} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: COLORS.t2, marginBottom: '2px' }}>{wallet.label}</div>
-        <div style={{ fontSize: '10px', color: COLORS.t4 }}>{wallet.sub}</div>
-      </div>
-      <span style={{ padding: '2px 8px', background: COLORS.bgMuted, color: COLORS.t4, borderRadius: '20px', fontSize: '10px', fontWeight: 600 }}>완료</span>
-    </div>
-  )
-}
-
-// ─── 데이터 ──────────────────────────────────────────────
-const INIT_WALLETS = [
-  { id: 'my', label: '내 지갑', sub: '충전 + 노동 대가 통합', amount: 1932000, totalAmount: 1932000, fund: null, deadlineDays: null },
-  { id: 'edu', label: '서울시 · 교육비 지원', sub: '학원·서점 MCC 전용 · 카드 결제만', amount: 240000, totalAmount: 300000, fund: 'invest', deadlineDays: 56 },
-  { id: 'mom', label: '엄마 · 용돈', sub: '3회 누적 · 카드 결제만', amount: 200000, totalAmount: 200000, fund: 'gift', deadlineDays: null },
-  { id: 'lent', label: '박민준 · 빌려준 돈', sub: '잔액 거의 소진', amount: 820, totalAmount: 1000000, fund: 'lend', deadlineDays: null },
-]
-const COMPLETED = [
-  { id: 'c1', label: '서울시 · 4월 교육비', sub: '잔액 사용 · 4/30' },
-  { id: 'c2', label: '강남구 · 문화바우처', sub: '잔액 12만원 완료 · 3/31' },
-]
-
-// ─── 메인 ─────────────────────────────────────────────────
 export default function MyWallet() {
-  const navigate = useNavigate()
-  const [wallets, setWallets] = useState(INIT_WALLETS)
-  const [dragIdx, setDragIdx] = useState(null)
-  const [overIdx, setOverIdx] = useState(null)
+  const navigate  = useNavigate()
+  const theme     = getAccountTheme()
+  const userType  = getUserType()
+  const initList  = userType === 'business' ? BUSINESS_WALLETS : PERSONAL_WALLETS
+  const completed = userType === 'business' ? BUSINESS_COMPLETED : PERSONAL_COMPLETED
+
+  const [wallets, setWallets]   = useState(initList)
+  const [editMode, setEditMode] = useState(false)
   const total = wallets.reduce((s, w) => s + w.amount, 0)
 
-  const handleDrop = (dropIdx) => {
-    if (dragIdx === null || dragIdx === dropIdx) return
+  // [권한] 기업 기준 viewer 는 출금 버튼 비활성화
+  const bizRole    = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canWithdraw = userType !== 'business' || bizRole !== 'viewer'
+
+  // 선택한 지갑을 최상단으로 이동
+  const moveToTop = idx => {
+    if (idx === 0) return
     const next = [...wallets]
-    const [moved] = next.splice(dragIdx, 1)
-    next.splice(dropIdx, 0, moved)
+    const [picked] = next.splice(idx, 1)
+    next.unshift(picked)
     setWallets(next)
-    setDragIdx(null); setOverIdx(null)
+  }
+
+  const handleCardClick = (idx) => {
+    if (editMode) {
+      moveToTop(idx)
+    } else {
+      navigate('/wallet/' + wallets[idx].id)
+    }
   }
 
   return (
     <PhoneShell>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header total={total} walletCount={wallets.length} onBack={() => navigate(-1)} />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 32px' }}>
+        {/* ── Header ── */}
+        <div style={{ background: theme.headerGrad, paddingTop: '20px', paddingBottom: '28px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 20px' }}>
+            <button onClick={() => navigate(-1)} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: C.white, padding: '4px', display: 'flex',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 15L7.5 10L12.5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span style={{
+              flex: 1, fontSize: '16px',
+              fontWeight: 700, color: C.white, letterSpacing: '-0.5px',
+              marginLeft: '8px',
+            }}>내 지갑</span>
+          </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: COLORS.t1, marginBottom: '2px' }}>결제 우선순위</div>
-                <div style={{ fontSize: '11px', color: COLORS.t4 }}>위에서부터 순서대로 사용</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: COLORS.t3, fontWeight: 600 }}>
-                위에서부터 사용
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLORS.t3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-              </div>
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ fontSize: '11px', color: C.slateL, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: '8px' }}>
+              총 보유 자금
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '40px', fontWeight: 800, color: C.white, letterSpacing: '-2px', lineHeight: 1 }}>
+                {total.toLocaleString()}
+              </span>
+              <span style={{ fontSize: '16px', color: C.slateL, fontWeight: 500 }}>원</span>
             </div>
 
-            {wallets.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', color: '#9CA3AF', lineHeight: 1.7 }}>
-                  활성화된 지갑이 없습니다.
+            <div style={{ display: 'flex', gap: '1px', background: 'rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+              {[
+                { label: '활성 지갑', value: wallets.length + '개' },
+                { label: '출금 가능', value: wallets.find(w => w.id === 'my')?.amount.toLocaleString() + '원' },
+                { label: '받은 지갑', value: (wallets.length - 1) + '개' },
+              ].map(item => (
+                <div key={item.label} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', padding: '10px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', color: C.slateL, marginBottom: '3px' }}>{item.label}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: C.white }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '20px 16px 40px' }}>
+
+          {/* Priority section */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: C.navy, letterSpacing: '-0.4px' }}>
+                  결제 우선순위
+                </div>
+                <div style={{ fontSize: '11px', color: C.slateL, marginTop: '2px' }}>
+                  {editMode ? '지갑을 탭하면 최상단으로 이동' : '위에서부터 순서대로 사용'}
                 </div>
               </div>
-            ) : wallets.map((w, i) => (
-              <WalletCard
-                key={w.id} wallet={w}
-                onClick={() => navigate('/wallet/' + w.id)}
-                isDragging={dragIdx === i} isDragOver={overIdx === i}
-                onDragStart={() => setDragIdx(i)}
-                onDragOver={() => setOverIdx(i)}
-                onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
-                onDrop={() => handleDrop(i)}
-              />
+
+              <button
+                onClick={() => setEditMode(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '7px 14px', borderRadius: '20px',
+                  background: editMode ? C.navy : C.white,
+                  border: `1.5px solid ${editMode ? C.navy : C.border}`,
+                  color: editMode ? C.white : C.navy,
+                  fontSize: '12px', fontWeight: 700,
+                  cursor: 'pointer', letterSpacing: '-0.2px',
+                  transition: 'all .15s',
+                }}
+              >
+                {editMode ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke={C.white} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    완료
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 1.5L6 10.5M3 4.5L6 1.5L9 4.5" stroke={C.navy} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    순서편집
+                  </>
+                )}
+              </button>
+            </div>
+
+            {wallets.map((w, i) => (
+              <div
+                key={w.id}
+                style={{ marginBottom: '10px', transition: 'all .2s' }}
+              >
+                <WalletCard
+                  wallet={w}
+                  isMy={w.id === 'my'}
+                  navigate={navigate}
+                  theme={theme}
+                  editMode={editMode}
+                  isTop={i === 0}
+                  onClick={() => handleCardClick(i)}
+                  canWithdraw={canWithdraw}
+                />
+              </div>
             ))}
           </div>
 
+          {/* Completed wallets */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: COLORS.t1 }}>완료된 지갑 ({COMPLETED.length})</span>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: COLORS.t3, fontWeight: 600, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                전체 보기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLORS.t3} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: C.navy, letterSpacing: '-0.3px' }}>
+                완료된 지갑
+                <span style={{ color: C.slateL, fontWeight: 400, marginLeft: '4px' }}>({completed.length})</span>
+              </span>
+              <button
+                onClick={() => navigate('/wallet/completed')}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '2px',
+                  fontSize: '12px', color: C.slate, fontFamily: 'inherit', fontWeight: 600,
+                }}>전체 보기 <ChevronRight color={C.slate} /></button>
             </div>
-            <div style={{ background: COLORS.bgCard, boxShadow: SHADOWS.card, borderRadius: RADIUS.lg, padding: '0 16px' }}>
-              {COMPLETED.map((w, i) => <CompletedCard key={w.id} wallet={w} isLast={i === COMPLETED.length - 1} />)}
+
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: '12px', overflow: 'hidden' }}>
+              {completed.map((w, i) => (
+                <div key={w.id} onClick={() => navigate('/wallet/' + w.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '13px 18px',
+                  borderBottom: i < completed.length - 1 ? `1px solid ${C.bg}` : 'none',
+                  cursor: 'pointer',
+                }}>
+                  <div style={{
+                    width: '30px', height: '30px', borderRadius: '50%',
+                    background: C.bg, border: `1px solid ${C.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M2 6.5L5 9.5L11 3.5" stroke={C.slateL} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: C.slate, letterSpacing: '-0.2px' }}>{w.label}</div>
+                    <div style={{ fontSize: '11px', color: C.slateL, marginTop: '1px' }}>{w.sub}</div>
+                  </div>
+                  <div style={{
+                    fontSize: '10px', fontWeight: 700, color: C.slateL,
+                    background: C.bg, border: `1px solid ${C.border}`,
+                    padding: '2px 8px', borderRadius: '5px', letterSpacing: '0.3px',
+                  }}>완료</div>
+                </div>
+              ))}
             </div>
           </div>
+
         </div>
       </div>
     </PhoneShell>

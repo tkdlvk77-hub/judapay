@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction } from '../design/components'
+import { PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction, AccountTransition } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import BottomTab from '../components/BottomTab'
@@ -105,6 +105,26 @@ export default function HomeBusiness() {
   // 자동 지출 중 미납 건 감지 (자동납부 항목 중 status가 '미납중'인 경우)
   const hasUnpaid = EXECUTING.some(e => e.status === '미납중')
 
+  // [권한] 역할별 버튼 제한
+  // staff: 집행·충전·출금 불가
+  // viewer: 집행·충전·출금 모두 불가
+  // manager: 집행 불가 (충전·출금은 가능)
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || '' : ''
+  const canExecute  = !['viewer', 'manager', 'staff'].includes(bizRole)
+  const canWithdraw = !['viewer', 'staff'].includes(bizRole)
+  const canCharge   = !['viewer', 'staff'].includes(bizRole)
+
+  // 계정 전환 애니메이션
+  const [transitioning, setTransitioning] = useState(false)
+  const handleSwitchToPersonal = () => {
+    setTransitioning(true)
+    setTimeout(() => {
+      sessionStorage.setItem('bizType', 'personal')
+      sessionStorage.removeItem('bizRole')
+      navigate('/home')
+    }, 750)
+  }
+
   const [todoExpanded, setTodoExpanded] = useState(false)
   const [showWalletSheet, setShowWalletSheet] = useState(false)
   const [selectedWalletId, setSelectedWalletId] = useState('corp')
@@ -135,6 +155,7 @@ export default function HomeBusiness() {
               accent="BUSINESS"
               name={COMPANY.name}
               sub={COMPANY.month}
+              onIconClick={handleSwitchToPersonal}
               action={
                 urgentTotal > 0 ? (
                   <button onClick={() => navigate('/payment-alerts')} style={{ display:'flex', alignItems:'center', gap:'5px', padding:'5px 10px', background:'rgba(239,68,68,0.25)', border:'1px solid rgba(239,68,68,0.4)', borderRadius:'20px', cursor:'pointer', fontFamily:'inherit' }}>
@@ -168,10 +189,29 @@ export default function HomeBusiness() {
             />
             {/* 4개 액션 버튼 */}
             <div style={{ display:'flex', justifyContent:'space-around', padding:'14px 24px 4px' }}>
-              <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>} label="충전" onClick={() => navigate('/charge')} />
-              <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>} label="집행" active onClick={() => navigate('/execute')} />
+              <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>} label="충전" onClick={canCharge ? () => navigate('/charge') : undefined}
+                locked={!canCharge} />
+              {canExecute ? (
+                <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>} label="집행" active onClick={() => navigate('/execute')} />
+              ) : (
+                <div style={{ padding:'4px', display:'flex', flexDirection:'column', alignItems:'center', gap:'7px', opacity:0.4, cursor:'not-allowed' }}>
+                  <div style={{ width:'54px', height:'54px', borderRadius:'14px', background:'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.9)', fontWeight:500 }}>집행</span>
+                </div>
+              )}
               <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg>} label="카드" onClick={() => navigate('/card-payment')} />
-              <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>} label="출금" onClick={() => navigate('/withdraw')} />
+              {canWithdraw ? (
+                <CircleAction icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>} label="출금" onClick={() => navigate('/withdraw')} />
+              ) : (
+                <div style={{ padding:'4px', display:'flex', flexDirection:'column', alignItems:'center', gap:'7px', opacity:0.4, cursor:'not-allowed' }}>
+                  <div style={{ width:'54px', height:'54px', borderRadius:'14px', background:'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.9)', fontWeight:500 }}>출금</span>
+                </div>
+              )}
             </div>
           </GradientHeader>
 
@@ -387,6 +427,11 @@ export default function HomeBusiness() {
         </div>
 
         <BottomTab />
+        <AccountTransition
+          visible={transitioning}
+          message="개인 모드로 전환되었습니다."
+          gradient="linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#6366F1 100%)"
+        />
 
         {/* 출금 지갑 변경 바텀시트 */}
         {showWalletSheet && (

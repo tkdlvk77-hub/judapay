@@ -91,6 +91,12 @@ export default function ExecuteOperations() {
   const navigate = useNavigate()
   const theme = getAccountTheme('business')
 
+  // [권한] 자동지급 등록은 master/admin/accounting만 가능
+  // staff는 자동이체 신규 등록 불가 (집행 요청 단계까지만)
+  const bizRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizRole') || 'viewer' : 'viewer'
+  const AUTO_PAY_ALLOWED = ['master', 'admin', 'accounting']
+  const canRegisterAutoPay = AUTO_PAY_ALLOWED.includes(bizRole)
+
   return (
     <PhoneShell>
       <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
@@ -118,20 +124,33 @@ export default function ExecuteOperations() {
         <div style={{ padding:'18px 16px 32px' }}>
 
           {/* 카테고리 카드 6개 — 심플 */}
+          {/* staff 안내 배너 */}
+          {!canRegisterAutoPay && (
+            <div style={{ marginBottom:'12px', padding:'12px 14px', background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:'12px', display:'flex', alignItems:'flex-start', gap:'10px' }}>
+              <span style={{ fontSize:'16px', flexShrink:0 }}>⚠️</span>
+              <div>
+                <div style={{ fontSize:'12px', fontWeight:700, color:'#92400E', marginBottom:'2px' }}>자동이체 신규 등록 불가</div>
+                <div style={{ fontSize:'11px', color:'#B45309', lineHeight:1.5 }}>일반구성원은 자동이체를 새로 등록할 수 없습니다.<br/>기존 자동이체 현황은 조회만 가능합니다.</div>
+              </div>
+            </div>
+          )}
+
           <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
             {OPERATION_CATEGORIES.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => navigate(cat.path)}
+                onClick={() => canRegisterAutoPay && navigate(cat.path)}
                 style={{
                   width:'100%', padding:'16px',
-                  background: COLORS.bgCard,
+                  background: canRegisterAutoPay ? COLORS.bgCard : '#F9FAFB',
                   border:`0.5px solid ${COLORS.border}`,
                   borderRadius: RADIUS.lg,
-                  cursor:'pointer', fontFamily:'inherit',
+                  cursor: canRegisterAutoPay ? 'pointer' : 'not-allowed',
+                  fontFamily:'inherit',
                   textAlign:'left',
                   display:'flex', alignItems:'center', gap:'14px',
                   transition:'all .15s',
+                  opacity: canRegisterAutoPay ? 1 : 0.55,
                 }}
               >
                 {/* 아이콘 */}
