@@ -5,13 +5,7 @@ import { useUser } from '../../contexts/UserContext'
 const KEYS = [1,2,3,4,5,6,7,8,9,null,0,'del']
 const SUB = {2:'ABC',3:'DEF',4:'GHI',5:'JKL',6:'MNO',7:'PQRS',8:'TUV',9:'WXYZ'}
 
-function Sbar() {
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 22px 6px', fontSize:'12px', fontWeight:'600', color:'#111' }}>
-      <span>9:41</span><span style={{ fontSize:'11px' }}>5G ▮</span>
-    </div>
-  )
-}
+function Sbar() { return null }
 
 function Keypad({ onKey }) {
   return (
@@ -150,9 +144,7 @@ export default function SignupPin() {
   // PIN 입력
   return (
     <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 22px 6px', fontSize:'12px', fontWeight:'600', color:'#111' }}>
-        <span>9:41</span><span style={{ fontSize:'11px' }}>5G ▮</span>
-      </div>
+
       <div style={{ padding:'2px 20px 0', textAlign:'right', fontSize:'11px', color:'#C8C5BE' }}>가입 완료 · 마지막 단계</div>
 
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'32px 24px 0' }}>

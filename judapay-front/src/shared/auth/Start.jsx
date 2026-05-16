@@ -36,16 +36,6 @@ export default function Start() {
       overflow: 'hidden',
     }}>
 
-      {/* 상태바 */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        padding: '14px 24px 0',
-        fontSize: '12px', fontWeight: 600, color: '#fff',
-      }}>
-        <span>9:41</span>
-        <span style={{ fontSize: '11px' }}>5G 100%</span>
-      </div>
-
       {/* 히어로 영역 — 세로 중앙 정렬 */}
       <div style={{
         flex: 1,

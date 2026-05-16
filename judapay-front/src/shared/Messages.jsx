@@ -115,7 +115,7 @@ export default function Messages() {
   if (activeThread && showDetail) {
     return (
       <div className="phone flex flex-col" style={{ height:'100vh', overflow:'hidden' }}>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <DetailScreen thread={thread} onBack={() => setShowDetail(false)} />
         </div>
       </div>
@@ -126,7 +126,7 @@ export default function Messages() {
   if (activeThread) {
     return (
       <div className="phone flex flex-col" style={{ height:'100vh', overflow:'hidden' }}>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <ChatRoom
             thread={thread}
             chat={chat}

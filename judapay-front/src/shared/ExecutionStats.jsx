@@ -603,7 +603,7 @@ function CategoryGroupDetail({ group, multi, txns, onBack, theme, initialPeriod 
     : groupTxns.filter(t => t.cat === group.subs.find(s => s.label === subFilter)?.id)
 
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
       {/* 헤더 */}
       <div style={{ background: theme.headerGrad, paddingTop:'20px', flexShrink:0 }}>
         {/* 네비 */}
@@ -856,7 +856,7 @@ function WalletStatsDetail({ wallet, userType, displayGroups, groupTxns, onBack,
     : (WALLET_SPEND[wallet.id] || [])
 
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
       {/* ── 헤더 ── */}
       <div style={{ background: theme.headerGrad, paddingTop:'20px', flexShrink:0 }}>
@@ -1138,7 +1138,7 @@ export default function ExecutionStats() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
         {/* 헤더 — 고정 */}
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'16px', position:'relative', zIndex:10, flexShrink:0 }}>

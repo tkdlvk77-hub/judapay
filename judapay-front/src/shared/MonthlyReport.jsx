@@ -570,7 +570,7 @@ function ReportDetail({ r, theme, onClose, canExportReport }) {
 
   return (
     <div style={{ position:'absolute', inset:0, background:COLORS.bg, zIndex:20,
-      display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      display:'flex', flexDirection:'column', overflow:'clip' }}>
 
       {/* 헤더 */}
       <div style={{ background:theme.headerGrad, padding:'24px 16px 0', flexShrink:0 }}>
@@ -1633,7 +1633,7 @@ export default function MonthlyReport() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
         {selected && <ReportDetail r={selected} theme={theme} onClose={() => setSelected(null)} canExportReport={canExportReport} />}
 
         <div style={{ flex:1, overflowY:'auto' }}>

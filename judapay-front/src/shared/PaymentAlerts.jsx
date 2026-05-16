@@ -328,7 +328,7 @@ export default function PaymentAlerts() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
 
         {/* ── 헤더 ── */}
         <div style={{ background: theme.headerGrad, flexShrink:0, paddingTop:'20px', paddingBottom:'0' }}>

@@ -39,10 +39,6 @@ export default function Login() {
 
   return (
     <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 22px 6px', fontSize:'12px', fontWeight:'600', color:'#111' }}>
-        <span>9:41</span><span style={{ fontSize:'11px' }}>5G ▮</span>
-      </div>
-
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'48px 24px 0' }}>
         {/* 로고 */}
         <div style={{ width:'52px', height:'52px', background:'#111', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'14px' }}>

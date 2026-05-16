@@ -8,11 +8,7 @@
 import { useNavigate } from 'react-router-dom'
 
 export function StatusBar() {
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 22px 6px', fontSize:'12px', fontWeight:'600', color:'#111' }}>
-      <span>9:41</span><span style={{ fontSize:'11px' }}>5G ▮</span>
-    </div>
-  )
+  return null
 }
 
 export function ExecuteHeader({

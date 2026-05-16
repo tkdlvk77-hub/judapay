@@ -224,7 +224,7 @@ export default function ExecuteAutoPayAll() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
             {/* 헤더 */}
             <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
@@ -362,7 +362,7 @@ export default function ExecuteAutoPayAll() {
   // ── 목록 화면 ──────────────────────────────────────────
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
         <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
           {/* 헤더 */}
           <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>

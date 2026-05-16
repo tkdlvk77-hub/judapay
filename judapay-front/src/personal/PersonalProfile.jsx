@@ -366,7 +366,7 @@ export default function PersonalProfile() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
         {/* ── 헤더 ── */}
         <div style={{ background: theme.headerGrad, flexShrink:0, paddingTop:'20px' }}>

@@ -2514,7 +2514,7 @@ export default function ApprovalCenter() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
 
         {/* ── 헤더 ── */}
         <div style={{ background: theme.headerGrad, padding:'28px 16px 0', flexShrink:0 }}>

@@ -603,7 +603,7 @@ export default function ExecuteRentLease() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
             <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -757,7 +757,7 @@ export default function ExecuteRentLease() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
             <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -909,7 +909,8 @@ export default function ExecuteRentLease() {
   // ═══════════════════════════════════════════════════════════
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+        <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 헤더 */}
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
@@ -1005,11 +1006,13 @@ export default function ExecuteRentLease() {
             })}
           </div>
 
-          <button onClick={() => { resetShared(); setScreen('addType') }}
-            style={{ width:'100%', padding:'15px', background: theme.activeBtnGrad, color:'#fff', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow: theme.activeShadow }}>
-            <span style={{ fontSize:'18px' }}>+</span> 렌트&리스 추가
-          </button>
         </div>
+      </div>
+      <div style={{ flexShrink:0, padding:'12px 16px 20px', background:COLORS.bgCard, borderTop:`1px solid ${COLORS.borderSoft}`, boxShadow:'0 -4px 16px rgba(0,0,0,0.06)' }}>
+        <button onClick={() => { resetShared(); setScreen('addType') }}
+          style={{ width:'100%', padding:'15px', background: theme.activeBtnGrad, color:'#fff', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow: theme.activeShadow }}>
+          <span style={{ fontSize:'18px' }}>+</span> 렌트&리스 추가
+        </button>
       </div>
 
       {/* 리스트 화면 나가기 모달 */}
@@ -1025,6 +1028,7 @@ export default function ExecuteRentLease() {
           </div>
         </div>
       )}
-    </PhoneShell>
+    </div>
+  </PhoneShell>
   )
 }

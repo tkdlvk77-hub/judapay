@@ -41,7 +41,6 @@ export default function SignupPersonal() {
 
   return (
     <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
-      <div style={S.sbar}><span>9:41</span><span style={{ fontSize:'11px' }}>5G ▮</span></div>
       <div style={S.backRow}>
         <button style={S.backBtn} onClick={() => navigate('/')}>‹</button>
         <span style={{ fontSize:'15px', fontWeight:'700', color:'#111' }}>개인 가입</span>

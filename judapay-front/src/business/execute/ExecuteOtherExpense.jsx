@@ -641,7 +641,7 @@ export default function ExecuteOtherExpense() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
             <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -766,7 +766,7 @@ export default function ExecuteOtherExpense() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
             <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -882,7 +882,7 @@ export default function ExecuteOtherExpense() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
         <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
           {/* 헤더 */}
           <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>

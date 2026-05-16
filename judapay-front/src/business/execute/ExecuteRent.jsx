@@ -393,7 +393,7 @@ export default function ExecuteRent() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
             {/* ── 헤더 ─────────────────────────────────── */}

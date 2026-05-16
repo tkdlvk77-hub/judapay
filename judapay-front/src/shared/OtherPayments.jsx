@@ -35,7 +35,7 @@ export default function OtherPayments() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
         {/* 헤더 */}
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'16px', flexShrink:0 }}>

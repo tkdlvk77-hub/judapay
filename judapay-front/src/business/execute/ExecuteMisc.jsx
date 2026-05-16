@@ -328,7 +328,8 @@ export default function ExecuteMisc() {
   // ── 목록 화면 ─────────────────────────────────────────────
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+        <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
             <BackBtn onClick={() => navigate(-1)} />
@@ -374,11 +375,14 @@ export default function ExecuteMisc() {
               </button>
             )
           })}
-          <button onClick={() => setScreen('addForm')}
-            style={{ width:'100%', padding:'14px', borderRadius: RADIUS.lg, border:`2px dashed ${COLORS.border}`, background:'transparent', fontSize:'13px', fontWeight:600, color: COLORS.t3, cursor:'pointer', fontFamily:'inherit' }}>
-            + 지출 항목 추가
-          </button>
         </div>
+        </div>
+      </div>
+      <div style={{ flexShrink:0, padding:'12px 16px 20px', background:COLORS.bgCard, borderTop:`1px solid ${COLORS.borderSoft}`, boxShadow:'0 -4px 16px rgba(0,0,0,0.06)' }}>
+        <button onClick={() => setScreen('addForm')}
+          style={{ width:'100%', padding:'15px', background:theme.activeBtnGrad || theme.brand, color:'#fff', border:'none', borderRadius: RADIUS.md, fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow:theme.activeShadow }}>
+          <span style={{ fontSize:'18px' }}>+</span> 지출 항목 추가
+        </button>
       </div>
     </PhoneShell>
   )

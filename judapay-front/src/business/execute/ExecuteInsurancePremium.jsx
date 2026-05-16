@@ -604,7 +604,7 @@ export default function ExecuteInsurancePremium() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
             <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -791,7 +791,7 @@ export default function ExecuteInsurancePremium() {
 
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
             <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
@@ -940,7 +940,8 @@ export default function ExecuteInsurancePremium() {
   // ── 목록 화면 ────────────────────────────────────────────
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+        <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
         <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 14px' }}>
             <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
@@ -1033,12 +1034,14 @@ export default function ExecuteInsurancePremium() {
             })}
           </div>
 
-          <button onClick={() => setScreen('addType')}
-            style={{ width:'100%', padding:'14px 16px', background:COLORS.bgCard, border:`2px dashed ${COLORS.borderSoft}`, borderRadius:'16px', cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', outline:'none' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.brand} strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span style={{ fontSize:'14px', fontWeight:600, color:theme.brand }}>보험 추가</span>
-          </button>
         </div>
+        </div>
+      </div>
+      <div style={{ flexShrink:0, padding:'12px 16px 20px', background:COLORS.bgCard, borderTop:`1px solid ${COLORS.borderSoft}`, boxShadow:'0 -4px 16px rgba(0,0,0,0.06)' }}>
+        <button onClick={() => setScreen('addType')}
+          style={{ width:'100%', padding:'15px', background:theme.activeBtnGrad || theme.brand, color:'#fff', border:'none', borderRadius:'14px', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', boxShadow:theme.activeShadow, outline:'none' }}>
+          <span style={{ fontSize:'18px' }}>+</span> 보험 추가
+        </button>
       </div>
       {showExitModal && (
         <div onClick={() => setShowExitModal(false)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'24px' }}>

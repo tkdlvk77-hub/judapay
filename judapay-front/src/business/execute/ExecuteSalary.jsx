@@ -774,7 +774,7 @@ export default function ExecuteSalary() {
   if (screen === 'addForm' || (screen === 'detail' && selectedChart)) {
     return (
       <PhoneShell>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
 
             {/* 헤더 — 유리 카드 없음, 타이틀만 */}

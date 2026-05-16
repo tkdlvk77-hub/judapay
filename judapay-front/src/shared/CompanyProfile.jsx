@@ -526,7 +526,7 @@ function PublicPreview({ theme, onClose }) {
   )
 
   return (
-    <div style={{ position:'absolute', inset:0, zIndex:50, background:COLORS.bg, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ position:'absolute', inset:0, zIndex:50, background:COLORS.bg, display:'flex', flexDirection:'column', overflow:'clip' }}>
       <div style={{ background:theme.headerGrad, padding:'24px 20px 20px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
           <button onClick={onClose}
@@ -820,7 +820,7 @@ export default function CompanyProfile() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
 
           {/* 헤더 — 고정 */}
           <div style={{ background:theme.headerGrad, flexShrink:0 }}>

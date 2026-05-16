@@ -138,7 +138,7 @@ export default function HomeBusiness() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
         <div style={{ flex:1, overflowY:'auto' }}>
 
           {/* ── 헤더 (기존 유지) ── */}
