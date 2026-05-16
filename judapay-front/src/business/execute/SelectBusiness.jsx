@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 import { StatusBar, ExecuteHeader } from '../../components/ExecuteHeader'
 
 // 최근 거래 사업자 (실제는 백엔드)
@@ -47,6 +48,7 @@ const formatBizNumber = (raw) => {
 
 export default function SelectBusiness() {
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [searchParams] = useSearchParams()
   const purpose = searchParams.get('purpose') || 'freelance'
   const meta = PURPOSE_META[purpose] || PURPOSE_META.freelance
@@ -159,7 +161,7 @@ export default function SelectBusiness() {
           onClose={handleClose}
         />
 
-        <div style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
 
           {/* 정상 사업자 카드 */}
           <div style={{ background:'#E6F5EF', border:'1px solid #B5DDC8', borderRadius:'16px', padding:'16px', marginBottom:'14px' }}>
@@ -245,7 +247,7 @@ export default function SelectBusiness() {
           onClose={handleClose}
         />
 
-        <div style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
 
           {/* 폐업 경고 */}
           <div style={{ background:'#FDECEC', border:'1px solid #F0B8B8', borderRadius:'16px', padding:'16px', marginBottom:'14px' }}>
@@ -324,7 +326,7 @@ export default function SelectBusiness() {
         onClose={handleClose}
       />
 
-      <div style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'0 16px 24px' }}>
 
         {/* 사업자번호 입력 카드 */}
         <div style={{ background:'#fff', border:'0.5px solid #E8E4DC', borderRadius:'16px', padding:'16px', marginBottom:'10px' }}>

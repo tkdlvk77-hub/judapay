@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS, GRADIENTS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -207,6 +208,7 @@ export default function PaymentLogs() {
   const navigate = useNavigate()
   const location = useLocation()
   const cardLabel = location.state?.cardLabel || null
+  const scrollRef = useScrollRestore()
   const [filter, setFilter] = useState('all')
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState([])
@@ -256,7 +258,7 @@ export default function PaymentLogs() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
         <DarkHeader
           cardLabel={cardLabel}
           count={ALL_LOGS.length}

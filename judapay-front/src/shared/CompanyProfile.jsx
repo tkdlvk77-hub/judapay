@@ -21,6 +21,7 @@ import {
   STATUS_CFG, CATEGORY_CFG, CATEGORY_STATUSES,
 } from './companyProfileStore'
 import { seedDemoTransactions } from './transactionStore'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // 데모 데이터 초기화 (개발용)
 seedDemoTransactions()
@@ -796,6 +797,7 @@ export default function CompanyProfile() {
   const navigate = useNavigate()
   const location = useLocation()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [lang, setLang] = useState(getLang())
   const [tab, setTab] = useState(location.state?.tab || 'intro')
   const [showPreview, setShowPreview] = useState(false)
@@ -852,16 +854,12 @@ export default function CompanyProfile() {
           </div>
 
         {/* 탭 콘텐츠 — 스크롤 영역 */}
-        <div style={{ flex:1, overflowY:'auto' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
           {/* 미리보기 오버레이 */}
           {showPreview && <PublicPreview theme={theme} onClose={() => setShowPreview(false)} />}
-
-          {tab==='intro'     && <IntroTab     lang={lang} theme={theme} canEditProfile={canEditProfile} />}
-          {tab==='activity'  && <ActivityTab  lang={lang} theme={theme} />}
-          {tab==='operation' && <OperationTab lang={lang} theme={theme} />}
-          {tab==='projects'  && <ProjectTab   lang={lang} theme={theme} canEditProfile={canEditProfile} />}
         </div>
       </div>
+      <BottomTab />
     </PhoneShell>
   )
 }

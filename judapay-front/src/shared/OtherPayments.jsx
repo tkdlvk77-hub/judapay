@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 데모 데이터 ──────────────────────────────────────────
 const ALL_OTHER_PAYMENTS = [
@@ -24,6 +25,7 @@ function fmt(n) { return Number(n || 0).toLocaleString('ko-KR') }
 export default function OtherPayments() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [activeFilter, setActiveFilter] = useState('전체')
   const [activeTab, setActiveTab] = useState('all') // 'all' | 'blocked'
 
@@ -77,7 +79,7 @@ export default function OtherPayments() {
         </div>
 
         {/* 목록 */}
-        <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
           {filtered.length === 0 ? (
             <div style={{ padding:'60px 16px', textAlign:'center', color: COLORS.t4, fontSize:'14px' }}>
               해당 내역이 없어요
@@ -127,7 +129,7 @@ export default function OtherPayments() {
               <div style={{ background: COLORS.bgMuted, borderRadius: RADIUS.md, padding:'12px 14px', marginTop:'4px' }}>
                 <div style={{ fontSize:'11px', color: COLORS.t4, lineHeight:1.6, textAlign:'center' }}>
                   🔒 상대방의 정확한 가맹점명은 단계형 공개 정책에 따라 보호됩니다.<br/>
-                  카테고리(카페, 마트 등)만 표시됩니다.
+                                  카테고리(카페, 마트 등)만 표시됩니다.
                 </div>
               </div>
             </div>

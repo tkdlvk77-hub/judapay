@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef, Suspense, lazy } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import BottomTab from '../components/BottomTab'
 import {
   PhoneShell, GradientHeader, PageTitle, Badge, FilterChips,
@@ -13,27 +13,68 @@ import { getAllApprovalMsgs } from './approvalMessageBus'
 
 import { THREADS, CHATS } from './messages/messagesData'
 import { getCurrentUserId, adaptStoreThread, adaptStoreChat, shortStatusLabel } from './messages/messagesUtils'
-import ChatRoom from './messages/ChatRoom'
 import DetailScreen from './messages/DetailScreen'
+import { useStepHistory } from '../hooks/useStepHistory'
+
+const ChatRoom = lazy(() => import('./messages/ChatRoom'))
 
 // ─── 메인 컴포넌트 ───
 export default function Messages() {
   const theme = getAccountTheme()
   const location = useLocation()
+  const navigate = useNavigate()
   const { userType } = useUser()
   const currentUserId = getCurrentUserId(userType)
+  // scroll 위치 직접 관리 (navigate 없이 setState로 전환 시 location.key 불변)
+  const scrollRef = useRef(null)
+  const savedScrollTop = useRef(0)
 
-  const [activeThread, setActiveThread] = useState(null)
+  // _thread(내부) 또는 threadId(외부 진입) 둘 다 초기값으로 읽어 첫 렌더부터 바로 채팅방 표시
+  const initThread = location.state?._thread || location.state?.threadId || null
+  const [activeThread, setActiveThread] = useState(initThread)
   const [showDetail, setShowDetail]     = useState(false)
   const [filter, setFilter]             = useState('전체')
-  // 결제 상세에서 소명요청 클릭 시 전달되는 채팅 자동 전송 메시지
   const [pendingPrefillMsg, setPendingPrefillMsg] = useState(location.state?.prefillMsg || null)
 
-  // 외부에서 특정 스레드 자동 진입 (e.g. ApprovalCenter 검수 요청 전송 후)
+  // 채팅방 진입 전 list scroll 위치 저장
+  const saveScroll = () => {
+    if (scrollRef.current) savedScrollTop.current = scrollRef.current.scrollTop
+  }
+  // 목록으로 돌아올 때 scroll 복원
   useEffect(() => {
-    if (location.state?.threadId) {
-      setActiveThread(location.state.threadId)
-      setShowDetail(false)
+    if (!activeThread && !showDetail && scrollRef.current) {
+      // rAF: DOM이 그려진 다음 프레임에서 복원
+      requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = savedScrollTop.current
+      })
+    }
+  }, [activeThread, showDetail])
+
+  // 방향 추적용 ref (forward: 채팅방 진입, back: 뒤로)
+  const enterDirRef = useRef('forward')
+
+  // 스레드 열기 — navigate 대신 순수 상태 전환 (remount 없음 → 버벅임 해소)
+  const openThread = (threadId, prefill) => {
+    saveScroll()                    // 진입 전 list 스크롤 위치 저장
+    enterDirRef.current = 'forward'
+    setActiveThread(threadId)
+    if (prefill) setPendingPrefillMsg(prefill)
+  }
+
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    if (showDetail) { setShowDetail(false); return }
+    setActiveThread(null)
+  }
+
+  // iOS 스와이프 백 (목록이 첫 단계, 채팅방/상세가 비첫 단계)
+  useStepHistory(handleBack, !activeThread && !showDetail)
+
+  // 외부 진입 시 state 정리 (threadId → _thread 정규화, 루프 없음)
+  useEffect(() => {
+    if (location.state?.threadId && !location.state?._thread) {
+      const { threadId, ...rest } = location.state
+      navigate('/messages', { state: { ...rest, _thread: threadId }, replace: true })
     }
     if (location.state?.prefillMsg) {
       setPendingPrefillMsg(location.state.prefillMsg)
@@ -114,9 +155,9 @@ export default function Messages() {
   // ── 상세 화면 ──
   if (activeThread && showDetail) {
     return (
-      <div className="phone flex flex-col" style={{ height:'100vh', overflow:'hidden' }}>
+      <div className="phone flex flex-col page-enter-right" style={{ height:'100%', overflow:'hidden' }}>
         <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-          <DetailScreen thread={thread} onBack={() => setShowDetail(false)} />
+          <DetailScreen thread={thread} onBack={() => { enterDirRef.current = 'back'; setShowDetail(false) }} />
         </div>
       </div>
     )
@@ -124,18 +165,25 @@ export default function Messages() {
 
   // ── 채팅방 ──
   if (activeThread) {
+    const chatAnimClass = enterDirRef.current === 'forward' ? 'page-enter-right' : ''
     return (
-      <div className="phone flex flex-col" style={{ height:'100vh', overflow:'hidden' }}>
+      <div className={`phone flex flex-col ${chatAnimClass}`} style={{ height:'100%', overflow:'hidden' }}>
         <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-          <ChatRoom
-            thread={thread}
-            chat={chat}
-            onBack={() => setActiveThread(null)}
-            onOpenDetail={thread._fromStore ? null : () => setShowDetail(true)}
-            userType={userType}
-            prefillMsg={pendingPrefillMsg}
-            onPrefillUsed={() => setPendingPrefillMsg(null)}
-          />
+          <Suspense fallback={
+            <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:'20px', height:'20px', borderRadius:'50%', border:'2px solid #e5e7eb', borderTopColor:'#6B5FE4', animation:'spin .7s linear infinite' }} />
+            </div>
+          }>
+            <ChatRoom
+              thread={thread}
+              chat={chat}
+              onBack={handleBack}
+              onOpenDetail={thread._fromStore ? null : () => setShowDetail(true)}
+              userType={userType}
+              prefillMsg={pendingPrefillMsg}
+              onPrefillUsed={() => setPendingPrefillMsg(null)}
+            />
+          </Suspense>
         </div>
       </div>
     )
@@ -144,7 +192,7 @@ export default function Messages() {
   // ── 목록 ──
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
 
         <GradientHeader paddingBottom="20px" bg={theme.headerGrad}>
           <PageTitle
@@ -186,7 +234,7 @@ export default function Messages() {
                 return (
                   <button
                     key={t.id}
-                    onClick={() => { setActiveThread(t.id); setShowDetail(false) }}
+                    onClick={() => openThread(t.id)}
                     style={{
                       width:'100%', background: isWarning ? '#FFFBF5' : COLORS.bgCard,
                       borderRadius: RADIUS.lg, padding:'13px 14px 13px 0',
@@ -247,12 +295,9 @@ export default function Messages() {
                         <div style={{ flex:1, height:'3px', background: COLORS.bgMuted, borderRadius: RADIUS.pill, overflow:'hidden' }}>
                           <div style={{ width:`${pct}%`, height:'100%',
                             background: progressGradient(pct, isWarning ? null : (pct >= 100 ? 'success' : null)),
-                            borderRadius: RADIUS.pill, transition:'width .3s' }} />
+                          }} />
                         </div>
-                        <span style={{ fontSize:'11px', fontWeight:'700', flexShrink:0, minWidth:'30px', textAlign:'right',
-                          color: pct >= 100 ? theme.brand : isWarning ? COLORS.danger : pct >= 70 ? COLORS.danger : pct >= 40 ? COLORS.warning : COLORS.t3 }}>
-                          {pct}%
-                        </span>
+                        <span style={{ fontSize:'10px', fontWeight:600, color: isWarning ? '#F59E0B' : COLORS.t3, flexShrink:0 }}>{pct}%</span>
                       </div>
                     </div>
                   </button>
@@ -261,9 +306,7 @@ export default function Messages() {
             </div>
           )}
         </div>
-
       </div>
-
       <BottomTab />
     </PhoneShell>
   )

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 const C = {
   navy:   '#0F172A',
@@ -240,6 +241,7 @@ function WalletCard({ wallet, onClick, isMy, navigate, theme, editMode, isTop, c
 export default function MyWallet() {
   const navigate  = useNavigate()
   const theme     = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const userType  = getUserType()
   const initList  = userType === 'business' ? BUSINESS_WALLETS : PERSONAL_WALLETS
   const completed = userType === 'business' ? BUSINESS_COMPLETED : PERSONAL_COMPLETED
@@ -318,7 +320,7 @@ export default function MyWallet() {
         </div>
 
         {/* ── Body ── */}
-        <div style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '20px 16px 40px' }}>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '20px 16px 40px' }}>
 
           {/* Priority section */}
           <div style={{ marginBottom: '24px' }}>
@@ -428,9 +430,9 @@ export default function MyWallet() {
               ))}
             </div>
           </div>
-
         </div>
       </div>
+      <BottomTab />
     </PhoneShell>
   )
 }

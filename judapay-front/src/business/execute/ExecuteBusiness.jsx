@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
@@ -32,6 +33,7 @@ function fmt(n) {
 
 export default function ExecuteBusiness() {
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const theme = getAccountTheme()
   const t = useT()
 
@@ -46,7 +48,7 @@ export default function ExecuteBusiness() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 다크 헤더 — 기업 네이비 그라데이션 */}
         <div style={{

@@ -3,6 +3,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS, FUND_COLORS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 
 // ─────────────────────────────────────
 // 출금 가능 자금
@@ -87,6 +88,7 @@ export default function ExecutePersonal() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
 
   const goToSelect = (purposeId) => () => {
     navigate(`/execute/personal/select?purpose=${purposeId}`)
@@ -94,7 +96,7 @@ export default function ExecutePersonal() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 다크 헤더 — theme 분기 자동 (개인=보라) */}
         <div style={{
@@ -195,10 +197,10 @@ export default function ExecutePersonal() {
             fontSize:'11px', color:'#1E5294',
             lineHeight:1.65,
           }}>
-            <strong>ⓘ</strong> {t('execPersonal.notice')}
+            {t('execPersonal.infoBox')}
           </div>
-        </div>
 
+        </div>
       </div>
     </PhoneShell>
   )

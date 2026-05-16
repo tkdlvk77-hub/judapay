@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useUser } from '../contexts/UserContext'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────
 // 기업 데이터
@@ -720,6 +721,7 @@ export default function HelpFaq() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
   const { userType } = useUser()
+  const scrollRef = useScrollRestore()
   const isPersonal = userType === 'personal'
 
   // 유저 타입에 따라 데이터 선택
@@ -790,7 +792,7 @@ export default function HelpFaq() {
         </div>
 
         {/* 스크롤 영역 */}
-        <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bgMuted }}>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: COLORS.bgMuted }}>
 
           {tab === 'faq' && (
             <div>
@@ -936,9 +938,9 @@ export default function HelpFaq() {
               </div>
             </div>
           )}
-
         </div>
       </div>
+
     </PhoneShell>
   )
 }

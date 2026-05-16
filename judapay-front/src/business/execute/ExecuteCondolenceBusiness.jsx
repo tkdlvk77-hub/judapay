@@ -11,6 +11,7 @@ import { addTransaction } from '../../shared/transactionStore'
 import ConfirmStep from '../../shared/execute/ConfirmStep'
 import PinStep from '../../shared/execute/PinStep'
 import DoneStep from '../../shared/execute/DoneStep'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 // ─────────────────────────────────────────────────────────
 // 상수
@@ -110,6 +111,7 @@ export default function ExecuteCondolenceBusiness() {
     else if (step === 'confirm') setStep(1)
     else if (step === 'done') return
   }
+  useStepHistory(goBack, step === 1, recipients.length > 0)
 
   // ───────────────── Step 1 ─────────────────
   if (step === 1) return (

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
 import { pushApprovalMsg } from './approvalMessageBus'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 유형 메타 ────────────────────────────────────────────
 const TYPE_META = {
@@ -2274,6 +2275,7 @@ export default function ApprovalCenter() {
   const location = useLocation()
   const theme = getAccountTheme()
   const { currentUser } = useUser()
+  const scrollRef = useScrollRestore()
 
   // 현재 로그인 사용자의 승인 권한 동적 계산
   const myAuthority = useMemo(() => {
@@ -2718,7 +2720,7 @@ export default function ApprovalCenter() {
         )}
 
         {/* ── 콘텐츠 ── */}
-        <div style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'12px 14px 32px' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'12px 14px 32px' }}>
 
           {/* staff 조회 전용 안내 배너 */}
           {isStaff && reqDir === 'outgoing' && (
@@ -2834,7 +2836,8 @@ filtered.map(item => (
           <div style={{ position:'absolute', bottom:'24px', left:'50%', transform:'translateX(-50%)',
             background:'#111827', color:'#fff', padding:'9px 18px', borderRadius:'20px',
             fontSize:'12px', fontWeight:600, whiteSpace:'nowrap', zIndex:400,
-            boxShadow:'0 4px 20px rgba(0,0,0,0.25)' }}>
+            boxShadow:'0 4px 16px rgba(0,0,0,0.25)',
+          }}>
             {toast}
           </div>
         )}

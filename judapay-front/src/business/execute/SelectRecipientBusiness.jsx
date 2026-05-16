@@ -14,6 +14,7 @@ import {
   MENU_ALLOWS_MULTI,
   ROLES,
 } from '../../shared/recipientsData'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────
 // 메뉴별 다음 화면 매핑 (선택 후 어느 화면으로?)
@@ -263,6 +264,7 @@ export default function SelectRecipientBusiness() {
   const [searchParams] = useSearchParams()
   const theme = getAccountTheme()
   const t = useT()
+  const scrollRef = useScrollRestore()
 
   const menuId = searchParams.get('menu') || 'freelance'
   const isMulti = !!MENU_ALLOWS_MULTI[menuId]
@@ -430,7 +432,7 @@ export default function SelectRecipientBusiness() {
         </div>
 
         {/* 리스트 */}
-        <div style={{
+        <div ref={scrollRef} style={{
           flex:1, overflowY:'auto',
           padding:'8px 16px 12px',
           display:'flex', flexDirection:'column', gap:'8px',

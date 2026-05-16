@@ -11,6 +11,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS, GRADIENTS, FUND_COLORS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 const KEYS = [1,2,3,4,5,6,7,8,9,null,0,'del']
 const MY_BALANCE = 1932000
@@ -160,6 +161,7 @@ export default function ExecuteFreelance() {
     else if (step === 'ai-result') setStep('ai-analyzing')
     else if (typeof step === 'number') setStep(step - 1)
   }
+  useStepHistory(goBack, step === 1, !!recipient)
 
   const updateSplitPct = (id, newPct) => {
     setSplitRatios(rs => rs.map(r => r.id === id ? { ...r, pct: Math.max(0, Math.min(100, newPct)) } : r))

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -248,6 +249,7 @@ function PrimaryBtn({ onClick, disabled, children }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function TaxAccountant() {
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [connected, setConnected] = useState(false)
   const [myAcc, setMyAcc] = useState(MY_ACCOUNTANT)
   const [filter, setFilter] = useState('전체')
@@ -314,7 +316,7 @@ export default function TaxAccountant() {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ overflowY: 'auto', flex: 1, background: C.bg, paddingBottom: '80px' }}>
+      <div ref={scrollRef} style={{ overflowY: 'auto', flex: 1, background: C.bg, paddingBottom: '80px' }}>
 
         {/* ══ NOT CONNECTED ══ */}
         {!connected && (<>
@@ -814,11 +816,11 @@ export default function TaxAccountant() {
           background: C.navy, color: C.white,
           padding: '10px 20px', borderRadius: '8px',
           fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', zIndex: 400,
-          letterSpacing: '-0.3px',
-        }}>{toast}</div>
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+        }}>
+          {toast}
+        </div>
       )}
-
-      <BottomTab />
     </PhoneShell>
   )
 }

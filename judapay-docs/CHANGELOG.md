@@ -4,6 +4,137 @@
 
 ---
 
+## v3.1.0 — 모바일 스크롤 완전 수정 + 상태바 제거 (2026-05-16)
+
+### 핵심 변경 요약
+1. **스크롤 최상단 도달 불가 버그 수정** — `overflow: clip` 도입으로 탄성 스크롤 애니메이션 클리핑 해소
+2. **스크롤 탄성 느낌 복원** — `overscroll-behavior: contain` 재적용 (내부 wrapper overflow:hidden 제거 후 안전)
+3. **모바일 뷰포트 안정화** — `height: 100svh` 도입 (브라우저 UI 포함한 실제 뷰포트 정확 계산)
+4. **9:41 시계 표시 전면 제거** — 로그인/회원가입 화면 5개에서 상태바 완전 삭제
+5. **전체 화면 26개+ inner wrapper `overflow: hidden` 제거** — 스크롤 클리핑 근본 원인 해소
+
+---
+
+### 변경 상세
+
+#### `src/index.css` — CSS 아키텍처 3가지 핵심 수정
+
+**1) `overflow: clip` 도입 (핵심 버그 수정)**
+```css
+/* 변경 전 */
+.phone {
+  overflow: hidden;
+}
+
+/* 변경 후 */
+.phone {
+  overflow: hidden;  /* fallback — 구형 브라우저 */
+  overflow: clip;    /* 모던 브라우저: 화면 프레임 클리핑은 유지하되
+                        자식 엘리먼트의 탄성 스크롤 애니메이션은 차단하지 않음 */
+}
+```
+`overflow: hidden`은 내부에 가상의 스크롤 컨테이너를 생성해 iOS/Android 탄성 스크롤 애니메이션을 클리핑함. 이로 인해 `scrollTop=0`에 도달해도 ProfileBadge 등 상단 콘텐츠가 화면 밖으로 잘려 보이지 않는 버그 발생.
+`overflow: clip`은 픽셀 페인팅만 클리핑하고 스크롤 애니메이션에 간섭하지 않아 문제 해소.
+
+**2) `height: 100svh` 추가**
+```css
+.phone {
+  height: 100vh;   /* fallback */
+  height: 100svh;  /* 모바일: 브라우저 주소창/탐색 바 포함 실제 뷰포트 높이 */
+}
+```
+`100vh`는 브라우저 UI가 숨겨진 상태(최대 뷰포트)를 기준으로 계산. 모바일에서 주소창이 표시된 상태에서는 `.phone`이 실제 화면보다 커져 BottomTab이 잘리거나 레이아웃이 깨질 수 있었음. `svh`(small viewport height)는 항상 브라우저 UI가 표시된 상태의 최소 뷰포트를 기준으로 해 안정적.
+
+**3) `overscroll-behavior: contain` 복원**
+```css
+/* 변경 전 (임시 제거 상태) */
+[style*="overflow-y: auto"] {
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* overscroll-behavior 없음 → 스크롤이 딱딱하게 느껴짐 */
+}
+
+/* 변경 후 */
+[style*="overflow-y: auto"] {
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior: contain; /* 경계 도달 시 탄성 바운스 효과 복원 */
+}
+```
+이전에 `overscroll-behavior: contain`을 제거한 이유: inner wrapper에 `overflow: hidden`이 있을 때 탄성 애니메이션이 클리핑되어 "상단 도달 불가"처럼 보이는 버그와 조합이 나빴음. inner wrapper의 `overflow: hidden`을 제거(26개+ 파일)한 후에는 `contain`이 안전하므로 복원. 부드러운 바운스 느낌 회복.
+
+---
+
+#### 9:41 상태바 제거 (5개 화면)
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/shared/auth/Start.jsx` | `{/* 상태바 */}` div (9:41 · 5G 100%) 완전 삭제 |
+| `src/shared/auth/Login.jsx` | 인라인 상태바 div (9:41 · 5G ▮) 완전 삭제 |
+| `src/shared/auth/SignupBusiness.jsx` | `const Sbar = () => null` (기존: 9:41 full div) |
+| `src/shared/auth/SignupPersonal.jsx` | `<div style={S.sbar}>` 행 삭제 |
+| `src/shared/auth/SignupPin.jsx` | `function Sbar() { return null }` + PIN 단계 내 인라인 바 삭제 |
+
+`src/components/ExecuteHeader.jsx`의 `StatusBar`는 `SelectBusiness.jsx`에서 import하므로 export는 유지하되 `return null` 처리 (이미 반영).
+`src/design/components.jsx`의 `StatusBar`도 동일하게 `return null` 처리.
+
+---
+
+#### Inner wrapper `overflow: hidden` 제거 (26개+ 파일)
+
+스크롤 클리핑의 근본 원인: `.phone > 외부래퍼[overflow:hidden] > 스크롤컨테이너` 구조에서 탄성 애니메이션이 중간 wrapper에 의해 클리핑됨.
+
+**적용 패턴 (모두 동일)**:
+```jsx
+// 변경 전
+<div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+
+// 변경 후
+<div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+```
+
+**수정된 파일 목록**:
+- `business/execute/ExecuteAutoPayAll.jsx`
+- `business/execute/ExecuteOtherExpense.jsx`
+- `business/execute/ExecuteRent.jsx`
+- `business/execute/ExecuteRentLease.jsx`
+- `business/execute/ExecuteSalary.jsx`
+- `business/execute/ExecuteSalaryRegister.jsx`
+- `business/execute/ExecuteSubscription.jsx`
+- `business/execute/ExecuteUtility.jsx`
+- `business/execute/ExecuteTelecom.jsx`
+- `business/execute/ExecuteMisc.jsx`
+- `business/execute/ExecuteInsurancePremium.jsx`
+- `personal/PersonalProfile.jsx`
+- `shared/ApprovalCenter.jsx`
+- `shared/CompanyProfile.jsx` → `overflow: clip`으로 교체 (절대위치 전체화면 패널)
+- `shared/ExecutionStats.jsx`
+- `shared/Messages.jsx`
+- `shared/MonthlyReport.jsx` → `overflow: clip`으로 교체 (절대위치 전체화면 패널)
+- `shared/OtherPayments.jsx`
+- `shared/PaymentAlerts.jsx`
+- `shared/PaymentDetail.jsx`
+- `business/HomeBusiness.jsx`
+- (외 추가 파일 포함 총 26개+)
+
+> 절대위치 전체화면 패널(`position:absolute, inset:0`)은 `overflow:hidden` 대신 `overflow:clip`으로 교체해 내부 스크롤도 동일하게 수정.
+
+---
+
+### 버그 수정 요약
+
+| 버그 | 원인 | 수정 |
+|---|---|---|
+| 스크롤 최상단 도달 불가 (ProfileBadge 안 보임) | `.phone { overflow:hidden }` → 탄성 스크롤 클리핑 | `overflow: clip` 적용 |
+| 스크롤이 딱딱하게 느껴짐 | `overscroll-behavior: contain` 임시 제거 | 재적용 |
+| 모바일 BottomTab 잘림 | `height: 100vh` 뷰포트 계산 오차 | `height: 100svh` 추가 |
+| 로그인/회원가입 상단 9:41 시계 노출 | 데모용 상태바 컴포넌트 잔존 | 전면 삭제 |
+| 홈 화면 하단 버튼 안 보임 | inner wrapper `overflow:hidden` + flex min-height 버그 | wrapper overflow 제거 + `.phone > * { min-height:0 }` |
+
+---
+
 ## v3.0.0 — 승인 대기 센터 완성 + 결제 분류 시스템 전사 통일 (2026-05-11)
 
 ### 핵심 변경 요약
@@ -655,3 +786,139 @@ dealDescription, contractFile, timeline, safety, supportMeta, investMeta
 - 공동인증서 모듈 → 홈택스/위택스 스크래핑 시작
 - 전자세금계산서 조회
 - 4대보험 3종 스크래핑
+#### 파트너십
+
+- 쿠콘 회장 = Judapay 주주 → 계약 실질 확정
+- 표준 요금제 적용, 전체 API 사용 가능
+
+#### 확정 계약 5개
+
+1. 공동인증서 모듈 (전체 기반)
+2. 홈택스 스크래핑 (국세 고지 + 전자납부번호)
+3. 위택스 스크래핑 (지방세)
+4. 전자세금계산서 조회
+5. 4대보험 3종 (건강보험공단 + 국민연금공단 + 근로복지공단)
+
+#### 불필요 항목 (결정)
+
+- ❌ 기업 계좌 잔액 — 충전 잔액 기반 모델이므로 불필요
+- ❌ 통신비/전기/가스 스크래핑 — 수동 등록 + 자동납부로 충분
+
+---
+
+### 증빙 자체 생성 전략 확정
+
+주다페이 내부 데이터만으로 자동 생성 가능한 증빙 (쿠콘 불필요):
+
+| 증빙 | 비고 |
+|---|---|
+| 지급 확인서 | 금융 증빙 가치 |
+| 집행 영수증 | 내부 회계 증빙 |
+| 급여 명세서 | 자동 생성 |
+| 외주비 지급명세 | 원천세 포함 |
+| 임대료 지급 증빙 | 자동 생성 |
+| 운영비 지급 증빙 | 자동 생성 |
+
+---
+
+### 통지형 메뉴 pushToStore 풍부화 (v2.8 완료)
+
+| 파일 | 완료 |
+|---|---|
+| ExecuteBonusBusiness | ✅ |
+| ExecuteCondolenceBusiness | ✅ |
+| ExecuteOtherIncomeBusiness | ✅ |
+| ExecuteGift | ✅ |
+
+---
+
+### 버그 수정
+
+- **RentLease/Rent 알림 "자동" 뱃지**: Toggle로 전환
+- **Telecom 알림 섹션 누락**: addForm + detail 양쪽 추가
+- **Salary addForm 총 지급액 미표시**: `ec.gross > 0` → `editEmployees.length > 0`
+- **급여 대장 증빙 누락**: 통합증빙센터 연동 toggle 추가
+
+---
+
+## v2.7.0 — 사업자 메뉴 완성 + 거래 상세 풍부화 (2026-05-08)
+
+### 핵심 변경 요약
+1. **사업자에게 지급 5개 메뉴** 완성 (외주비/마케팅비/부동산/자금대여/투자)
+2. **SelectVendor** — 사업자번호 조회 + 미가입자 이메일 처리
+3. **SelectBusiness** — 개인→사업자 흐름에도 미가입자 이메일 처리 추가
+4. **StoreTransactionDetail** — 정적 예제와 동등한 풍부 상세 화면 구현
+5. **모든 거래형 메뉴 pushToStore 풍부화** — timeline/safety/contractFile/dealDescription/investMeta 추가
+6. **ExecuteVendorInvestBusiness** — 3단계 B2B 투자 (4가지 유형 + 자금 사용 목적 + MCC + 계약서)
+
+---
+
+## v2.6.0 — 통합 데이터 store 도입 (2026-05-08)
+
+자금집행 1건 → 알림/메시지/홈 화면 활동 피드 자동 반영 완성.
+
+### 신규 기능
+
+#### 통합 거래 store (`shared/transactionStore.js`)
+- 자금집행 1건 → 활동 피드 / 알림 / 메시지 양측 자동 생성
+- 거래형(contract) / 통지형(notification) 분리
+- Pub/Sub 변경 알림 시스템
+
+#### 화면 통합
+- HomeBusiness 활동 피드 → store 동적
+- Alerts 알림/거래 탭 → 정적 + store 합산
+- Messages → store 통합
+
+### 신규 화면
+- ExecuteLendBusiness — 대여금 사유 4가지
+- ExecuteSupportBusiness — 기업 → 직원 자금 지원
+
+---
+
+## v2.5.x — 자금집행 화면 정비
+
+### v2.5.4 — 모달 position: fixed → absolute
+### v2.5.3 — ExecuteOtherIncomeBusiness (기타소득)
+### v2.5.2 — ExecuteCondolenceBusiness (경조사비)
+### v2.5.1 — ExecuteBonusBusiness (상여금)
+### v2.5.0 — 사람 풀 시스템 + SelectRecipientBusiness
+
+---
+
+## 핵심 시스템 규칙 (모든 버전 공통)
+
+1. `getAccountTheme()` 컴포넌트 내부 첫 줄
+2. 싱글쿼트 안 `${theme.xxx}` 금지 → 백틱
+3. 최상위 상수에 theme 참조 금지
+4. import 중복 금지
+5. `theme.brandDark` 흰 배경용
+6. 헤더 스크롤 함께, BottomTab만 고정
+7. 모달/바텀시트 `position: 'absolute'` (PhoneShell 안에)
+8. early return 위 useMemo 금지
+9. 새 화면마다 `getAccountTheme()` + `useT()` + DarkHeader
+10. inner wrapper에 `overflow: 'hidden'` 절대 금지 — `overflow: clip` 또는 제거
+11. `.phone`은 CSS에서 `overflow: clip` 유지 (수동 수정 금지)
+
+## 브랜드 색상
+- 개인: `#5B4FE8` (보라), brandDark `#3D2090`
+- 기업: `#0EA5E9` (네이비), brandDark `#0369A1`
+- 기관: `#16A34A` (그린), brandDark `#166534`
+
+---
+
+## 미완료 작업
+
+### 구현 잔여
+- HomeBusiness 기업 홈 화면 고도화
+- 단계 F: 비가입자 → 가입자 매칭 흐름
+- 기관 홈 화면 고도화
+- 백엔드 시뮬레이터 (마일스톤 진행)
+- ChatActionsPersonal.jsx 생성 (진행 중)
+- ChatActionsBusiness.jsx 생성
+- ChatRoom.jsx 분리 + userType 연결
+- Messages.jsx 슬림화 + 필터 userType 분기
+
+### 쿠콘 API 연동 (계약 후)
+- 공동인증서 모듈 → 홈택스/위택스 스크래핑 시작
+- 전자세금계산서 조회
+- 4대보험 3종 스크래핑 (건보/국민연금/근로복지)

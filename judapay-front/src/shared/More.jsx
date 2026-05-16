@@ -6,6 +6,8 @@ import { PhoneShell, GradientHeader } from '../design/components'
 import { COLORS, RADIUS, SHADOWS, GRADIENTS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { LANGUAGES, getLang, setLang } from '../design/i18n'
+import { useScrollRestore } from '../hooks/useScrollRestore'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 // ─────────────────────────────────────────────────────────
 // 섹션 헤더 (지원/계정/숨은 기능)
@@ -95,6 +97,7 @@ const ROLES = [
 ]
 
 export default function More() {
+  useNoSwipeBack()
   const theme = getAccountTheme()
   const navigate = useNavigate()
   const [showLangSheet, setShowLangSheet] = useState(false)
@@ -110,6 +113,8 @@ export default function More() {
   const [currentBizRole, setCurrentBizRole] = useState(
     () => sessionStorage.getItem('bizRole') || 'master'
   )
+  const scrollRef = useScrollRestore()
+
   const handleRoleChange = (roleKey) => {
     sessionStorage.setItem('bizRole', roleKey)
     setCurrentBizRole(roleKey)
@@ -134,7 +139,7 @@ export default function More() {
 
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
 
         {/* 다크 그라데이션 헤더 */}
         <GradientHeader paddingBottom="20px" bg={theme.headerGrad}>
@@ -159,7 +164,7 @@ export default function More() {
           {/* 프로필 카드 (헤더 안 글래스) */}
           <div style={{ padding:'0 20px' }}>
             <button
-              onClick={() => userType === 'business' ? navigate('/company-profile') : todo('프로필 보기')()}
+              onClick={() => userType === 'business' ? navigate('/company-profile') : navigate('/personal-profile')}
               style={{
                 width:'100%',
                 background:'rgba(255,255,255,0.10)',
@@ -284,20 +289,22 @@ export default function More() {
                 onClick={() => navigate('/admin-management')}
               />
             )}
-            <MenuItem
-              icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <path d="M9 13l2 2 4-4"/>
-                </svg>
-              }
-              iconBg="#10B981"
-              title="세무사 연동"
-              sub="kim@samil.com 연동 중 · 매월 1일"
-              active
-              onClick={todo('세무사 연동')}
-            />
+            {userType === 'business' && (
+              <MenuItem
+                icon={
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <path d="M9 13l2 2 4-4"/>
+                  </svg>
+                }
+                iconBg="#10B981"
+                title="세무사 연동"
+                sub="kim@samil.com 연동 중 · 매월 1일"
+                active
+                onClick={todo('세무사 연동')}
+              />
+            )}
           </div>
 
           {/* 계정 */}

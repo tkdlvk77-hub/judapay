@@ -4,6 +4,8 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useT } from '../design/i18n'
+import { useScrollRestore } from '../hooks/useScrollRestore'
+import { useStepHistory } from '../hooks/useStepHistory'
 
 const ACCOUNTS = [
   { id:0, bank:'국민은행', bankCode:'KB', bankColor:'#F9C906', num:'123-**-456', name:'이호형', primary:true },
@@ -45,6 +47,7 @@ function BrandHeader({ title, onBack, bg }) {
 export default function Charge() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [step, setStep] = useState('main')
   const [amount, setAmount] = useState('')
   const [selectedAcc, setSelectedAcc] = useState(0)
@@ -70,6 +73,7 @@ export default function Charge() {
     else if (step === 'confirm') setStep('main')
     else if (step === 'pin') setStep('confirm')
   }
+  useStepHistory(goBack, step === 'main')
 
   const amountFontSize = amount.length <= 5 ? 46 : amount.length <= 7 ? 38 : amount.length <= 9 ? 30 : 24
 
@@ -82,7 +86,7 @@ export default function Charge() {
 
         <BrandHeader title="충전" onBack={goBack} bg={theme.headerGrad} />
 
-        <div style={{ flex:1, overflowY:'auto', background:'#F5F6F8' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F5F6F8' }}>
 
           {/* 금액 입력 카드 */}
           <div style={{
@@ -632,7 +636,7 @@ export default function Charge() {
             border:'none', fontSize:'13px',
             cursor:'pointer', fontFamily:'inherit',
           }}>
-            한 번 더 충전
+            다시 충전하기
           </button>
         </div>
       </div>

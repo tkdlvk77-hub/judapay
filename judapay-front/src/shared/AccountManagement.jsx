@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 은행 메타 (로고 색·이니셜) ────────────────────────
 // 1차 MVP는 컬러 + 이니셜로 처리. 추후 실제 SVG 로고로 교체 가능.
@@ -456,6 +457,7 @@ function ConfirmModal({ account, onCancel, onConfirm }) {
 export default function AccountManagement() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [accounts, setAccounts] = useState(INITIAL_ACCOUNTS)
   const [sheetAccount, setSheetAccount] = useState(null)
   const [confirmAccount, setConfirmAccount] = useState(null)
@@ -493,7 +495,7 @@ export default function AccountManagement() {
 
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bg, position: 'relative' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: COLORS.bg, position: 'relative' }}>
         <Header onBack={() => navigate(-1)} />
 
         <div style={{ padding: '20px 16px 32px' }}>
@@ -637,7 +639,6 @@ export default function AccountManagement() {
           onCancel={() => setConfirmAccount(null)}
           onConfirm={handleConfirmDelete}
         />
-
       </div>
     </PhoneShell>
   )

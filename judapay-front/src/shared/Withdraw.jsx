@@ -4,6 +4,8 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useT } from '../design/i18n'
+import { useScrollRestore } from '../hooks/useScrollRestore'
+import { useStepHistory } from '../hooks/useStepHistory'
 
 const KEYS = [1,2,3,4,5,6,7,8,9,null,0,'del']
 const MY_BALANCE = 1932000
@@ -43,6 +45,7 @@ function BrandHeader({ title, onBack, bg }) {
 export default function Withdraw() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [step, setStep] = useState('main')
   const [amount, setAmount] = useState('')
   const [pin, setPin] = useState('')
@@ -66,6 +69,7 @@ export default function Withdraw() {
     else if (step === 'confirm') setStep('main')
     else if (step === 'pin') setStep('confirm')
   }
+  useStepHistory(goBack, step === 'main')
 
   const amountFontSize = amount.length <= 5 ? 46 : amount.length <= 7 ? 38 : amount.length <= 9 ? 30 : 24
 
@@ -78,7 +82,7 @@ export default function Withdraw() {
 
         <BrandHeader title="출금" onBack={goBack} bg={theme.headerGrad} />
 
-        <div style={{ flex:1, overflowY:'auto', background:'#F5F6F8' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F5F6F8' }}>
 
           {/* 금액 입력 카드 */}
           <div style={{
@@ -626,7 +630,7 @@ export default function Withdraw() {
             border:'none', fontSize:'13px',
             cursor:'pointer', fontFamily:'inherit',
           }}>
-            한 번 더 출금
+            다시 출금하기
           </button>
         </div>
       </div>

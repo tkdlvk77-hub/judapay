@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
@@ -262,13 +263,86 @@ function FaceIDModal({ onSuccess, onCancel }) {
 // ─────────────────────────────────────────────────────────
 // 카드 발급 바텀시트
 // ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// BottomSheet — iOS 스타일 슬라이드업 + 드래그 닫기
+// ─────────────────────────────────────────────────────────
+function BottomSheet({ onClose, children, maxHeight = '90%' }) {
+  const [open, setOpen]       = useState(false)
+  const [dragY, setDragY]     = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const startYRef             = useRef(null)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOpen(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const dismiss = () => {
+    setOpen(false)
+    setTimeout(onClose, 320)
+  }
+
+  const handleStart = (clientY) => { startYRef.current = clientY; setDragging(true) }
+  const handleMove  = (clientY) => {
+    if (startYRef.current === null) return
+    setDragY(Math.max(0, clientY - startYRef.current))
+  }
+  const handleEnd   = () => {
+    setDragging(false)
+    startYRef.current = null
+    if (dragY > 80) dismiss()
+    else setDragY(0)
+  }
+
+  const transform   = !open ? 'translateY(100%)' : `translateY(${dragY}px)`
+  const transition  = dragging ? 'none' : 'transform 0.34s cubic-bezier(0.32,0.72,0,1)'
+  const bdOpacity   = open ? Math.max(0, 0.5 - dragY / 400) : 0
+
+  return (
+    <div style={{ position:'absolute', inset:0, zIndex:200 }}>
+      {/* 백드롭 — 클릭하면 닫힘 */}
+      <div
+        onClick={dismiss}
+        style={{
+          position:'absolute', inset:0,
+          background: `rgba(0,0,0,${bdOpacity})`,
+          transition: dragging ? 'none' : 'background 0.34s',
+        }}
+      />
+      {/* 시트 본체 */}
+      <div
+        style={{
+          position:'absolute', bottom:0, left:0, right:0,
+          background: COLORS.bgCard,
+          borderRadius: '16px 16px 0 0',
+          maxHeight, overflowY:'auto',
+          transform, transition,
+        }}
+        onTouchStart={e => handleStart(e.touches[0].clientY)}
+        onTouchMove={e  => handleMove(e.touches[0].clientY)}
+        onTouchEnd={handleEnd}
+      >
+        {/* 드래그 핸들 */}
+        <div
+          style={{ padding:'12px 0 2px', cursor:'grab', flexShrink:0 }}
+          onTouchStart={e => handleStart(e.touches[0].clientY)}
+          onTouchMove={e  => handleMove(e.touches[0].clientY)}
+          onTouchEnd={handleEnd}
+        >
+          <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto' }} />
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function IssueCardSheet({ onClose, onIssue }) {
   const theme = getAccountTheme()
   const [label, setLabel] = useState('')
   return (
-    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-      <div style={{ background: COLORS.bgCard, borderRadius:`${RADIUS.lg} ${RADIUS.lg} 0 0`, padding:'20px 16px 32px' }}>
-        <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto 18px' }} />
+    <BottomSheet onClose={onClose}>
+      <div style={{ padding:'16px 16px 32px' }}>
         <div style={{ fontSize:'16px', fontWeight:700, color: COLORS.t1, marginBottom:'6px' }}>새 카드 발급</div>
         <div style={{ fontSize:'12px', color: COLORS.t4, marginBottom:'20px' }}>추가 카드를 즉시 발급받아요. 같은 계좌에서 결제됩니다.</div>
         <div style={{ marginBottom:'16px' }}>
@@ -287,7 +361,7 @@ function IssueCardSheet({ onClose, onIssue }) {
           <button onClick={() => onIssue(label || '추가 카드')} style={{ flex:2, height:'48px', background: theme.brandDark, color:'#fff', border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>즉시 발급</button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
 
@@ -335,9 +409,8 @@ function SecuritySheet({ settings, onChange, onClose }) {
   ]
 
   return (
-    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-      <div style={{ background: COLORS.bgCard, borderRadius:`${RADIUS.lg} ${RADIUS.lg} 0 0`, padding:'20px 16px 36px' }}>
-        <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto 18px' }} />
+    <BottomSheet onClose={onClose}>
+      <div style={{ padding:'16px 16px 36px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
           <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:`${theme.brandDark}15`, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.brandDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -400,7 +473,7 @@ function SecuritySheet({ settings, onChange, onClose }) {
           확인
         </button>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
 
@@ -411,9 +484,8 @@ function MCCSheet({ mccItems, onChange, onClose, singleLimit, onLimitChange }) {
   const theme = getAccountTheme()
   const blockedCount = mccItems.filter(m => m.block).length
   return (
-    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-      <div style={{ background: COLORS.bgCard, borderRadius:`${RADIUS.lg} ${RADIUS.lg} 0 0`, padding:'20px 16px 32px', maxHeight:'80%', overflowY:'auto' }}>
-        <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto 18px' }} />
+    <BottomSheet onClose={onClose}>
+      <div style={{ padding:'16px 16px 32px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' }}>
           <div style={{ fontSize:'16px', fontWeight:700, color: COLORS.t1 }}>MCC 차단 설정</div>
           {blockedCount > 0 && (
@@ -439,7 +511,7 @@ function MCCSheet({ mccItems, onChange, onClose, singleLimit, onLimitChange }) {
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
 
@@ -450,6 +522,7 @@ function MCCSheet({ mccItems, onChange, onClose, singleLimit, onLimitChange }) {
 export default function CardPayment() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const userType = getUserType()
   const isPersonal = userType === 'personal'
   const bizRoleNow = !isPersonal ? (sessionStorage.getItem('bizRole') || '') : ''
@@ -458,7 +531,14 @@ export default function CardPayment() {
 
   // 카드 목록 state
   const [cards, setCards] = useState(INITIAL_CARDS)
-  const [selectedIdx, setSelectedIdx] = useState(0)
+  const [selectedIdx, setSelectedIdx] = useState(() => {
+    const s = sessionStorage.getItem('cardPayment_selectedIdx')
+    return s !== null ? parseInt(s, 10) : 0
+  })
+  const selectCard = (idx) => {
+    sessionStorage.setItem('cardPayment_selectedIdx', idx)
+    setSelectedIdx(idx)
+  }
 
   // 카드별 독립 state (paused, revealed, mccItems, walletId)
   const [cardStates, setCardStates] = useState(() =>
@@ -504,7 +584,7 @@ export default function CardPayment() {
     }
     setCards(prev => [...prev, newCard])
     setCardStates(prev => ({ ...prev, [newCard.id]: { paused:false, revealed:false, mccItems: DEFAULT_MCC.map(m=>({...m})), walletId:'my', securitySettings:{ blockOverseas:false, blockOnline:false, alertUsage:true, lockPayment:false } } }))
-    setSelectedIdx(cards.length)
+    selectCard(cards.length)
     setShowIssue(false)
   }
 
@@ -523,7 +603,7 @@ export default function CardPayment() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 헤더 */}
         <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
@@ -561,7 +641,7 @@ export default function CardPayment() {
           {cards.length > 1 && (
             <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'6px', marginBottom:'16px' }}>
               {cards.map((c, i) => (
-                <button key={c.id} onClick={() => setSelectedIdx(i)} style={{ width: i===selectedIdx ? '20px' : '7px', height:'7px', borderRadius:'4px', background: i===selectedIdx ? theme.brandDark : COLORS.border, border:'none', cursor:'pointer', padding:0, transition:'all .2s' }} />
+                <button key={c.id} onClick={() => selectCard(i)} style={{ width: i===selectedIdx ? '20px' : '7px', height:'7px', borderRadius:'4px', background: i===selectedIdx ? theme.brandDark : COLORS.border, border:'none', cursor:'pointer', padding:0, transition:'all .2s' }} />
               ))}
             </div>
           )}
@@ -601,7 +681,7 @@ export default function CardPayment() {
           {/* ④ 카드 라벨 필터 탭 */}
           <div style={{ display:'flex', gap:'8px', marginBottom:'12px', overflowX:'auto', paddingBottom:'2px' }}>
             {cards.map((c, i) => (
-              <button key={c.id} onClick={() => setSelectedIdx(i)}
+              <button key={c.id} onClick={() => selectCard(i)}
                 style={{ flexShrink:0, padding:'6px 16px', background: i===selectedIdx ? theme.brandDark : COLORS.bgCard, color: i===selectedIdx ? '#fff' : COLORS.t3, border: i===selectedIdx ? 'none' : `1px solid ${COLORS.border}`, borderRadius: RADIUS.pill, fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', boxShadow: i===selectedIdx ? SHADOWS.card : 'none', transition:'all .15s' }}>
                 {c.label}
               </button>
@@ -711,9 +791,8 @@ export default function CardPayment() {
 
       {/* 출금 지갑 변경 시트 */}
       {showWalletPicker && (
-        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-          <div style={{ background: COLORS.bgCard, borderRadius:`${RADIUS.lg} ${RADIUS.lg} 0 0`, padding:'20px 16px 32px' }}>
-            <div style={{ width:'36px', height:'4px', background: COLORS.border, borderRadius:'2px', margin:'0 auto 18px' }} />
+        <BottomSheet onClose={() => setShowWalletPicker(false)}>
+          <div style={{ padding:'16px 16px 32px' }}>
             <div style={{ fontSize:'16px', fontWeight:700, color: COLORS.t1, marginBottom:'4px' }}>출금 지갑 변경</div>
             <div style={{ fontSize:'12px', color: COLORS.t4, marginBottom:'16px' }}>선택한 지갑에서 카드 결제가 차감됩니다.</div>
             <div style={{ background: COLORS.bg, borderRadius: RADIUS.lg, overflow:'hidden', marginBottom:'16px' }}>
@@ -742,7 +821,7 @@ export default function CardPayment() {
               닫기
             </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </PhoneShell>
   )

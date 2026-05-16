@@ -12,6 +12,7 @@ import { getWalletById } from '../../shared/walletsData'
 import { addTransaction } from '../../shared/transactionStore'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 const MY_BALANCE = 1932000
 
@@ -416,6 +417,7 @@ export default function ExecuteInvestBusiness() {
     else if (step === 'done') return // 완료 단계는 뒤로 못 감
     else if (typeof step === 'number') setStep(step - 1)
   }
+  useStepHistory(goBack, step === 1)
 
   // ───────────── 1단계: 투자 정보 입력 ─────────────
   if (step === 1) return (

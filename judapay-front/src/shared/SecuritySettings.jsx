@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useT } from '../design/i18n'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // 로그인된 기기 (데모)
 const INITIAL_DEVICES = [
@@ -142,6 +143,7 @@ export default function SecuritySettings() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [faceID, setFaceID] = useState(true)
   const [autoLock, setAutoLock] = useState(60) // 1분
   const [devices, setDevices] = useState(INITIAL_DEVICES)
@@ -164,7 +166,7 @@ export default function SecuritySettings() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
         <DarkHeader onBack={() => navigate('/more')} />
 
         <div style={{ padding:'12px 16px 24px' }}>
@@ -494,9 +496,9 @@ export default function SecuritySettings() {
                 )
               })}
             </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </PhoneShell>
   )
 }

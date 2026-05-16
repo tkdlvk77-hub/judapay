@@ -12,6 +12,7 @@ import MccBlock, { DEFAULT_MCC } from '../../shared/execute/MccBlock'
 import ConfirmStep from '../../shared/execute/ConfirmStep'
 import PinStep from '../../shared/execute/PinStep'
 import DoneStep from '../../shared/execute/DoneStep'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 // ─────────────────────────────────────────────────────────
 // 상수
@@ -117,6 +118,7 @@ export default function ExecuteSupportBusiness() {
     else if (step === 'pin') setStep('confirm')
     else if (step === 'done') return
   }
+  useStepHistory(goBack, step === 1, !!recipient)
 
   // 거래 제목 결정 (지원명목 우선, 없으면 자동)
   const dealTitle = supportTitle.trim() || `${recipient.name} 자금 지원`

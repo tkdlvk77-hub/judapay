@@ -3,13 +3,25 @@
 //   personal  → [요청하기, 자료제출]        + ChatActionsPersonal
 //   business  → [요청하기, 메모, 자료제출]  + ChatActionsBusiness
 // ────────────────────────────────────────────────────────────
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { deleteThreadMemo } from './messagesData'
 import { NOTIF_TONE } from './messagesUtils'
 import ChatActionsPersonal from './ChatActionsPersonal'
 import ChatActionsBusiness from './ChatActionsBusiness'
+
+// ── 모듈 레벨 상수 (매 렌더 재생성 방지) ──────────────────
+const MOCK_TRANSACTIONS = [
+  { id:'t1', label:'광고대행 용역비', amount:'5,000,000원', date:'05.08', type:'자금집행', badge:'#1D4ED8', badgeBg:'#EFF6FF' },
+  { id:'t2', label:'마케팅 결제',     amount:'1,200,000원', date:'05.06', type:'카드결제', badge:'#059669', badgeBg:'#ECFDF5' },
+  { id:'t3', label:'개발 외주비',     amount:'8,000,000원', date:'04.30', type:'자금집행', badge:'#1D4ED8', badgeBg:'#EFF6FF' },
+  { id:'t4', label:'사무용품 구매',   amount:'340,000원',   date:'04.22', type:'카드결제', badge:'#059669', badgeBg:'#ECFDF5' },
+]
+const MOCK_LOANS = [
+  { id:'l1', label:'박팀장 대여금', amount:'3,000,000원',  date:'04.15', type:'자금대여', badge:'#DC2626', badgeBg:'#FEF2F2' },
+  { id:'l2', label:'운영자금 대여', amount:'10,000,000원', date:'03.20', type:'대여금',   badge:'#D97706', badgeBg:'#FFFBEB' },
+]
 
 export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType, prefillMsg, onPrefillUsed }) {
   const theme = getAccountTheme()
@@ -59,9 +71,17 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
   const [ccManager, setCcManager]       = useState('')
   const [ccConfirmText, setCcConfirmText] = useState('')
 
-  // ── 자동 스크롤 ──
+  // ── 최초 마운트: 페인트 전에 즉시 맨 하단으로 (슬라이드 인 중에 스크롤 안 보임) ──
+  useLayoutEffect(() => {
+    const el = scrollContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [])
+
+  // ── 새 메시지 전송 시에만 부드럽게 스크롤 ──
   useEffect(() => {
-    msgBottomRef.current?.scrollIntoView({ behavior:'smooth' })
+    if (localMsgs.length > 0) {
+      msgBottomRef.current?.scrollIntoView({ behavior:'smooth' })
+    }
   }, [localMsgs.length])
 
   // ── 집행 취소 핸들러 ──
@@ -113,17 +133,6 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
   const allMsgs = [...(chat ? chat.messages : []), ...localMsgs].filter(m => !deletedMsgIds.has(m.id))
 
   // ── 모의 거래/대여 데이터 ──
-  const MOCK_TRANSACTIONS = [
-    { id:'t1', label:'광고대행 용역비', amount:'5,000,000원', date:'05.08', type:'자금집행', badge:'#1D4ED8', badgeBg:'#EFF6FF' },
-    { id:'t2', label:'마케팅 결제',     amount:'1,200,000원', date:'05.06', type:'카드결제', badge:'#059669', badgeBg:'#ECFDF5' },
-    { id:'t3', label:'개발 외주비',     amount:'8,000,000원', date:'04.30', type:'자금집행', badge:'#1D4ED8', badgeBg:'#EFF6FF' },
-    { id:'t4', label:'사무용품 구매',   amount:'340,000원',   date:'04.22', type:'카드결제', badge:'#059669', badgeBg:'#ECFDF5' },
-  ]
-  const MOCK_LOANS = [
-    { id:'l1', label:'박팀장 대여금', amount:'3,000,000원',  date:'04.15', type:'자금대여', badge:'#DC2626', badgeBg:'#FEF2F2' },
-    { id:'l2', label:'운영자금 대여', amount:'10,000,000원', date:'03.20', type:'대여금',   badge:'#D97706', badgeBg:'#FFFBEB' },
-  ]
-
   // ── 하단 칩 정의: userType별 분기 ──
   const bottomChips = userType === 'personal'
     ? [
@@ -941,17 +950,16 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
                   style={{ flex:1, padding:'14px',
                     background: ccConfirmText === '삭제' && ccReason && ccManager.trim() ? 'linear-gradient(135deg,#DC2626,#EF4444)' : '#E5E7EB',
                     border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700,
-                    color: ccConfirmText === '삭제' && ccReason && ccManager.trim() ? '#fff' : '#9CA3AF',
-                    cursor: ccConfirmText === '삭제' && ccReason && ccManager.trim() ? 'pointer' : 'not-allowed',
-                    fontFamily:'inherit', transition:'all 0.2s' }}>
-                  집행 취소 확정
+                    color: ccConfirmText === '삭제' && ccReason && ccManager.trim() ? '#fff' : '#6B7280',
+                    cursor: ccConfirmText !== '삭제' || !ccReason || !ccManager.trim() ? 'default' : 'pointer',
+                    fontFamily:'inherit' }}>
+                  삭제 확정
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

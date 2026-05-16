@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────
 // 유저 타입
@@ -1061,6 +1062,7 @@ export default function ExecutionStats() {
   const theme    = getAccountTheme()
   const navigate = useNavigate()
   const location = useLocation()
+  const scrollRef = useScrollRestore()
   const userType = getUserType()
 
   const [period, setPeriod] = useState('이번달')
@@ -1160,7 +1162,7 @@ export default function ExecutionStats() {
         </div>
 
         {/* 스크롤 영역 */}
-        <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
           {/* ── 전체 집행 요약 카드 ── */}
           <div style={{ padding:'14px 16px 0' }}>
@@ -1445,7 +1447,6 @@ export default function ExecutionStats() {
               })}
             </div>
           </div>
-
         </div>
       </div>
     </PhoneShell>

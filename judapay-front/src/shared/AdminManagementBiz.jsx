@@ -11,6 +11,7 @@ import {
   ACTION_LABEL,
   DISPLAY_CATEGORY,
 } from './activityLogStore'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ═══════════════════════════════════════════════════════════
 // ── 상수
@@ -1572,7 +1573,7 @@ function ApprovalSettingsView({ onBack, members }) {
         ))}
       </div>
 
-      <div style={{ flex:1, overflowY:'auto', background:'#F8F9FB' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F8F9FB' }}>
         {tab === 0 && <FlowTab/>}
         {tab === 1 && <ApproversTab/>}
         {tab === 2 && <ConditionsTab/>}
@@ -1623,6 +1624,7 @@ function AccessDeniedView() {
 export default function AdminManagementBiz() {
   const [view, setView]       = useState('main')
   const [members, setMembers] = useState(DEMO_MEMBERS)
+  const scrollRef = useScrollRestore()
 
   // ── 권한 체크 ─────────────────────────────────────────────
   // 관리자 화면은 최고관리자(master)와 관리자(admin)만 접근 가능
@@ -1646,9 +1648,6 @@ export default function AdminManagementBiz() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-        {renderView()}
-      </div>
     </PhoneShell>
   )
 }

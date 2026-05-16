@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
-import BottomTab from '../components/BottomTab'
 
 // ─── 데모 데이터 ──────────────────────────────────────────
 const USER = {
@@ -361,77 +360,119 @@ export default function PersonalProfile() {
   const navigate = useNavigate()
   const theme    = getAccountTheme()
 
+  // ── refs ──
+  const scrollRef  = useRef(null)
+  const title1Ref  = useRef(null)   // "내 프로필"
+  const title2Ref  = useRef(null)   // USER.name
+
   const [tab, setTab] = useState('소개')
   const TABS = ['소개', '활동', '거래']
 
+  // ── 타이틀 크로스페이드 (직접 DOM 조작) ──
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const FADE_START = 60
+    const FADE_END   = 110
+    let raf = null
+    const update = () => {
+      const p = Math.min(1, Math.max(0, (el.scrollTop - FADE_START) / (FADE_END - FADE_START)))
+      if (title1Ref.current)
+        title1Ref.current.style.opacity = String(Math.max(0, 1 - p * 1.6))
+      if (title2Ref.current)
+        title2Ref.current.style.opacity = String(Math.max(0, (p - 0.4) * 1.8))
+      raf = null
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update) }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  // 헤더 색상 — 퍼플 계열
+  const NAV_COLOR     = '#2A1870'   // 네비 바 + 탭 바 (그라디언트 중간색, 단색)
+  const PROFILE_GRAD  = 'linear-gradient(180deg, #2A1870 0%, #3D2090 50%, #5B4FE8 100%)'
+
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', minHeight:0 }}>
 
-        {/* ── 헤더 ── */}
-        <div style={{ background: theme.headerGrad, flexShrink:0, paddingTop:'20px' }}>
+        {/* ── ① Sticky 네비 바 ── */}
+        <div style={{
+          position:'sticky', top:0, zIndex:10,
+          background: NAV_COLOR,
+          display:'flex', alignItems:'center', gap:'8px',
+          padding:'20px 16px 14px', overflow:'hidden',
+        }}>
+          <button onClick={() => navigate(-1)}
+            style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
 
-          {/* 네비 */}
-          <div style={{ display:'flex', alignItems:'center', padding:'4px 16px 16px', gap:'8px' }}>
-            <button onClick={() => navigate(-1)}
-              style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <span style={{ fontSize:'15px', fontWeight:700, color:'#fff', flex:1 }}>내 프로필</span>
-          </div>
+          {/* 타이틀 크로스페이드 */}
+          <span style={{ flex:1, position:'relative', height:'22px', overflow:'hidden' }}>
+            <span ref={title1Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:600, color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center' }}>
+              내 프로필
+            </span>
+            <span ref={title2Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:700, color:'#fff', display:'flex', alignItems:'center', opacity:0 }}>
+              {USER.name}
+            </span>
+          </span>
+        </div>
 
-          {/* 프로필 히어로 */}
-          <div style={{ padding:'0 20px 20px', display:'flex', alignItems:'center', gap:'16px' }}>
-            {/* 아바타 */}
-            <div style={{ position:'relative', flexShrink:0 }}>
-              <div style={{ width:'68px', height:'68px', borderRadius:'20px', background:'rgba(255,255,255,0.2)', border:'2.5px solid rgba(255,255,255,0.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px', fontWeight:800, color:'#fff' }}>
-                {USER.initial}
-              </div>
-              {/* 온라인 도트 */}
-              <div style={{ position:'absolute', bottom:'-2px', right:'-2px', width:'14px', height:'14px', borderRadius:'50%', background:'#34D399', border:'2.5px solid white' }} />
+        {/* ── ② 프로필 히어로 (자연스럽게 스크롤됨) ── */}
+        <div style={{ background: PROFILE_GRAD, padding:'12px 20px 20px', display:'flex', alignItems:'center', gap:'16px' }}>
+          <div style={{ position:'relative', flexShrink:0 }}>
+            <div style={{ width:'68px', height:'68px', borderRadius:'20px', background:'rgba(255,255,255,0.2)', border:'2.5px solid rgba(255,255,255,0.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px', fontWeight:800, color:'#fff' }}>
+              {USER.initial}
             </div>
-            {/* 정보 */}
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:'22px', fontWeight:800, color:'#fff', letterSpacing:'-0.5px', marginBottom:'5px' }}>{USER.name}</div>
-              <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px' }}>
-                <span style={{ padding:'3px 9px', background:'rgba(52,211,153,0.25)', color:'#D1FAE5', borderRadius:'8px', fontSize:'10px', fontWeight:700, border:'1px solid rgba(52,211,153,0.3)' }}>
-                  {USER.status}
-                </span>
-                <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.6)' }}>· {USER.kyc}</span>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
-                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>🕐 최근 활동 {USER.lastActive}</span>
-                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>📅 {USER.joinedAt}</span>
-              </div>
-            </div>
+            <div style={{ position:'absolute', bottom:'-2px', right:'-2px', width:'14px', height:'14px', borderRadius:'50%', background:'#34D399', border:'2.5px solid white' }} />
           </div>
-
-          {/* 탭 바 */}
-          <div style={{ display:'flex', borderTop:'1px solid rgba(255,255,255,0.12)' }}>
-            {TABS.map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ flex:1, padding:'12px 0', background:'none', border:'none',
-                  borderBottom: t === tab ? '2.5px solid #fff' : '2.5px solid transparent',
-                  color: t === tab ? '#fff' : 'rgba(255,255,255,0.5)',
-                  fontSize:'13px', fontWeight: t === tab ? 700 : 500,
-                  cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
-                {t}
-              </button>
-            ))}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:'22px', fontWeight:800, color:'#fff', letterSpacing:'-0.5px', marginBottom:'5px' }}>{USER.name}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px' }}>
+              <span style={{ padding:'3px 9px', background:'rgba(52,211,153,0.25)', color:'#D1FAE5', borderRadius:'8px', fontSize:'10px', fontWeight:700, border:'1px solid rgba(52,211,153,0.3)' }}>
+                {USER.status}
+              </span>
+              <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.6)' }}>· {USER.kyc}</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+              <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>🕐 최근 활동 {USER.lastActive}</span>
+              <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>📅 {USER.joinedAt}</span>
+            </div>
           </div>
         </div>
 
-        {/* ── 탭 콘텐츠 ── */}
-        <div style={{ flex:1, overflowY:'auto', background:'#F4F5F7' }}>
-          {tab === '소개' && <IntroTab  theme={theme} />}
+        {/* ── ③ Sticky 탭 바 ── */}
+        <div style={{
+          position:'sticky', top:'66px', zIndex:9,
+          background: NAV_COLOR,
+          display:'flex', borderTop:'1px solid rgba(255,255,255,0.12)',
+        }}>
+          {TABS.map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              style={{ flex:1, padding:'12px 0', background:'none', border:'none',
+                borderBottom: t === tab ? '2.5px solid #fff' : '2.5px solid transparent',
+                color: t === tab ? '#fff' : 'rgba(255,255,255,0.5)',
+                fontSize:'13px', fontWeight: t === tab ? 700 : 500,
+                cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* ── ④ 탭 콘텐츠 ── */}
+        <div style={{ background:'#F4F5F7' }}>
+          {tab === '소개' && <IntroTab theme={theme} />}
           {tab === '활동' && <ActivityTab theme={theme} />}
-          {tab === '거래' && <DealTab    theme={theme} />}
+          {tab === '거래' && <DealTab theme={theme} />}
         </div>
 
       </div>
-      <BottomTab />
     </PhoneShell>
   )
 }

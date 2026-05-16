@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 import BottomTab from '../components/BottomTab'
 import {
   PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction, AccountTransition,
 } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
+import { useUser } from '../contexts/UserContext'
 
 // ─── 공통 카드 스타일 ─────────────────────────────────────
 const CARD_STYLE = {
@@ -78,9 +81,14 @@ const BlockIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="no
 function fmt(n) { return Number(Math.abs(n) || 0).toLocaleString('ko-KR') }
 
 export default function HomePersonal() {
+  useNoSwipeBack()
   const navigate = useNavigate()
   const theme = getAccountTheme()
-  const [todoExpanded, setTodoExpanded] = useState(false)
+  const scrollRef = useScrollRestore()
+  const { login } = useUser()
+  const [todoExpanded, setTodoExpanded] = useState(
+    () => sessionStorage.getItem('home_todo_expanded') === 'true'
+  )
 
   // 기업 초대 수락 여부
   const [bizInviteAccepted] = useState(
@@ -93,7 +101,7 @@ export default function HomePersonal() {
     const role = sessionStorage.getItem('bizInviteRole') || 'accounting'
     setTransitioning(true)
     setTimeout(() => {
-      sessionStorage.setItem('bizType', 'business')
+      login('business')                         // Context + sessionStorage 동시 업데이트
       sessionStorage.setItem('bizRole', role)
       navigate('/home-business')
     }, 750)
@@ -101,7 +109,7 @@ export default function HomePersonal() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
 
         {/* ── 헤더 ── */}
         <GradientHeader paddingBottom="16px">
@@ -172,7 +180,11 @@ export default function HomePersonal() {
 
           {/* ── 1. 처리 필요 항목 ── */}
           <div style={{ ...CARD_STYLE, border: PENDING_ITEMS.some(p=>p.urgent) ? '1px solid #FECACA' : '1px solid #E9EAEC' }}>
-            <button onClick={() => setTodoExpanded(v => !v)}
+            <button onClick={() => setTodoExpanded(v => {
+                const next = !v
+                sessionStorage.setItem('home_todo_expanded', String(next))
+                return next
+              })}
               style={{ width:'100%', padding:'14px 16px', background:'transparent', border:'none',
                 borderBottom: todoExpanded ? '1px solid #FEE2E2' : 'none',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -203,7 +215,7 @@ export default function HomePersonal() {
               const cs = CATEGORY_STYLE[item.category] || { bg:'#F3F4F6', color:'#374151', border:'#E5E7EB', dot:'#9CA3AF' }
               return (
                 <button key={item.id}
-                  onClick={() => item.threadId ? navigate('/messages', { state:{ threadId: item.threadId } }) : navigate('/payment-alerts')}
+                  onClick={() => item.threadId ? navigate('/messages', { state:{ _thread: item.threadId } }) : navigate('/payment-alerts')}
                   style={{ width:'100%', padding:'12px 16px', background:'transparent', border:'none',
                     borderTop: i===0 ? 'none' : '1px solid #F0F1F3',
                     display:'flex', alignItems:'center', gap:'12px', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
@@ -318,12 +330,11 @@ export default function HomePersonal() {
 
         </div>
       </div>
-
       <BottomTab />
       <AccountTransition
         visible={transitioning}
-        message="㈜주다컴퍼니로 전환되었습니다."
-        gradient="linear-gradient(160deg,#1E3A5F 0%,#0F2035 50%,#0A1628 100%)"
+        message="기업 모드로 전환되었습니다."
+        gradient="linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#6366F1 100%)"
       />
     </PhoneShell>
   )

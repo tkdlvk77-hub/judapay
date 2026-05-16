@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import BottomTab from '../components/BottomTab'
 import { getBizGoalForReport } from './companyProfileStore'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 보고서 유형 ──────────────────────────────────────────
 const TYPE_META = {
@@ -1612,6 +1613,7 @@ function ReportDetail({ r, theme, onClose, canExportReport }) {
 export default function MonthlyReport() {
   const navigate  = useNavigate()
   const theme     = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [activeTab, setActiveTab] = useState('all')
   const [selected, setSelected]  = useState(null)
 
@@ -1636,7 +1638,7 @@ export default function MonthlyReport() {
       <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
         {selected && <ReportDetail r={selected} theme={theme} onClose={() => setSelected(null)} canExportReport={canExportReport} />}
 
-        <div style={{ flex:1, overflowY:'auto' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
           <div style={{ background:theme.headerGrad, padding:'24px 16px 0', flexShrink:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
               <button onClick={() => navigate(-1)}
@@ -1715,13 +1717,12 @@ export default function MonthlyReport() {
                 border:'1.5px solid #E5E7EB', borderRadius:'14px',
                 color:'#9CA3AF', fontSize:'13px', fontWeight:600, textAlign:'center' }}>
                 🔒 전체 다운로드 (최고관리자·관리자·재무담당자 전용)
-              </div>
+                          </div>
             )}
           </div>
         </div>
-
-        <BottomTab />
       </div>
+      <BottomTab />
     </PhoneShell>
   )
 }

@@ -1,10 +1,10 @@
 # 주다페이 (JudaPay) 마스터 문서
 
-**버전**: v3.0
-**최초 작성**: 2026.05.05 (v1.0) / **최종 개정**: 2026.05.11 (v3.0)
+**버전**: v3.1
+**최초 작성**: 2026.05.05 (v1.0) / **최종 개정**: 2026.05.16 (v3.1)
 **범위**: 1차 MVP 기획 + 구현 현황 통합
 **목적**: 개발팀 온보딩 · 라이센스 신청서 백본 · 변호사 검토 자료 · 화면 설계 일관성 기준 · AI 개발 컨텍스트
-**현재 단계**: High-Fidelity Wireframe 완료 + 디자인 시스템 확정 + **구현 95% 진행 중**
+**현재 단계**: High-Fidelity Wireframe 완료 + 디자인 시스템 확정 + **구현 96% 진행 중**
 
 ---
 
@@ -33,6 +33,7 @@
 | v2.8 | 2026.05.10 | **자동지급 화면 완성** · ExecuteSalary 전면 재구조화 + 엑셀 업로드 · 알림 설정 통일 (3파일) · **쿠콘 API 파트너십 확정 + 연동 범위 결정** · **증빙 자체 생성 전략 확정** · 통지형 4개 pushToStore 완료 · 관리자관리 화면 6모듈 완성 |
 | v2.9 | 2026.05.11 | **집행 통계 권한자금 화면 고도화** · AuthFundsDetail 아코디언 삭제 + 카드 클릭 시 RecipientDetail/aurora 이동 · 앰버 그라디언트 헤더 적용 · 진행 바 `회수→소비` 변경 · 헤더 금액 레이아웃 수정 · **RecipientDetail aurora 화면 재설계** — 타이틀 `집행 관제 센터→권한 자금` · 앰버 헤더 통일 · `집행 건수` KPI 제거 · **백버튼 state 기반 라우팅 완성** (aurora→권한자금 정확 복원) |
 | **v3.0** | **2026.05.11** | **승인 대기 센터(ApprovalCenter) 완성** · STATUS_TABS(전체/진행 중/반려/완료) + TYPE_CHIPS(승인/검수/증빙/소명) · 버튼 4열 균등 그리드 · DetailSheet z-index 수정 · **소명/증빙 요청 모달 공통화** — ApprovalCenter·PaymentDetail·PaymentAlerts 3개 화면 통일 · **결제 목적 분류 시스템 통일** — ExecutionStats 운영비 세부항목 기준 · PURPOSE_OPTIONS 전 화면 5개로 통일(운영/출장식대/복리후생/기타/개인사용) · CATEGORY_GROUPS 3개 유저타입 모두 출장식대·복리후생·개인사용 추가 · CARD_TXNS purpose 정정(서버비→구독료, 출장비→출장식대) · PaymentAlerts 소명요청 선택 모드 + 모달 완성 · PaymentDetail 결제 목적 분류 카드 + ClassifySheet 완성 |
+| **v3.1** | **2026.05.16** | **모바일 스크롤 완전 수정** · `overflow: clip` 도입으로 탄성 스크롤 클리핑 버그 해소 · `height: 100svh` 추가 (모바일 뷰포트 안정화) · `overscroll-behavior: contain` 복원 (부드러운 바운스 느낌) · **26개+ inner wrapper `overflow: hidden` 전면 제거** · MonthlyReport/CompanyProfile 절대위치 패널 `overflow: clip` 교체 · **9:41 상태바 5개 화면 완전 제거** (Start/Login/SignupBusiness/SignupPersonal/SignupPin) |
 
 ---
 
@@ -1064,7 +1065,63 @@ DetailSheet:     z-index: 500
 
 ---
 
-## 25. 미완료 작업
+## 25. CSS 스크롤 아키텍처 (v3.1 확정)
+
+### 25.1 핵심 규칙
+
+모바일 스크롤 버그를 방지하기 위한 CSS 레이아웃 불변 규칙:
+
+```css
+/* 1. .phone — overflow: clip 필수 (hidden 아님) */
+.phone {
+  overflow: hidden;  /* fallback */
+  overflow: clip;    /* 탄성 스크롤 애니메이션 간섭 없이 프레임 클리핑 */
+}
+
+/* 2. 뷰포트 높이 — svh 우선 */
+.phone {
+  height: 100vh;   /* fallback */
+  height: 100svh;  /* 모바일 브라우저 UI 포함 실제 뷰포트 */
+}
+
+/* 3. flex 직계 자식 min-height:0 필수 */
+.phone > * { min-height: 0; }
+
+/* 4. 스크롤 컨테이너 — overscroll-behavior: contain 유지 */
+[style*="overflow-y: auto"] {
+  min-height: 0;
+  overscroll-behavior: contain;  /* 탄성 바운스 + 상위 scroll 전파 방지 */
+}
+```
+
+### 25.2 금지 패턴
+
+```jsx
+// ❌ 절대 금지: inner wrapper에 overflow:'hidden'
+<div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+
+// ✅ 올바른 방법: overflow 없이 flex만
+<div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+
+// ❌ 절대 금지: .phone에 overflow:hidden (CSS에서)
+.phone { overflow: hidden; }  /* 단독 사용 금지 */
+
+// ✅ 올바른 방법: clip 사용
+.phone { overflow: hidden; overflow: clip; }
+```
+
+### 25.3 절대위치 전체화면 패널
+
+`position: absolute; inset: 0`으로 전체화면을 덮는 패널(MonthlyReport, CompanyProfile 등)도 `overflow: clip` 사용:
+
+```jsx
+// ✅
+<div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', overflow:'clip' }}>
+```
+
+---
+
+## 26. 미완료 작업
 
 ### 구현 잔여
 ```
@@ -1074,6 +1131,10 @@ DetailSheet:     z-index: 500
 ⏳ 백엔드 시뮬레이터 (마일스톤 진행)
 ⏳ PaymentLogs ClassifySheet 5번째 항목(개인사용) 확인
 ⏳ 결제 목적 분류 → ExecutionStats 집계 반영 연동
+⏳ ChatActionsPersonal.jsx 생성 (진행 중)
+⏳ ChatActionsBusiness.jsx 생성
+⏳ ChatRoom.jsx 분리 + userType 연결
+⏳ Messages.jsx 슬림화 + 필터 userType 분기
 ```
 
 ### 외부 API 연동 (쿠콘 계약 후)

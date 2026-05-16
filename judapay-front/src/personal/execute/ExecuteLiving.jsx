@@ -13,6 +13,7 @@ import PinStep from '../../shared/execute/PinStep'
 import DoneStep from '../../shared/execute/DoneStep'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 // ─────────────────────────────────────────────────────────
 // 상수
@@ -279,6 +280,7 @@ export default function ExecuteLiving() {
     else if (step === 'pin')     setStep('confirm')
     else if (step === 'done')    return
   }
+  useStepHistory(goBack, step === 'input', !!recipient)
 
   const pushToStore = () => {
     const now = nowStr()

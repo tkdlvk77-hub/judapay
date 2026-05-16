@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 케이스 데이터 ────────────────────────────────────────
 const REFUND_CASES = [
@@ -286,11 +287,12 @@ function ContactSheet({ onClose }) {
 export default function Refund() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [contactOpen, setContactOpen] = useState(false)
 
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
 
         {/* 헤더 */}
         <div style={{ background: theme.headerGrad, padding: '24px 16px 20px', flexShrink: 0 }}>

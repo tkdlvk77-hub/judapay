@@ -6,6 +6,7 @@ import { getAccountTheme } from '../design/accountTokens'
 import { getLang } from '../design/i18n'
 import { useUser } from '../contexts/UserContext'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 데이터 (실제는 API / 쿠콘 연동) ────────────────────
 const BIZ_DATA = {
@@ -441,6 +442,7 @@ export default function Support() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
   const { userType } = useUser()
+  const scrollRef = useScrollRestore()
   const [lang, setLang] = useState(getLang())
 
   useEffect(() => {
@@ -472,7 +474,7 @@ export default function Support() {
   return (
     <PhoneShell>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* 헤더 */}
           <div style={{ background: theme.headerGrad, padding: '24px 20px 20px' }}>
@@ -495,7 +497,6 @@ export default function Support() {
             <ExpenseSection data={BIZ_DATA} theme={theme} />
             <PayrollSection data={BIZ_DATA} theme={theme} />
             <JudapaySection data={BIZ_DATA} theme={theme} navigate={navigate} />
-            <ScheduleSection data={BIZ_DATA} theme={theme} />
           </div>
         </div>
         <BottomTab />

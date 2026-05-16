@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useStepHistory } from '../../hooks/useStepHistory'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
@@ -582,6 +583,13 @@ export default function ExecuteSalary() {
   const [showExitModal, setShowExitModal] = useState(false)
   const [showAddEmpSheet, setShowAddEmpSheet] = useState(false)
   const [showExcelSheet, setShowExcelSheet] = useState(false)
+
+  const goBack = () => {
+    if (screen === 'list') navigate(-1)
+    else if (screen === 'log') setScreen('detail')
+    else setScreen('list')
+  }
+  useStepHistory(goBack, screen === 'list')
 
   // 편집 상태
   const [editName, setEditName]       = useState('')

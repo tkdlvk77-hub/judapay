@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
@@ -20,6 +21,7 @@ const ROLE_ICON = { master:'👑', admin:'🛠️', accounting:'💼', manager:'
 
 function ExecuteBlockedView({ role }) {
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const theme = getAccountTheme()
   const isManager = role === 'manager'
   const isStaff   = role === 'staff'
@@ -71,7 +73,7 @@ export default function ExecuteBusinessMenu() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
         <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'28px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 20px' }}>
             <button onClick={() => navigate('/home-business')} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>

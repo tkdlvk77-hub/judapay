@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CompletedWallets — 완료된 지갑 목록 화면
@@ -78,6 +79,7 @@ function ChevronRight({ color = C.slateL }) {
 export default function CompletedWallets() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const userType = getUserType()
   const completed = userType === 'business' ? BUSINESS_COMPLETED_WALLETS : PERSONAL_COMPLETED_WALLETS
 
@@ -117,7 +119,7 @@ export default function CompletedWallets() {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '20px 16px 40px' }}>
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: C.bg, padding: '20px 16px 40px' }}>
 
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: '14px', overflow: 'hidden' }}>
             {completed.map((w, i) => {
@@ -187,12 +189,11 @@ export default function CompletedWallets() {
               <circle cx="7" cy="7" r="6" stroke={C.slateL} strokeWidth="1.2"/>
               <path d="M7 6v4M7 4.5v.5" stroke={C.slateL} strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize: '11px', color: C.slateL }}>
-              완료된 지갑을 탭하면 거래 내역을 확인할 수 있습니다.
-            </span>
+            <span style={{ fontSize: '11px', color: C.slateL }}>잠금·만료된 지갑은 충전과 출금이 제한됩니다</span>
+            </div>
           </div>
         </div>
-      </div>
+      <BottomTab />
     </PhoneShell>
   )
 }

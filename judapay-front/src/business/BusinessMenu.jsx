@@ -3,6 +3,8 @@ import { getAccountTheme } from '../design/accountTokens'
 import { COLORS } from '../design/tokens'
 import { useT } from '../design/i18n'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 // ─────────────────────────────────────
 // 데모 데이터
@@ -84,9 +86,11 @@ function fill(str, vars) {
 }
 
 export default function BusinessMenu() {
+  useNoSwipeBack()
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const todo = (label) => () => alert(`${label}\n\n개발 예정 기능입니다.`)
 
   // 월말까지 추가 = SCHEDULED 합계
@@ -149,7 +153,7 @@ export default function BusinessMenu() {
 
   return (
     <div className="phone flex flex-col" style={{ background: COLORS.bg }}>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
 
         {/* 헤더 — 기업 다크 (theme 분기 자동) */}
         <div style={{
@@ -440,8 +444,7 @@ export default function BusinessMenu() {
               ))}
             </div>
           </div>
-
-        </div> {/* padding div 끝 */}
+        </div>
       </div>
       <BottomTab />
     </div>

@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import DarkHeader from '../../components/DarkHeader'
 import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS, GRADIENTS, FUND_COLORS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
+import { useStepHistory } from '../../hooks/useStepHistory'
+
+// 슬라이드 인 애니메이션 (최초 1회 주입)
+if (typeof document !== 'undefined' && !document.getElementById('_sr_anim')) {
+  const s = document.createElement('style')
+  s.id = '_sr_anim'
+  s.textContent = '@keyframes srSlideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}'
+  document.head.appendChild(s)
+}
 
 const RECENT_RECIPIENTS = [
   {
@@ -61,6 +71,7 @@ export default function SelectRecipient() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
   const [searchParams] = useSearchParams()
   const purpose = searchParams.get('purpose') || 'gift'
   const meta = PURPOSE_META[purpose] || PURPOSE_META.gift
@@ -79,6 +90,9 @@ export default function SelectRecipient() {
     }
     navigate('/execute/personal')
   }
+
+  // phone / judaid 모드일 때 스와이프 백 → list 모드로 복귀
+  useStepHistory(handleBack, mode === 'list')
 
   const handleSelect = (recipient) => {
     navigate(meta.route, { state: { recipient } })
@@ -131,7 +145,7 @@ export default function SelectRecipient() {
   // ── 모드: 휴대폰 번호 ───────────────────────────────────
   if (mode === 'phone') return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ animation:'srSlideIn 0.22s cubic-bezier(0.25,0.46,0.45,0.94)', flex:1, overflowY:'auto' }}>
         <DarkHeader
           smallTitle="휴대폰 번호로"
           bigTitle="번호를 입력해주세요"
@@ -225,7 +239,7 @@ export default function SelectRecipient() {
   // ── 모드: 주다페이 ID ──────────────────────────────────
   if (mode === 'judaid') return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ animation:'srSlideIn 0.22s cubic-bezier(0.25,0.46,0.45,0.94)', flex:1, overflowY:'auto' }}>
         <DarkHeader
           smallTitle="주다페이 ID로"
           bigTitle="ID를 검색해보세요"
@@ -373,7 +387,7 @@ export default function SelectRecipient() {
   // ── 모드: 기본 리스트 ───────────────────────────────
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
         <DarkHeader
           smallTitle="받는 사람 선택"
           badge={meta.title}
@@ -583,7 +597,7 @@ export default function SelectRecipient() {
             borderRadius: RADIUS.md,
             fontSize:'11px', color:'#1E5294', lineHeight:1.65,
           }}>
-            받는 사람의 받은 지갑에 보관됩니다. 카드 결제만 가능 (출금 불가).
+            주다페이 가입 회원을 ID로 직접 검색할 수 있어요. 미가입자는 휴대폰 번호로 보내세요.
           </div>
         </div>
       </div>

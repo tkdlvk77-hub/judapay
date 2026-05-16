@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -826,11 +826,16 @@ function ReportTab({ r, lang, theme }) {
 
 // ─── 메인 ─────────────────────────────────────────────────
 export default function RecipientDetail() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { id } = useParams()
-  const theme = getAccountTheme()
-  const [lang, setLang] = useState(getLang())
+  const navigate  = useNavigate()
+  const { id }    = useParams()
+  const theme     = getAccountTheme()
+
+  const scrollRef  = useRef(null)
+  const title1Ref  = useRef(null)   // "권한 자금"
+  const title2Ref  = useRef(null)   // 수신자 이름
+  const msgBtnRef  = useRef(null)   // 메세지 버튼
+
+  const [lang, setLang]           = useState(getLang())
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
@@ -839,102 +844,146 @@ export default function RecipientDetail() {
     return () => window.removeEventListener('langchange', handler)
   }, [])
 
+  // 타이틀 크로스페이드만 scroll-linked으로 처리 (레이아웃 영향 없음)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    let raf = null
+    const FADE_START = 60   // 이 px 이후부터 페이드 시작
+    const FADE_END   = 110  // 이 px 에서 완전히 교체
+
+    const update = () => {
+      const sy  = el.scrollTop
+      const p   = Math.min(1, Math.max(0, (sy - FADE_START) / (FADE_END - FADE_START)))
+
+      if (title1Ref.current)
+        title1Ref.current.style.opacity = String(Math.max(0, 1 - p * 1.6))
+      if (title2Ref.current)
+        title2Ref.current.style.opacity = String(Math.max(0, (p - 0.4) * 1.8))
+      if (msgBtnRef.current) {
+        const mo = Math.max(0, 1 - p * 2)
+        msgBtnRef.current.style.opacity      = String(mo)
+        msgBtnRef.current.style.pointerEvents = mo < 0.05 ? 'none' : 'auto'
+      }
+      raf = null
+    }
+
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update) }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
   const r = RECIPIENTS_DATA[id] || RECIPIENTS_DATA.aurora
 
   const TABS = [
-    { key: 'overview',  label: t('overview', lang) },
-    { key: 'mcc',       label: t('mccSetting', lang) },
-    { key: 'log',       label: t('execLog', lang) },
-    { key: 'evidence',  label: t('evidence', lang) },
-    { key: 'report',    label: t('report', lang) },
+    { key: 'overview', label: t('overview', lang) },
+    { key: 'mcc',      label: t('mccSetting', lang) },
+    { key: 'log',      label: t('execLog', lang) },
+    { key: 'evidence', label: t('evidence', lang) },
+    { key: 'report',   label: t('report', lang) },
   ]
 
+  const AMBER_PROFILE = 'linear-gradient(180deg,#92400E 0%,#B45309 65%,#C87B20 100%)'
+  const AMBER_NAV     = '#7C2D12'
+
   return (
-    <PhoneShell>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <PhoneShell className="page-enter-right">
+      {/* ── 스크롤 컨테이너 — 헤더 포함 ── */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
-          {/* 앰버 헤더 — 고정 */}
-          <div style={{ background: 'linear-gradient(135deg,#92400E 0%,#B45309 50%,#D97706 100%)', paddingTop: '20px', paddingBottom: '20px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-            {/* 장식 원 */}
-            <div style={{ position:'absolute', top:'-30px', right:'-30px', width:'140px', height:'140px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
-            <div style={{ position:'absolute', bottom:'-20px', left:'-20px', width:'100px', height:'100px', borderRadius:'50%', background:'rgba(255,255,255,0.05)', pointerEvents:'none' }} />
-            {/* 네비 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px 14px' }}>
-              <button onClick={() => navigate(-1)}
-                style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-                </svg>
-              </button>
-              <span style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', flex: 1 }}>권한 자금</span>
-              <button onClick={() => navigate('/messages', { state: { recipientId: r.id, recipientName: r.name } })}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: '20px', cursor: 'pointer', flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>메세지하기</span>
-              </button>
+        {/* ── Sticky 네비 바 (장식 원 포함, 별도 패딩 div 없음) ── */}
+        <div style={{ position:'sticky', top:0, zIndex:10, background: AMBER_NAV, display:'flex', alignItems:'center', gap:'8px', padding:'20px 16px 14px', overflow:'hidden' }}>
+          {/* 장식 원 — 네비 바 안에 */}
+          <div style={{ position:'absolute', top:'-30px', right:'-20px', width:'110px', height:'110px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
+          <button onClick={() => navigate(-1)}
+            style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+
+          {/* 타이틀 크로스페이드 */}
+          <span style={{ flex:1, position:'relative', height:'22px', overflow:'hidden' }}>
+            <span ref={title1Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:600, color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center' }}>
+              권한 자금
+            </span>
+            <span ref={title2Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:700, color:'#fff', display:'flex', alignItems:'center', opacity:0 }}>
+              {r.name}
+            </span>
+          </span>
+
+          <button ref={msgBtnRef}
+            onClick={() => navigate('/messages', { state: { recipientId: r.id, recipientName: r.name } })}
+            style={{ display:'flex', alignItems:'center', gap:'5px', padding:'6px 12px', background:'rgba(255,255,255,0.18)', border:'1px solid rgba(255,255,255,0.28)', borderRadius:'20px', cursor:'pointer', flexShrink:0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span style={{ fontSize:'12px', fontWeight:700, color:'#fff' }}>메세지하기</span>
+          </button>
+        </div>
+
+        {/* 프로필 + KPI (자연스럽게 스크롤됨) */}
+        <div style={{ background: AMBER_PROFILE, padding:'12px 20px 16px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'14px', marginBottom:'14px' }}>
+            <div style={{ width:'56px', height:'56px', borderRadius:'18px', background:'rgba(255,255,255,0.15)', border:'1.5px solid rgba(255,255,255,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', fontWeight:800, color:'#fff', flexShrink:0, backdropFilter:'blur(10px)' }}>
+              {r.name[0]}
             </div>
-
-            {/* 프로필 */}
-            <div style={{ padding: '0 20px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 800, color: '#fff', flexShrink: 0, backdropFilter: 'blur(10px)' }}>
-                {r.name[0]}
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px', flexWrap:'wrap' }}>
+                <span style={{ fontSize:'18px', fontWeight:700, color:'#fff' }}>{r.name}</span>
+                <EntityBadge type={r.entityType} lang={lang} />
+                <RiskBadge level={r.riskLevel} lang={lang} />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{r.name}</span>
-                  <EntityBadge type={r.entityType} lang={lang} />
-                  <RiskBadge level={r.riskLevel} lang={lang} />
-                </div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
-                  {r.type} · {r.bizNo || r.phone || ''}
-                </div>
+              <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>
+                {r.type} · {r.bizNo || r.phone || ''}
               </div>
-            </div>
-
-            {/* KPI 1박스 */}
-            <div style={{ display: 'flex', gap: '8px', padding: '0 16px 16px' }}>
-              <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: '4px' }}>{t('totalExec', lang)}</div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>{(r.totalAmount/10000).toFixed(0)}만원</div>
-              </div>
-              <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: '4px' }}>{t('nextExec', lang)}</div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#FDE68A' }}>{r.nextExpected}</div>
-              </div>
-            </div>
-
-            {/* 탭 */}
-            <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
-              {TABS.map(tab => (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                  style={{
-                    padding: '7px 14px', borderRadius: RADIUS.pill, border: 'none', flexShrink: 0,
-                    background: activeTab === tab.key ? '#fff' : 'rgba(255,255,255,0.15)',
-                    color: activeTab === tab.key ? theme.brandDark : '#fff',
-                    fontSize: '12px', fontWeight: activeTab === tab.key ? 700 : 500,
-                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
-                  }}>
-                  {tab.label}
-                </button>
-              ))}
             </div>
           </div>
 
-        {/* 스크롤 영역 */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, background: '#0D1017' }}>
-          {/* 헤더 → 다크 전환 */}
-          <div style={{ height: '18px', background: 'linear-gradient(to bottom, #B45309, #0D1017)' }} />
-          {/* 탭 콘텐츠 — 다크 */}
-          <div style={{ padding: '4px 16px 80px', background: '#0D1017' }}>
-            {activeTab === 'overview'  && <OverviewTab  r={r} lang={lang} theme={theme} />}
-            {activeTab === 'mcc'       && <MCCTab       r={r} lang={lang} theme={theme} />}
-            {activeTab === 'log'       && <ExecLogTab   r={r} lang={lang} theme={theme} onNavigate={(path) => navigate(path)} />}
-            {activeTab === 'evidence'  && <EvidenceTab  r={r} lang={lang} theme={theme} />}
-            {activeTab === 'report'    && <ReportTab    r={r} lang={lang} theme={theme} />}
+          {/* KPI 박스 */}
+          <div style={{ display:'flex', gap:'8px' }}>
+            <div style={{ flex:1, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding:'12px', textAlign:'center' }}>
+              <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.6)', fontWeight:600, marginBottom:'4px' }}>{t('totalExec', lang)}</div>
+              <div style={{ fontSize:'16px', fontWeight:800, color:'#fff' }}>{(r.totalAmount/10000).toFixed(0)}만원</div>
+            </div>
+            <div style={{ flex:1, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.18)', borderRadius: RADIUS.lg, padding:'12px', textAlign:'center' }}>
+              <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.6)', fontWeight:600, marginBottom:'4px' }}>{t('nextExec', lang)}</div>
+              <div style={{ fontSize:'16px', fontWeight:800, color:'#FDE68A' }}>{r.nextExpected}</div>
+            </div>
           </div>
         </div>
+
+        {/* ── Sticky 탭 바 ── */}
+        <div style={{ position:'sticky', top:'66px', zIndex:9, background: AMBER_NAV, display:'flex', gap:'4px', overflowX:'auto', padding:'10px 16px', scrollbarWidth:'none' }}>
+          {TABS.map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding:'7px 14px', borderRadius: RADIUS.pill, border:'none', flexShrink:0,
+                background: activeTab === tab.key ? '#fff' : 'rgba(255,255,255,0.15)',
+                color: activeTab === tab.key ? theme.brandDark : '#fff',
+                fontSize:'12px', fontWeight: activeTab === tab.key ? 700 : 500,
+                cursor:'pointer', fontFamily:'inherit', transition:'all .15s',
+              }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 헤더 → 다크 전환 */}
+        <div style={{ height:'18px', background:'linear-gradient(to bottom,#B45309,#0D1017)' }} />
+
+        {/* 탭 콘텐츠 */}
+        <div style={{ padding:'4px 16px 80px', background:'#0D1017' }}>
+          {activeTab === 'overview' && <OverviewTab  r={r} lang={lang} theme={theme} />}
+          {activeTab === 'mcc'      && <MCCTab       r={r} lang={lang} theme={theme} />}
+          {activeTab === 'log'      && <ExecLogTab   r={r} lang={lang} theme={theme} onNavigate={(path) => navigate(path)} />}
+          {activeTab === 'evidence' && <EvidenceTab  r={r} lang={lang} theme={theme} />}
+          {activeTab === 'report'   && <ReportTab    r={r} lang={lang} theme={theme} />}
+        </div>
+
       </div>
     </PhoneShell>
   )

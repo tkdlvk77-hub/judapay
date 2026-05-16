@@ -3,6 +3,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { NOTICES, NOTICE_CATEGORIES } from './noticesData'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 헤더 (보라 그라데이션) ─────────────────────────
 function Header({ onBack, unreadCount }) {
@@ -232,6 +233,7 @@ function NoticeCard({ notice, onClick }) {
 export default function Notices() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
 
   const pinned = NOTICES.filter(n => n.pinned)
   const others = NOTICES.filter(n => !n.pinned)
@@ -239,7 +241,7 @@ export default function Notices() {
 
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
         <Header onBack={() => navigate(-1)} unreadCount={unreadCount} />
 
         <div style={{ padding: '20px 16px 32px' }}>
@@ -289,11 +291,12 @@ export default function Notices() {
               color: COLORS.t4,
               fontSize: '13px',
             }}>
-              공지사항이 없어요
+              등록된 공지사항이 없어요
             </div>
           )}
         </div>
       </div>
+
     </PhoneShell>
   )
 }

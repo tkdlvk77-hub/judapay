@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import MccBlock, { DEFAULT_MCC as MCC_DEFAULT } from '../../shared/execute/MccBlock'
 import WalletPicker from '../../shared/WalletPicker'
@@ -6,20 +6,13 @@ import { getWalletById } from '../../shared/walletsData'
 import { addTransaction } from '../../shared/transactionStore'
 import DarkHeader from '../../components/DarkHeader'
 import { PhoneShell } from '../../design/components'
-import { COLORS, RADIUS, SHADOWS, GRADIENTS, FUND_COLORS } from '../../design/tokens'
+import { COLORS, RADIUS, SHADOWS, GRADIENTS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
-import { useT } from '../../design/i18n'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 const KEYS = [1,2,3,4,5,6,7,8,9,null,0,'del']
 const MY_BALANCE = 1932000
 
-const DEFAULT_MCC = [
-  { id:'gambling',  label:'유흥·도박',   block:true,  sub:'유흥주점·카지노·복권' },
-  { id:'crypto',    label:'암호화폐',    block:true,  sub:'코인 거래소·ICO 결제' },
-  { id:'overseas',  label:'해외 결제',   block:false, sub:'해외 가맹점·해외 송금' },
-  { id:'luxury',    label:'명품',        block:false, sub:'백화점 명품관·고가 사치품' },
-  { id:'gaming',    label:'게임 아이템', block:false, sub:'게임센터·인앱결제' },
-]
 
 const EXTRA_MCC_POOL = [
   { id:'tobacco',   label:'담배·주류',     sub:'담배·주류 판매점' },
@@ -42,7 +35,7 @@ function AmountDisplay({ amount, onChange, onClear }) {
 
   return (
     <div style={{ position:'relative', height:'60px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ display:'inline-flex', alignItems:'baseline', gap:'3px', transform:'translateX(18px)' }}>
+      <div style={{ display:'inline-flex', alignItems:'baseline', gap:'3px' }}>
         <input
           type="number"
           inputMode="numeric"
@@ -93,10 +86,10 @@ function AmountDisplay({ amount, onChange, onClear }) {
 
 export default function ExecuteLend() {
   const theme = getAccountTheme()
-  const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
   const recipient = location.state?.recipient
+  const enterDirRef = useRef('forward')
 
   useEffect(() => {
     if (!recipient) {
@@ -263,19 +256,22 @@ export default function ExecuteLend() {
     if (pin.length >= 6) return
     const next = pin + k
     setPin(next)
-    if (next.length === 6) setTimeout(() => { setPin(''); pushToStore(); setStep('done') }, 400)
+    if (next.length === 6) setTimeout(() => { setPin(''); pushToStore(); advanceStep('done') }, 400)
   }
 
   const goBack = () => {
+    enterDirRef.current = 'back'
     if (step === 1) navigate(-1)
     else if (step === 'pin') setStep(4)
     else if (typeof step === 'number') setStep(step - 1)
   }
+  const advanceStep = (s) => { enterDirRef.current = 'forward'; setStep(s) }
+  useStepHistory(goBack, step === 1, !!recipient)
 
   // ───────────── 1단계: 금액 + 이자 + 상환 ─────────────
   if (step === 1) return (
-    <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+    <PhoneShell className={enterDirRef.current === 'forward' ? 'page-enter-right' : 'page-enter-left'}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
         <DarkHeader
           smallTitle="빌려주기"
           badge="권한 자금"
@@ -390,15 +386,19 @@ export default function ExecuteLend() {
             marginBottom:'8px',
           }}>
             <input
-              type="number" step="0.1" value={interestRate}
-              onChange={e => setInterestRate(e.target.value)}
+              type="text" inputMode="decimal" value={interestRate}
+              onChange={e => {
+                const v = e.target.value.replace(/[^0-9.]/g, '')
+                setInterestRate(v)
+              }}
               placeholder="0.0"
               style={{
-                flex:1,
+                flex:1, minWidth:0,
                 fontSize:'20px', fontWeight:700,
                 color: rateWarning === 'high' ? COLORS.danger : COLORS.t1,
                 background:'transparent', border:'none', outline:'none',
                 fontFamily:'inherit', textAlign:'right',
+                WebkitAppearance:'none', MozAppearance:'textfield',
               }}
             />
             <span style={{ fontSize:'15px', color: COLORS.t3, fontWeight:600 }}>%</span>
@@ -407,19 +407,29 @@ export default function ExecuteLend() {
           <div style={{ display:'flex', gap:'6px', marginBottom: rateWarning ? '8px' : '20px' }}>
             {['0', '4.6', '6.0', '12.0'].map(r => {
               const active = interestRate === r
+              const label = r === '0'
+                ? <span style={{ fontSize:'13px' }}>무이자</span>
+                : r === '4.6'
+                ? <><span style={{ fontSize:'13px' }}>4.6%</span><span style={{ display:'block', fontSize:'10px', opacity:0.75, marginTop:'2px' }}>법정</span></>
+                : <span style={{ fontSize:'13px' }}>{r}%</span>
               return (
                 <button key={r}
                   onClick={() => setInterestRate(r)}
                   style={{
-                    flex:1, height:'34px', borderRadius:'10px',
+                    flex:1, minWidth:0,
+                    height:'44px', borderRadius:'10px',
                     background: active ? theme.brand : COLORS.bgCard,
                     boxShadow: active ? SHADOWS.buttonBrand : SHADOWS.card,
                     color: active ? '#fff' : COLORS.t2,
                     border:'none',
-                    fontSize:'11px', fontWeight: active ? 700 : 600,
+                    fontWeight: active ? 700 : 600,
                     cursor:'pointer', fontFamily:'inherit',
+                    whiteSpace:'nowrap', overflow:'hidden',
+                    lineHeight:1.2,
+                    display:'flex', flexDirection:'column',
+                    alignItems:'center', justifyContent:'center',
                   }}>
-                  {r === '0' ? '무이자' : r === '4.6' ? '4.6% (법정)' : `${r}%`}
+                  {label}
                 </button>
               )
             })}
@@ -611,7 +621,7 @@ export default function ExecuteLend() {
         background: COLORS.bgCard,
       }}>
         <button
-          onClick={() => amtNum >= 1000 && amtNum <= walletBalance && setStep(2)}
+          onClick={() => amtNum >= 1000 && amtNum <= walletBalance && advanceStep(2)}
           disabled={!(amtNum >= 1000 && amtNum <= walletBalance)}
           style={{
             width:'100%', height:'52px',
@@ -631,8 +641,8 @@ export default function ExecuteLend() {
 
   // ───────────── 2단계: 사용 통제 (MCC 차단) ─────────────
   if (step === 2) return (
-    <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+    <PhoneShell className={enterDirRef.current === 'forward' ? 'page-enter-right' : 'page-enter-left'}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
         <DarkHeader
           smallTitle="사용 통제"
           step={2} totalSteps={4}
@@ -657,7 +667,7 @@ export default function ExecuteLend() {
         borderTop: `1px solid ${COLORS.borderSoft}`,
         background: COLORS.bgCard,
       }}>
-        <button onClick={() => setStep(3)}
+        <button onClick={() => advanceStep(3)}
           style={{
             width:'100%', height:'52px',
             background: theme.brand, color:'#fff',
@@ -674,8 +684,8 @@ export default function ExecuteLend() {
 
   // ───────────── 3단계: 차용증 생성 ─────────────
   if (step === 3) return (
-    <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+    <PhoneShell className={enterDirRef.current === 'forward' ? 'page-enter-right' : 'page-enter-left'}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
         <DarkHeader
           smallTitle="차용증 자동 생성"
           step={3} totalSteps={4}
@@ -871,7 +881,7 @@ export default function ExecuteLend() {
         borderTop: `1px solid ${COLORS.borderSoft}`,
         background: COLORS.bgCard,
       }}>
-        <button onClick={() => setStep(4)}
+        <button onClick={() => advanceStep(4)}
           style={{
             width:'100%', height:'52px',
             background: theme.brand, color:'#fff',
@@ -888,8 +898,8 @@ export default function ExecuteLend() {
 
   // ───────────── 4단계: 확인 ─────────────
   if (step === 4) return (
-    <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto' }}>
+    <PhoneShell className={enterDirRef.current === 'forward' ? 'page-enter-right' : 'page-enter-left'}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
         <DarkHeader
           smallTitle="집행 내용 확인"
           step={4} totalSteps={4}
@@ -912,7 +922,7 @@ export default function ExecuteLend() {
           }}>
             {[
               { label:'받는 사람', value: recipient.name, sub: recipient.verified ? '실명 ✓' : recipient.kyc, editAction: changeRecipient },
-              { label:'출금 지갑', value: selectedWallet?.label || 'MY 지갑', sub:`잔액 ${walletBalance.toLocaleString()}원`, editAction: () => setStep(1) },
+              { label:'출금 지갑', value: selectedWallet?.label || 'MY 지갑', sub:`잔액 ${walletBalance.toLocaleString()}원`, editAction: () => { enterDirRef.current = 'back'; setStep(1) } },
               {
                 label:'계약 조건',
                 value:`연 ${rateNum}% · ${repaymentMonths}개월`,
@@ -943,7 +953,7 @@ export default function ExecuteLend() {
                     )}
                   </div>
                   {(row.editStep || row.editAction) && (
-                    <button onClick={() => row.editAction ? row.editAction() : setStep(row.editStep)}
+                    <button onClick={() => row.editAction ? row.editAction() : (enterDirRef.current = 'back', setStep(row.editStep))}
                       style={{
                         fontSize:'11px', fontWeight:600,
                         color: theme.brand,
@@ -1014,7 +1024,7 @@ export default function ExecuteLend() {
         background: COLORS.bgCard,
         display:'flex', flexDirection:'column', gap:'8px',
       }}>
-        <button onClick={() => setStep('pin')}
+        <button onClick={() => advanceStep('pin')}
           style={{
             width:'100%', height:'52px',
             background: theme.brand, color:'#fff',
@@ -1025,7 +1035,7 @@ export default function ExecuteLend() {
           }}>
           집행하기
         </button>
-        <button onClick={() => setStep(1)}
+        <button onClick={() => { enterDirRef.current = 'back'; setStep(1) }}
           style={{
             width:'100%', height:'42px',
             background:'transparent', color: COLORS.t4,
@@ -1040,8 +1050,8 @@ export default function ExecuteLend() {
 
   // ───────────── PIN ─────────────
   if (step === 'pin') return (
-    <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto' }}>
+    <PhoneShell className={enterDirRef.current === 'forward' ? 'page-enter-right' : 'page-enter-left'}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto', overflowX:'hidden' }}>
         <DarkHeader smallTitle="비밀번호 입력" onBack={goBack} exitTo="/home"
           headerGrad={theme.headerGrad} />
 
@@ -1129,8 +1139,8 @@ export default function ExecuteLend() {
 
   // ───────────── 완료 (서명 대기 중) ─────────────
   return (
-    <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto' }}>
+    <PhoneShell className='page-enter-right'>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto', overflowX:'hidden' }}>
 
         {/* 다크 그라데이션 (시계 아이콘 — 대기 톤) */}
         <div style={{
@@ -1234,13 +1244,14 @@ export default function ExecuteLend() {
         <button onClick={() => navigate('/home')}
           style={{
             width:'100%', height:'52px',
-            background: theme.brand, color:'#fff',
-            border:'none', borderRadius: RADIUS.md,
+            background: theme.brand,
+            color:'#fff', border:'none',
+            borderRadius: RADIUS.md,
             fontSize:'15px', fontWeight:700,
             cursor:'pointer', fontFamily:'inherit',
             boxShadow: SHADOWS.buttonBrand,
           }}>
-          홈으로
+          홈으로 돌아가기
         </button>
       </div>
     </PhoneShell>

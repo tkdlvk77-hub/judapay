@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 import BottomTab from '../components/BottomTab'
 import {
   PhoneShell, GradientHeader, Card, FilterChips,
@@ -14,6 +15,7 @@ import {
   getMyContractDeals,
 } from './transactionStore'
 import { useStoreData } from '../hooks/useStoreData'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 // userType → 데모 사용자 ID 매핑 (TODO: useUser 확장 시 동적)
 function getCurrentUserId(userType) {
@@ -377,10 +379,12 @@ function adaptStoreDeal(deal, currentUserId) {
 }
 
 export default function Alerts() {
+  useNoSwipeBack()
   const theme = getAccountTheme()
   const navigate = useNavigate()
   const { userType } = useUser()
   const currentUserId = getCurrentUserId(userType)
+  const scrollRef = useScrollRestore()
   const [mainTab, setMainTab] = useState('transactions') // 'transactions' | 'system'
   const [roleFilter, setRoleFilter] = useState('all')
 
@@ -560,7 +564,7 @@ export default function Alerts() {
 
   return (
     <PhoneShell>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
 
         {/* 다크 그라데이션 헤더 */}
         <GradientHeader paddingBottom="16px" bg={theme.headerGrad}>
@@ -828,7 +832,7 @@ export default function Alerts() {
               </div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-                {mergedSystemAlerts.map(a => {
+                {mergedSystemAlerts.map((a) => {
                   const clickable = !!a.route || a._fromStore
 
                   // ── 기업 초대 카드 (특별 렌더) ──
@@ -964,10 +968,9 @@ export default function Alerts() {
               </div>
             )
           )}
+
         </div>
-
-      </div> {/* 스크롤 영역 끝 */}
-
+      </div>
       <BottomTab />
     </PhoneShell>
   )

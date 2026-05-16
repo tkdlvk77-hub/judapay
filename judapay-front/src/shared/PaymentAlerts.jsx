@@ -5,6 +5,7 @@ import { getAccountTheme } from '../design/accountTokens'
 import { useUser } from '../contexts/UserContext'
 import { autoClassify } from './merchantCategoryMapper'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 데이터 ───────────────────────────────────────────────
 // type: 'mine' | 'external' | 'auto' | 'anomaly'
@@ -275,6 +276,7 @@ export default function PaymentAlerts() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
   const { userType } = useUser()
+  const scrollRef = useScrollRestore()
 
   const [activeTab, setActiveTab] = useState('all')
   const [purposeOverrides, setPurposeOverrides] = useState({})
@@ -436,7 +438,7 @@ export default function PaymentAlerts() {
         )}
 
         {/* ── 리스트 ── */}
-        <div style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'10px 14px 80px' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'10px 14px 80px' }}>
           {filtered.length === 0 ? (
             <div style={{ padding:'60px 0', textAlign:'center', color:'#9CA3AF', fontSize:'14px' }}>
               해당 내역이 없어요
@@ -586,13 +588,11 @@ export default function PaymentAlerts() {
           <div style={{ position:'absolute', bottom:'90px', left:'50%', transform:'translateX(-50%)',
             background:'#111827', color:'#fff', padding:'9px 18px', borderRadius:'20px',
             fontSize:'12px', fontWeight:600, whiteSpace:'nowrap', zIndex:500,
-            boxShadow:'0 4px 20px rgba(0,0,0,0.25)' }}>
+          }}>
             {toast}
           </div>
         )}
       </div>
-
-      <BottomTab />
     </PhoneShell>
   )
 }

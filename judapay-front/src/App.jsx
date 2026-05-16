@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useRef, useEffect } from 'react'
 
 // shared/auth
 import Start from './shared/auth/Start'
@@ -135,182 +136,214 @@ function ExecuteEntry() {
   return <Execute />
 }
 
+// 하단 탭 루트 경로 — 탭 전환은 애니메이션 없음
+const TAB_PATHS = new Set(['/home', '/home-business', '/messages', '/alerts', '/more', '/business-menu'])
+
 export default function App() {
+  const location = useLocation()
+  const dirRef = useRef(1)      // 1 = 앞으로, -1 = 뒤로
+  const isFirst = useRef(true)  // 최초 진입은 애니메이션 없음
+
+  useEffect(() => {
+    isFirst.current = false
+    // popstate = 브라우저/네이티브 뒤로가기, navigate(-1), iOS 스와이프 백
+    const onPop = () => {
+      dirRef.current = -1
+      setTimeout(() => { dirRef.current = 1 }, 400)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // 탭 전환 또는 뒤로가기는 애니메이션 없음 (iOS 스와이프가 자체 애니메이션 제공)
+  // 앞으로 이동할 때만 우측 슬라이드 적용
+  const isTab = TAB_PATHS.has(location.pathname)
+  const animClass = (!isFirst.current && !isTab && dirRef.current > 0)
+    ? 'page-enter-right'
+    : ''
+
   return (
-    <div style={{ display:'flex', justifyContent:'center', minHeight:'100vh' }}>
-      <Routes>
-        {/* 공개 라우트 */}
-        <Route path="/" element={<Start />} />
-        <Route path="/signup/personal" element={<SignupPersonal />} />
-        <Route path="/signup/business" element={<SignupBusiness />} />
-        <Route path="/signup/pin" element={<SignupPin />} />
-        <Route path="/login" element={<Login />} />
+    <div style={{ display:'flex', justifyContent:'center', width:'100%' }}>
+      <div className="phone-stage">
+        <div
+          key={location.key}
+          className={animClass}
+          style={{ position:'absolute', top:0, right:0, bottom:0, left:0, background:'#F4F6FB' }}
+        >
+          <Routes location={location}>
+            {/* 공개 라우트 */}
+            <Route path="/" element={<Start />} />
+            <Route path="/signup/personal" element={<SignupPersonal />} />
+            <Route path="/signup/business" element={<SignupBusiness />} />
+            <Route path="/signup/pin" element={<SignupPin />} />
+            <Route path="/login" element={<Login />} />
 
-        {/* 홈 — 사용자 타입에 따라 자동 분기 */}
-        <Route path="/home" element={<PersonalHome />} />
-        <Route path="/home-business" element={<BusinessHome />} />
+            {/* 홈 — 사용자 타입에 따라 자동 분기 */}
+            <Route path="/home" element={<PersonalHome />} />
+            <Route path="/home-business" element={<BusinessHome />} />
 
-        {/* 자금 집행 진입 — 권한별 메뉴 자동 분기 */}
-        <Route path="/execute" element={<ExecuteEntry />} />
+            {/* 자금 집행 진입 — 권한별 메뉴 자동 분기 */}
+            <Route path="/execute" element={<ExecuteEntry />} />
 
-        {/* 기업 전용 ERP */}
-        <Route path="/business-menu" element={
-          <Protected requireType="business"><BusinessMenu /></Protected>
-        } />
+            {/* 기업 전용 ERP */}
+            <Route path="/business-menu" element={
+              <Protected requireType="business"><BusinessMenu /></Protected>
+            } />
 
-        {/* 기업 자금집행 메뉴 (어떤 자금을 집행할까요?) */}
-        <Route path="/execute/business-menu" element={
-          <Protected requireType="business"><ExecuteBusinessMenu /></Protected>
-        } />
+            {/* 기업 자금집행 메뉴 (어떤 자금을 집행할까요?) */}
+            <Route path="/execute/business-menu" element={
+              <Protected requireType="business"><ExecuteBusinessMenu /></Protected>
+            } />
 
-        {/* 기업 자금 집행 하위 */}
-        <Route path="/execute/business/to-personal" element={
-          <Protected requireType="business"><ExecuteToPersonal /></Protected>
-        } />
-        <Route path="/execute/business/operations" element={
-          <Protected requireType="business"><ExecuteOperations /></Protected>
-        } />
-        <Route path="/execute/business/operations/salary" element={
-          <Protected requireType="business"><ExecuteSalary /></Protected>
-        } />
-        <Route path="/execute/business/operations/salary/register" element={
-          <Protected requireType="business"><ExecuteSalaryRegister /></Protected>
-        } />
-        <Route path="/execute/business/operations/rent" element={
-          <Protected requireType="business"><ExecuteRent /></Protected>
-        } />
-        <Route path="/execute/business/operations/rent-lease" element={
-          <Protected requireType="business"><ExecuteRentLease /></Protected>
-        } />
-        <Route path="/execute/business/operations/subscription" element={
-          <Protected requireType="business"><ExecuteSubscription /></Protected>
-        } />
-        <Route path="/execute/business/operations/telecom" element={
-          <Protected requireType="business"><ExecuteTelecom /></Protected>
-        } />
-        <Route path="/execute/business/operations/utility" element={
-          <Protected requireType="business"><ExecuteUtility /></Protected>
-        } />
-        <Route path="/execute/business/operations/insurance4" element={
-          <Protected requireType="business"><ExecuteInsurance4 /></Protected>
-        } />
-        <Route path="/execute/business/operations/tax" element={
-          <Protected requireType="business"><ExecuteTax /></Protected>
-        } />
-        <Route path="/execute/business/operations/insurance" element={
-          <Protected requireType="business"><ExecuteInsurancePremium /></Protected>
-        } />
-        <Route path="/execute/business/operations/misc" element={
-          <Protected requireType="business"><ExecuteOtherExpense /></Protected>
-        } />
-        <Route path="/execute/business/operations/auto-pay-all" element={
-          <Protected requireType="business"><ExecuteAutoPayAll /></Protected>
-        } />
-        <Route path="/execute/business/select-recipient" element={
-          <Protected requireType="business"><SelectRecipientBusiness /></Protected>
-        } />
-        <Route path="/execute/business/select-vendor" element={
-          <Protected requireType="business"><SelectVendor /></Protected>
-        } />
-        <Route path="/execute/business/freelance" element={
-          <Protected requireType="business"><ExecuteFreelanceBusiness /></Protected>
-        } />
-        <Route path="/execute/business/bonus" element={
-          <Protected requireType="business"><ExecuteBonusBusiness /></Protected>
-        } />
-        <Route path="/execute/business/condolence" element={
-          <Protected requireType="business"><ExecuteCondolenceBusiness /></Protected>
-        } />
-        <Route path="/execute/business/other-income" element={
-          <Protected requireType="business"><ExecuteOtherIncomeBusiness /></Protected>
-        } />
-        <Route path="/execute/business/lend" element={
-          <Protected requireType="business"><ExecuteLendBusiness /></Protected>
-        } />
-        <Route path="/execute/business/support" element={
-          <Protected requireType="business"><ExecuteSupportBusiness /></Protected>
-        } />
-        <Route path="/execute/business/vendor-loan" element={
-          <Protected requireType="business"><ExecuteVendorLoanBusiness /></Protected>
-        } />
-        <Route path="/execute/business/vendor-invest" element={
-          <Protected requireType="business"><ExecuteVendorInvestBusiness /></Protected>
-        } />
-        {/* 추후 추가: vendor-invest 라우트 */}
+            {/* 기업 자금 집행 하위 */}
+            <Route path="/execute/business/to-personal" element={
+              <Protected requireType="business"><ExecuteToPersonal /></Protected>
+            } />
+            <Route path="/execute/business/operations" element={
+              <Protected requireType="business"><ExecuteOperations /></Protected>
+            } />
+            <Route path="/execute/business/operations/salary" element={
+              <Protected requireType="business"><ExecuteSalary /></Protected>
+            } />
+            <Route path="/execute/business/operations/salary/register" element={
+              <Protected requireType="business"><ExecuteSalaryRegister /></Protected>
+            } />
+            <Route path="/execute/business/operations/rent" element={
+              <Protected requireType="business"><ExecuteRent /></Protected>
+            } />
+            <Route path="/execute/business/operations/rent-lease" element={
+              <Protected requireType="business"><ExecuteRentLease /></Protected>
+            } />
+            <Route path="/execute/business/operations/subscription" element={
+              <Protected requireType="business"><ExecuteSubscription /></Protected>
+            } />
+            <Route path="/execute/business/operations/telecom" element={
+              <Protected requireType="business"><ExecuteTelecom /></Protected>
+            } />
+            <Route path="/execute/business/operations/utility" element={
+              <Protected requireType="business"><ExecuteUtility /></Protected>
+            } />
+            <Route path="/execute/business/operations/insurance4" element={
+              <Protected requireType="business"><ExecuteInsurance4 /></Protected>
+            } />
+            <Route path="/execute/business/operations/tax" element={
+              <Protected requireType="business"><ExecuteTax /></Protected>
+            } />
+            <Route path="/execute/business/operations/insurance" element={
+              <Protected requireType="business"><ExecuteInsurancePremium /></Protected>
+            } />
+            <Route path="/execute/business/operations/misc" element={
+              <Protected requireType="business"><ExecuteOtherExpense /></Protected>
+            } />
+            <Route path="/execute/business/operations/auto-pay-all" element={
+              <Protected requireType="business"><ExecuteAutoPayAll /></Protected>
+            } />
+            <Route path="/execute/business/select-recipient" element={
+              <Protected requireType="business"><SelectRecipientBusiness /></Protected>
+            } />
+            <Route path="/execute/business/select-vendor" element={
+              <Protected requireType="business"><SelectVendor /></Protected>
+            } />
+            <Route path="/execute/business/freelance" element={
+              <Protected requireType="business"><ExecuteFreelanceBusiness /></Protected>
+            } />
+            <Route path="/execute/business/bonus" element={
+              <Protected requireType="business"><ExecuteBonusBusiness /></Protected>
+            } />
+            <Route path="/execute/business/condolence" element={
+              <Protected requireType="business"><ExecuteCondolenceBusiness /></Protected>
+            } />
+            <Route path="/execute/business/other-income" element={
+              <Protected requireType="business"><ExecuteOtherIncomeBusiness /></Protected>
+            } />
+            <Route path="/execute/business/lend" element={
+              <Protected requireType="business"><ExecuteLendBusiness /></Protected>
+            } />
+            <Route path="/execute/business/support" element={
+              <Protected requireType="business"><ExecuteSupportBusiness /></Protected>
+            } />
+            <Route path="/execute/business/vendor-loan" element={
+              <Protected requireType="business"><ExecuteVendorLoanBusiness /></Protected>
+            } />
+            <Route path="/execute/business/vendor-invest" element={
+              <Protected requireType="business"><ExecuteVendorInvestBusiness /></Protected>
+            } />
 
-        {/* 개인 자금 집행 하위 */}
-        <Route path="/execute/personal" element={
-          <Protected requireType="personal"><ExecutePersonal /></Protected>
-        } />
-        <Route path="/execute/personal/select" element={
-          <Protected requireType="personal"><SelectRecipient /></Protected>
-        } />
-        <Route path="/execute/personal/gift" element={
-          <Protected requireType="personal"><ExecuteGift /></Protected>
-        } />
-        <Route path="/execute/personal/living" element={
-          <Protected requireType="personal"><ExecuteLiving /></Protected>
-        } />
-        <Route path="/execute/personal/lend" element={
-          <Protected requireType="personal"><ExecuteLend /></Protected>
-        } />
-        <Route path="/execute/personal/invest" element={
-          <Protected requireType="personal"><ExecuteInvest /></Protected>
-        } />
-        <Route path="/execute/business/invest" element={
-          <Protected requireType="personal"><ExecuteInvestBusiness /></Protected>
-        } />
+            {/* 개인 자금 집행 하위 */}
+            <Route path="/execute/personal" element={
+              <Protected requireType="personal"><ExecutePersonal /></Protected>
+            } />
+            <Route path="/execute/personal/select" element={
+              <Protected requireType="personal"><SelectRecipient /></Protected>
+            } />
+            <Route path="/execute/personal/gift" element={
+              <Protected requireType="personal"><ExecuteGift /></Protected>
+            } />
+            <Route path="/execute/personal/living" element={
+              <Protected requireType="personal"><ExecuteLiving /></Protected>
+            } />
+            <Route path="/execute/personal/lend" element={
+              <Protected requireType="personal"><ExecuteLend /></Protected>
+            } />
+            <Route path="/execute/personal/invest" element={
+              <Protected requireType="personal"><ExecuteInvest /></Protected>
+            } />
+            <Route path="/execute/business/invest" element={
+              <Protected requireType="personal"><ExecuteInvestBusiness /></Protected>
+            } />
 
-        {/* /execute/business — userType에 따라 분기:
-            기업 → ExecuteBusiness (4개 메뉴 진입)
-            개인 → ExecuteToBusiness (개인이 사업자에게 지급) */}
-        <Route path="/execute/business" element={
-          <Protected><ExecuteBusinessRouter /></Protected>
-        } />
-        <Route path="/execute/business/select" element={
-          <Protected requireType="personal"><SelectBusiness /></Protected>
-        } />
+            {/* /execute/business — userType에 따라 분기:
+                기업 → ExecuteBusiness (4개 메뉴 진입)
+                개인 → ExecuteToBusiness (개인이 사업자에게 지급) */}
+            <Route path="/execute/business" element={
+              <Protected><ExecuteBusinessRouter /></Protected>
+            } />
+            <Route path="/execute/business/select" element={
+              <Protected requireType="personal"><SelectBusiness /></Protected>
+            } />
 
-        {/* 외주비/부동산 — 양쪽 공유 */}
-        <Route path="/execute/personal/freelance" element={<Protected><ExecuteFreelance /></Protected>} />
-        <Route path="/execute/personal/realestate" element={<Protected><ExecuteRealEstate /></Protected>} />
+            {/* 외주비/부동산 — 양쪽 공유 */}
+            <Route path="/execute/personal/freelance" element={<Protected><ExecuteFreelance /></Protected>} />
+            <Route path="/execute/personal/realestate" element={<Protected><ExecuteRealEstate /></Protected>} />
 
-        {/* 공통 (로그인 필요) */}
-        <Route path="/charge" element={<Protected><Charge /></Protected>} />
-        <Route path="/withdraw" element={<Protected><Withdraw /></Protected>} />
-        <Route path="/messages" element={<Protected><Messages /></Protected>} />
-        <Route path="/alerts" element={<Protected><Alerts /></Protected>} />
-        <Route path="/transactions/:id" element={<Protected><TransactionDetail /></Protected>} />
-        <Route path="/payments" element={<Protected><PaymentLogs /></Protected>} />
-                <Route path="/payments/:id" element={<Protected><PaymentDetail /></Protected>} />
-        <Route path="/card-payment" element={<Protected><CardPayment /></Protected>} />
-        <Route path="/other-payments" element={<Protected><OtherPayments /></Protected>} />
-        <Route path="/payment-alerts" element={<Protected><PaymentAlerts /></Protected>} />
-        <Route path="/wallet" element={<Protected><MyWallet /></Protected>} />
-        <Route path="/wallet/completed" element={<Protected><CompletedWallets /></Protected>} />
-        <Route path="/wallet/:id" element={<Protected><WalletDetail /></Protected>} />
-        <Route path="/evidence-center" element={<Protected><EvidenceCenter /></Protected>} />
-        <Route path="/stats" element={<Protected><ExecutionStats /></Protected>} />
-        <Route path="/monthly-report" element={<Protected><MonthlyReport /></Protected>} />
-        <Route path="/more" element={<Protected><More /></Protected>} />
-        <Route path="/security" element={<Protected><SecuritySettings /></Protected>} />
-        <Route path="/accounts" element={<Protected><AccountManagement /></Protected>} />
-        <Route path="/admin-management" element={<Protected><AdminManagement /></Protected>} />
-        <Route path="/admin-management-biz" element={<Protected><AdminManagementBiz /></Protected>} />
-        <Route path="/company-profile"  element={<Protected><CompanyProfile /></Protected>} />
-        <Route path="/personal-profile" element={<Protected><PersonalProfile /></Protected>} />
-        <Route path="/notices" element={<Protected><Notices /></Protected>} />
-        <Route path="/notices/:id" element={<Protected><NoticeDetail /></Protected>} />
-        <Route path="/refund" element={<Protected><Refund /></Protected>} />
-        <Route path="/dispute" element={<Protected><Dispute /></Protected>} />
-        <Route path="/support" element={<Protected><Support /></Protected>} />
-        <Route path="/help-faq" element={<Protected><HelpFaq /></Protected>} />
-        <Route path="/control-center/recipient/:id" element={<Protected><RecipientDetail /></Protected>} />
-        <Route path="/approval-center" element={<Protected><ApprovalCenter /></Protected>} />
-        <Route path="/tax-accountant" element={<Protected><TaxAccountant /></Protected>} />
+            {/* 공통 (로그인 필요) */}
+            <Route path="/charge" element={<Protected><Charge /></Protected>} />
+            <Route path="/withdraw" element={<Protected><Withdraw /></Protected>} />
+            <Route path="/messages" element={<Protected><Messages /></Protected>} />
+            <Route path="/alerts" element={<Protected><Alerts /></Protected>} />
+            <Route path="/transactions/:id" element={<Protected><TransactionDetail /></Protected>} />
+            <Route path="/payments" element={<Protected><PaymentLogs /></Protected>} />
+            <Route path="/payments/:id" element={<Protected><PaymentDetail /></Protected>} />
+            <Route path="/card-payment" element={<Protected><CardPayment /></Protected>} />
+            <Route path="/other-payments" element={<Protected><OtherPayments /></Protected>} />
+            <Route path="/payment-alerts" element={<Protected><PaymentAlerts /></Protected>} />
+            <Route path="/wallet" element={<Protected><MyWallet /></Protected>} />
+            <Route path="/wallet/completed" element={<Protected><CompletedWallets /></Protected>} />
+            <Route path="/wallet/:id" element={<Protected><WalletDetail /></Protected>} />
+            <Route path="/evidence-center" element={<Protected><EvidenceCenter /></Protected>} />
+            <Route path="/stats" element={<Protected><ExecutionStats /></Protected>} />
+            <Route path="/monthly-report" element={<Protected><MonthlyReport /></Protected>} />
+            <Route path="/more" element={<Protected><More /></Protected>} />
+            <Route path="/security" element={<Protected><SecuritySettings /></Protected>} />
+            <Route path="/accounts" element={<Protected><AccountManagement /></Protected>} />
+            <Route path="/admin-management" element={<Protected><AdminManagement /></Protected>} />
+            <Route path="/admin-management-biz" element={<Protected><AdminManagementBiz /></Protected>} />
+            <Route path="/company-profile"  element={<Protected><CompanyProfile /></Protected>} />
+            <Route path="/personal-profile" element={<Protected><PersonalProfile /></Protected>} />
+            <Route path="/notices" element={<Protected><Notices /></Protected>} />
+            <Route path="/notices/:id" element={<Protected><NoticeDetail /></Protected>} />
+            <Route path="/refund" element={<Protected><Refund /></Protected>} />
+            <Route path="/dispute" element={<Protected><Dispute /></Protected>} />
+            <Route path="/support" element={<Protected><Support /></Protected>} />
+            <Route path="/help-faq" element={<Protected><HelpFaq /></Protected>} />
+            <Route path="/control-center/recipient/:id" element={<Protected><RecipientDetail /></Protected>} />
+            <Route path="/approval-center" element={<Protected><ApprovalCenter /></Protected>} />
+            <Route path="/tax-accountant" element={<Protected><TaxAccountant /></Protected>} />
 
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+                        <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </div>
     </div>
   )
 }

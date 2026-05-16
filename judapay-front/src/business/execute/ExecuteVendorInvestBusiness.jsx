@@ -12,6 +12,7 @@ import MccBlock, { DEFAULT_MCC } from '../../shared/execute/MccBlock'
 import ConfirmStep from '../../shared/execute/ConfirmStep'
 import PinStep from '../../shared/execute/PinStep'
 import DoneStep from '../../shared/execute/DoneStep'
+import { useStepHistory } from '../../hooks/useStepHistory'
 
 // ─────────────────────────────────────────────────────────
 // 상수
@@ -142,6 +143,7 @@ export default function ExecuteVendorInvestBusiness() {
     else if (step === 'confirm') setStep(3)
     else if (step === 'pin') setStep('confirm')
   }
+  useStepHistory(goBack, step === 1, !!recipient)
 
   // ─── 풍부 push ─────────────────────────────────────────
   const pushToStore = () => {

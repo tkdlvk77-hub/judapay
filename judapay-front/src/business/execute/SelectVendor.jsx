@@ -5,6 +5,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { useScrollRestore } from '../../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────
 // 데모 — 최근 거래 사업자 (실제는 백엔드에서)
@@ -79,6 +80,7 @@ export default function SelectVendor() {
   const [searchParams] = useSearchParams()
   const theme = getAccountTheme()
   const t = useT()
+  const scrollRef = useScrollRestore()
 
   const menuId = searchParams.get('menu') || 'freelance'
   const nextPath = MENU_NEXT_PATH[menuId] || '/execute/business/freelance'
@@ -193,7 +195,7 @@ export default function SelectVendor() {
     const b = lookupResult.business
     return (
       <PhoneShell>
-        <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
           <DarkHeader
             smallTitle="사업자 조회 결과"
             badge="국세청 검증 ✓"
@@ -622,8 +624,8 @@ export default function SelectVendor() {
               fontFamily:'inherit',
               boxShadow: bizValid ? SHADOWS.card : 'none',
             }}>
-            {bizValid ? '조회하기' : '사업자번호 10자리를 입력하세요'}
-          </button>
+              사업자 조회
+            </button>
         </div>
       </div>
     </PhoneShell>

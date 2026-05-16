@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import BottomTab from '../components/BottomTab'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─────────────────────────────────────────────────────────
 // ExecutionStats CATEGORY_GROUPS의 subs와 완전히 동일한 서브필터
@@ -158,6 +159,7 @@ function filterByPeriod(packages, period, custom) {
 export default function EvidenceCenter() {
   const theme = getAccountTheme()
   const navigate = useNavigate()
+  const scrollRef = useScrollRestore()
 
   const [period, setPeriod]                   = useState('이번달')
   const [customDate, setCustomDate]           = useState({ start: '', end: '' })
@@ -264,7 +266,7 @@ export default function EvidenceCenter() {
         </div>
 
         {/* ── 스크롤 영역 ── */}
-        <div style={{ flex:1, overflowY:'auto', padding:'14px 14px 90px' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'14px 14px 90px' }}>
 
           {/* 기간 필터 */}
           <div style={{ display:'flex', gap:'6px', marginBottom:'10px' }}>
@@ -604,9 +606,7 @@ export default function EvidenceCenter() {
               </button>
             </div>
           </div>
-        )}
-
-        <BottomTab active="evidence" />
+      )}
       </div>
     </PhoneShell>
   )

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
+import { useStepHistory } from '../hooks/useStepHistory'
 
 // ─── 분쟁 유형 ────────────────────────────────────────────
 const DISPUTE_TYPES = [
@@ -833,10 +835,17 @@ function Done({ type, txn, navigate }) {
 export default function Dispute() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
+  const scrollRef = useScrollRestore()
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [selectedTxn, setSelectedTxn] = useState(null)
   const [content, setContent] = useState(null)
+
+  const goBack = () => {
+    if (step === 1) navigate(-1)
+    else if (typeof step === 'number') setStep(step - 1)
+  }
+  useStepHistory(goBack, step === 1)
 
   if (step === 'done') {
     return (
@@ -846,9 +855,10 @@ export default function Dispute() {
     )
   }
 
+
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
         {step === 1 && (
           <Step1 onSelect={(type) => { setSelectedType(type); setStep(2) }} />
         )}

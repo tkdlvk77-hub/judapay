@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '../contexts/UserContext'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 import { PhoneShell, GradientHeader, ProfileBadge, BalanceCard, CircleAction, AccountTransition } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
@@ -10,6 +12,7 @@ import {
   formatRelativeTime,
 } from '../shared/transactionStore'
 import { useStoreData } from '../hooks/useStoreData'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 // ─── 데이터 ──────────────────────────────────────────────
 const COMPANY = {
@@ -79,8 +82,11 @@ function SectionHeader({ eyebrow, title, actionLabel, onAction }) {
 
 // ─── 메인 ─────────────────────────────────────────────────
 export default function HomeBusiness() {
+  useNoSwipeBack()
   const BIZ = getAccountTheme('business')
   const navigate = useNavigate()
+  const { login } = useUser()
+  const scrollRef = useScrollRestore()
 
   useEffect(() => { seedDemoTransactions() }, [])
 
@@ -119,7 +125,7 @@ export default function HomeBusiness() {
   const handleSwitchToPersonal = () => {
     setTransitioning(true)
     setTimeout(() => {
-      sessionStorage.setItem('bizType', 'personal')
+      login('personal')                    // Context + sessionStorage 동시 업데이트
       sessionStorage.removeItem('bizRole')
       navigate('/home')
     }, 750)
@@ -139,7 +145,7 @@ export default function HomeBusiness() {
   return (
     <PhoneShell>
       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-        <div style={{ flex:1, overflowY:'auto' }}>
+        <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
 
           {/* ── 헤더 (기존 유지) ── */}
           <GradientHeader paddingBottom="16px" bg={BIZ.headerGrad}>
@@ -463,10 +469,13 @@ export default function HomeBusiness() {
                   )
                 })}
               </div>
-              <button onClick={() => setShowWalletSheet(false)} style={{ width:'100%', height:'48px', background: COLORS.bgMuted, color: COLORS.t2, border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>닫기</button>
+              <button onClick={() => setShowWalletSheet(false)} style={{ width:'100%', height:'48px', background: COLORS.bgMuted, color: COLORS.t2, border:'none', borderRadius: RADIUS.md, fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+닫기
+              </button>
             </div>
           </div>
         )}
+
       </div>
     </PhoneShell>
   )

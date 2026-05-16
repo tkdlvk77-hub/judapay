@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
+import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ═══════════════════════════════════════════════════════════
 // ── 상수 ──────────────────────────────────────────────────
@@ -1610,6 +1611,7 @@ export default function AdminManagement() {
   const [view, setView]                 = useState('main')
   const [members, setMembers]           = useState(DEMO_MEMBERS)
   const [selectedMember, setSelectedMember] = useState(null)
+  const scrollRef = useScrollRestore()
 
   // view: main | members | member_detail | add_member | approval | budget | evidence | auditlog | escalation | invite
 
@@ -1653,9 +1655,6 @@ export default function AdminManagement() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-        {renderView()}
-      </div>
     </PhoneShell>
   )
 }
