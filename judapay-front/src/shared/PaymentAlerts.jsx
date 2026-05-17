@@ -1,11 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
 import { useUser } from '../contexts/UserContext'
 import { autoClassify } from './merchantCategoryMapper'
-import BottomTab from '../components/BottomTab'
-import { useScrollRestore } from '../hooks/useScrollRestore'
 
 // ─── 데이터 ───────────────────────────────────────────────
 // type: 'mine' | 'external' | 'auto' | 'anomaly'
@@ -276,7 +274,30 @@ export default function PaymentAlerts() {
   const navigate = useNavigate()
   const theme = getAccountTheme()
   const { userType } = useUser()
-  const scrollRef = useScrollRestore()
+  const scrollRef  = useRef(null)
+  const title1Ref  = useRef(null)
+  const title2Ref  = useRef(null)
+
+  // 헤더 색상
+  const NAV_COLOR    = userType === 'business' ? '#0A1628' : '#1A1240'
+  const PROFILE_GRAD = theme.headerGrad
+
+  // 타이틀 크로스페이드 (직접 DOM 조작)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const FADE_START = 60, FADE_END = 110
+    let raf = null
+    const update = () => {
+      const p = Math.min(1, Math.max(0, (el.scrollTop - FADE_START) / (FADE_END - FADE_START)))
+      if (title1Ref.current) title1Ref.current.style.opacity = String(Math.max(0, 1 - p * 1.6))
+      if (title2Ref.current) title2Ref.current.style.opacity = String(Math.max(0, (p - 0.4) * 1.8))
+      raf = null
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update) }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => { el.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf) }
+  }, [])
 
   const [activeTab, setActiveTab] = useState('all')
   const [purposeOverrides, setPurposeOverrides] = useState({})
@@ -330,87 +351,104 @@ export default function PaymentAlerts() {
 
   return (
     <PhoneShell>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
+      {/* ── 전체 스크롤 컨테이너 ── */}
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', minHeight:0 }}>
 
-        {/* ── 헤더 ── */}
-        <div style={{ background: theme.headerGrad, flexShrink:0, paddingTop:'20px', paddingBottom:'0' }}>
-          {/* 상단 행: 백버튼 + 소명요청 */}
-          <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 18px' }}>
-            <button onClick={() => navigate(-1)}
-              style={{ width:'32px', height:'32px',
-                background:'transparent', border:'none',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                cursor:'pointer', padding:0, flexShrink:0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>
+        {/* ── ① Sticky 네비 바 ── */}
+        <div style={{
+          position:'sticky', top:0, zIndex:10,
+          background: NAV_COLOR,
+          display:'flex', alignItems:'center', gap:'8px',
+          paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px',
+          overflow:'hidden',
+        }}>
+          <button onClick={() => navigate(-1)}
+            style={{ width:'32px', height:'32px', background:'transparent', border:'none',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              cursor:'pointer', padding:0, flexShrink:0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+
+          {/* 타이틀 크로스페이드 */}
+          <span style={{ flex:1, position:'relative', height:'22px', overflow:'hidden' }}>
+            <span ref={title1Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:600, color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center' }}>
               실시간 결제
             </span>
-            {/* 소명요청 버튼 — 개인은 숨김 */}
-            {userType !== 'personal' && (
-              <button onClick={() => { setSelectMode(v => !v); setSelected([]) }}
-                style={{ padding:'6px 14px', flexShrink:0,
-                  background: selectMode ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.18)',
-                  border:'1px solid rgba(255,255,255,0.3)', borderRadius:'20px',
-                  color: selectMode ? theme.brandDark : '#fff',
-                  fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                  display:'flex', alignItems:'center', gap:'5px' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                내역확인요청
-              </button>
-            )}
-          </div>
-
-          {/* 큰 타이틀 영역 */}
-          <div style={{ padding:'0 20px 18px' }}>
-            <div style={{ fontSize:'28px', fontWeight:700, color:'#fff', lineHeight:1.25, letterSpacing:'-1px' }}>
+            <span ref={title2Ref} style={{ position:'absolute', inset:0, fontSize:'15px', fontWeight:700, color:'#fff', display:'flex', alignItems:'center', opacity:0 }}>
               실시간 결제
-            </div>
-            <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)', marginTop:'4px' }}>
-              전체 <strong style={{ color:'#fff' }}>{ALL_PAYMENTS.length}</strong>건
-              {totalBlocked > 0 && <span style={{ color:'#FCA5A5', fontWeight:600 }}> · 차단 {totalBlocked}건</span>}
-              {unclassified > 0 && <span style={{ color:'#FDE68A', fontWeight:600 }}> · 미분류 {unclassified}건</span>}
-            </div>
-          </div>
+            </span>
+          </span>
 
-          {/* 탭 바 */}
-          <div style={{ display:'flex', overflowX:'auto', padding:'0 16px',
-            scrollbarWidth:'none', msOverflowStyle:'none' }}>
-            {(userType === 'personal' ? TABS.filter(t => t.key !== 'auto') : TABS).map(tab => {
-              const count = tab.key === 'anomaly'
-                ? PROCESSED_PAYMENTS.filter(p => p.type === 'anomaly').length : 0
-              const isActive = activeTab === tab.key
-              return (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                  style={{ flexShrink:0, padding:'10px 14px',
-                    background:'none', border:'none',
-                    borderBottom: isActive ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)',
-                    cursor:'pointer', fontFamily:'inherit',
-                    display:'flex', alignItems:'center', gap:'5px' }}>
-                  <span style={{ fontSize:'13px', fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#fff' : 'rgba(255,255,255,0.55)' }}>
-                    {tab.label}
-                  </span>
-                  {tab.key === 'anomaly' && count > 0 && (
-                    <span style={{ fontSize:'10px', fontWeight:700, color:'#FCA5A5',
-                      background:'rgba(239,68,68,0.25)', padding:'1px 6px', borderRadius:'10px' }}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+          {/* 소명요청 버튼 — 개인은 숨김 */}
+          {userType !== 'personal' && (
+            <button onClick={() => { setSelectMode(v => !v); setSelected([]) }}
+              style={{ padding:'6px 12px', flexShrink:0,
+                background: selectMode ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.18)',
+                border:'1px solid rgba(255,255,255,0.3)', borderRadius:'20px',
+                color: selectMode ? NAV_COLOR : '#fff',
+                fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                display:'flex', alignItems:'center', gap:'5px' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              내역확인요청
+            </button>
+          )}
+        </div>
+
+        {/* ── ② 프로필 히어로 (자연스럽게 스크롤됨) ── */}
+        <div style={{ background: PROFILE_GRAD, padding:'12px 20px 18px' }}>
+          <div style={{ fontSize:'28px', fontWeight:700, color:'#fff', lineHeight:1.25, letterSpacing:'-1px' }}>
+            실시간 결제
+          </div>
+          <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)', marginTop:'4px' }}>
+            전체 <strong style={{ color:'#fff' }}>{ALL_PAYMENTS.length}</strong>건
+            {totalBlocked > 0 && <span style={{ color:'#FCA5A5', fontWeight:600 }}> · 차단 {totalBlocked}건</span>}
+            {unclassified > 0 && <span style={{ color:'#FDE68A', fontWeight:600 }}> · 미분류 {unclassified}건</span>}
           </div>
         </div>
 
-        {/* ── 선택 모드 바 ── */}
+        {/* ── ③ Sticky 탭 바 ── */}
+        <div style={{
+          position:'sticky', top:'calc(max(66px, 46px + env(safe-area-inset-top)))', zIndex:9,
+          background: NAV_COLOR,
+          display:'flex', overflowX:'auto',
+          borderTop:'1px solid rgba(255,255,255,0.12)',
+          scrollbarWidth:'none', msOverflowStyle:'none',
+          padding:'0 4px',
+        }}>
+          {(userType === 'personal' ? TABS.filter(t => t.key !== 'auto') : TABS).map(tab => {
+            const count = tab.key === 'anomaly'
+              ? PROCESSED_PAYMENTS.filter(p => p.type === 'anomaly').length : 0
+            const isActive = activeTab === tab.key
+            return (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                style={{ flexShrink:0, padding:'10px 14px',
+                  background:'none', border:'none',
+                  borderBottom: isActive ? '2px solid #fff' : '2px solid transparent',
+                  cursor:'pointer', fontFamily:'inherit',
+                  display:'flex', alignItems:'center', gap:'5px' }}>
+                <span style={{ fontSize:'13px', fontWeight: isActive ? 700 : 500,
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.55)' }}>
+                  {tab.label}
+                </span>
+                {tab.key === 'anomaly' && count > 0 && (
+                  <span style={{ fontSize:'10px', fontWeight:700, color:'#FCA5A5',
+                    background:'rgba(239,68,68,0.25)', padding:'1px 6px', borderRadius:'10px' }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── ④ 선택 모드 바 ── */}
         {selectMode && (
           <div style={{ background:'#fff', borderBottom:'1px solid #F0F1F3',
-            padding:'10px 14px', display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+            padding:'10px 14px', display:'flex', alignItems:'center', gap:'10px' }}>
             <button onClick={toggleAll}
               style={{ width:'22px', height:'22px', borderRadius:'7px', flexShrink:0,
                 border:`2px solid ${selected.length === filtered.length && filtered.length > 0 ? theme.brandDark : '#D1D5DB'}`,
@@ -428,17 +466,17 @@ export default function PaymentAlerts() {
             </span>
             {selected.length > 0 && (
               <button onClick={openJustify}
-                style={{ padding:'8px 16px', background: theme.activeBtnGrad, border:'none',
-                  borderRadius:'20px', color:'#fff', fontSize:'12px', fontWeight:700,
-                  cursor:'pointer', fontFamily:'inherit', boxShadow: theme.activeShadow }}>
-                💳 사용내역확인 {selected.length}건
+                style={{ padding:'6px 14px', background: theme.activeBtnGrad, color:'#fff',
+                  border:'none', borderRadius:'20px', fontSize:'12px', fontWeight:700,
+                  cursor:'pointer', fontFamily:'inherit' }}>
+                내역확인요청 ({selected.length})
               </button>
             )}
           </div>
         )}
 
-        {/* ── 리스트 ── */}
-        <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background:'#F4F5F7', padding:'10px 14px 80px' }}>
+        {/* ── ⑤ 리스트 ── */}
+        <div style={{ background:'#F4F5F7', padding:'10px 14px 80px' }}>
           {filtered.length === 0 ? (
             <div style={{ padding:'60px 0', textAlign:'center', color:'#9CA3AF', fontSize:'14px' }}>
               해당 내역이 없어요
@@ -458,7 +496,6 @@ export default function PaymentAlerts() {
                   onToggle={toggleSelect}
                 />
               ))}
-              {/* 마지막 행 border 제거 */}
               <style>{`.payment-last { border-bottom: none !important; }`}</style>
             </div>
           )}
@@ -474,12 +511,14 @@ export default function PaymentAlerts() {
           )}
         </div>
 
-        {/* ── 분류 바텀시트 ── */}
-        <ClassifySheet
-          target={classifyTarget}
-          onSelect={handleClassify}
-          onClose={() => setClassifyTarget(null)}
-        />
+      </div>
+
+      {/* ── 분류 바텀시트 ── */}
+      <ClassifySheet
+        target={classifyTarget}
+        onSelect={handleClassify}
+        onClose={() => setClassifyTarget(null)}
+      />
 
         {/* ── 사용내역확인 모달 (ApprovalCenter 추가요청 스타일) ── */}
         {justifyModal && (() => {
@@ -592,7 +631,7 @@ export default function PaymentAlerts() {
             {toast}
           </div>
         )}
-      </div>
+
     </PhoneShell>
   )
 }

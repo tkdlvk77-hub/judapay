@@ -25,7 +25,7 @@ export function GradientHeader({ children, paddingBottom = '24px', bg }) {
   return (
     <div style={{
       background: bg || GRADIENTS.header,
-      paddingTop: '20px',
+      paddingTop: 'max(20px, env(safe-area-inset-top))',
       paddingBottom,
       position: 'relative',
     }}>

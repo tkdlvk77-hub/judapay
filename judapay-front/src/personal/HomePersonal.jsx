@@ -334,7 +334,7 @@ export default function HomePersonal() {
       <AccountTransition
         visible={transitioning}
         message="기업 모드로 전환되었습니다."
-        gradient="linear-gradient(160deg,#1e1b4b 0%,#312e81 60%,#6366F1 100%)"
+        gradient="linear-gradient(160deg, #1E3A5F 0%, #0F2035 50%, #0A1628 100%)"
       />
     </PhoneShell>
   )

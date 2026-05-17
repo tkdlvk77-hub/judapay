@@ -404,7 +404,8 @@ export default function PersonalProfile() {
           position:'sticky', top:0, zIndex:10,
           background: NAV_COLOR,
           display:'flex', alignItems:'center', gap:'8px',
-          padding:'20px 16px 14px', overflow:'hidden',
+          paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px',
+          overflow:'hidden',
         }}>
           <button onClick={() => navigate(-1)}
             style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
@@ -449,7 +450,7 @@ export default function PersonalProfile() {
 
         {/* ── ③ Sticky 탭 바 ── */}
         <div style={{
-          position:'sticky', top:'66px', zIndex:9,
+          position:'sticky', top:'calc(max(66px, 46px + env(safe-area-inset-top)))', zIndex:9,
           background: NAV_COLOR,
           display:'flex', borderTop:'1px solid rgba(255,255,255,0.12)',
         }}>

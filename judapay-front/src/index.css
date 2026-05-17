@@ -57,14 +57,13 @@ body {
 /* ── 모바일 실기기: 좌우 여백 없이 꽉 채움 ── */
 @media (max-width: 430px) {
   body {
-    background: #F4F6FB;
+    background: #1A0F3C; /* safe area 여백을 앱 다크 배경과 통일 (흰 줄 방지) */
   }
   .phone {
     width: 100%;
     box-shadow: none;
-    /* viewport-fit=cover 대응: safe area inset 적용 */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    /* safe area 패딩은 GradientHeader(상단) / BottomTab(하단)에서 개별 처리
+       → 각 컴포넌트 배경색이 safe area 영역까지 자연스럽게 채워짐 */
     height: 100vh;
     height: 100svh; /* 브라우저 UI 포함 최소 높이 → 버튼 잘림 방지 */
   }

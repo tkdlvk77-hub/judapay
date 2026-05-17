@@ -85,7 +85,7 @@ export default function BottomTab() {
       background: COLORS.bgCard,
       borderTop: `1px solid ${COLORS.borderSoft}`,
       flexShrink: 0,
-      paddingBottom: '4px', // safe area 느낌
+      paddingBottom: 'max(4px, env(safe-area-inset-bottom))', // 홈 인디케이터 safe area 대응
     }}>
       {tabs.map((tab) => {
         const active = isActive(tab)

@@ -22,7 +22,7 @@ function BrandHeader({ title, onBack, bg }) {
     <div style={{
       background: bg,
       display:'flex', alignItems:'center',
-      padding:'20px 16px 14px',
+      paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px',
       gap:'4px', flexShrink:0,
     }}>
       <button onClick={onBack} style={{

@@ -895,7 +895,7 @@ export default function RecipientDetail() {
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
         {/* ── Sticky 네비 바 (장식 원 포함, 별도 패딩 div 없음) ── */}
-        <div style={{ position:'sticky', top:0, zIndex:10, background: AMBER_NAV, display:'flex', alignItems:'center', gap:'8px', padding:'20px 16px 14px', overflow:'hidden' }}>
+        <div style={{ position:'sticky', top:0, zIndex:10, background: AMBER_NAV, display:'flex', alignItems:'center', gap:'8px', paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px', overflow:'hidden' }}>
           {/* 장식 원 — 네비 바 안에 */}
           <div style={{ position:'absolute', top:'-30px', right:'-20px', width:'110px', height:'110px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
           <button onClick={() => navigate(-1)}
@@ -957,7 +957,7 @@ export default function RecipientDetail() {
         </div>
 
         {/* ── Sticky 탭 바 ── */}
-        <div style={{ position:'sticky', top:'66px', zIndex:9, background: AMBER_NAV, display:'flex', gap:'4px', overflowX:'auto', padding:'10px 16px', scrollbarWidth:'none' }}>
+        <div style={{ position:'sticky', top:'calc(max(66px, 46px + env(safe-area-inset-top)))', zIndex:9, background: AMBER_NAV, display:'flex', gap:'4px', overflowX:'auto', padding:'10px 16px', scrollbarWidth:'none' }}>
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               style={{
