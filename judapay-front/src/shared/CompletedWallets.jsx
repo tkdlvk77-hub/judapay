@@ -88,7 +88,7 @@ export default function CompletedWallets() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ background: theme.headerGrad, paddingTop: '20px', paddingBottom: '24px', flexShrink: 0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom: '24px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
             <button onClick={() => navigate(-1)} style={{
               background: 'none', border: 'none', cursor: 'pointer',

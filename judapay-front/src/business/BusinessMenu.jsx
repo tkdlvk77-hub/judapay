@@ -158,7 +158,10 @@ export default function BusinessMenu() {
         {/* 헤더 — 기업 다크 (theme 분기 자동) */}
         <div style={{
           background: theme.headerGrad,
-          padding: '24px 20px 24px',
+          paddingTop: 'max(24px, env(safe-area-inset-top))',
+          paddingRight: '20px',
+          paddingBottom: '24px',
+          paddingLeft: '20px',
         }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
             <div style={{ fontSize:'24px', fontWeight:700, color:'#fff', letterSpacing:'-0.5px' }}>

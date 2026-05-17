@@ -45,7 +45,7 @@ export function ExecuteHeader({
       {/* 1행: ← 타이틀 [배지]      X */}
       <div style={{
         display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'4px 12px 4px 8px', gap:'6px',
+        paddingTop:'max(4px, env(safe-area-inset-top))', paddingRight:'12px', paddingBottom:'4px', paddingLeft:'8px', gap:'6px',
       }}>
         <div style={{ display:'flex', alignItems:'center', gap:'4px', flex:1, minWidth:0 }}>
           {onBack && (

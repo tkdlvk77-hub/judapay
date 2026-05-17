@@ -217,7 +217,7 @@ export default function HomeInstitution() {
       <div style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
 
         {/* ── 다크 헤더 영역 (남색) ── */}
-        <div style={{ background: GOV.headerGrad, paddingTop: '14px', paddingBottom: '28px' }}>
+        <div style={{ background: GOV.headerGrad, paddingTop:'max(14px, env(safe-area-inset-top))', paddingBottom: '28px' }}>
 
           {/* 기관 헤더 */}
           <div style={{

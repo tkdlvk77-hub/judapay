@@ -606,7 +606,7 @@ export default function CardPayment() {
       <div ref={scrollRef} style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 헤더 */}
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'20px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
               <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>

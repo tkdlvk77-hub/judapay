@@ -216,7 +216,7 @@ export default function EvidenceCenter() {
         fontFamily:'Pretendard, sans-serif', position:'relative' }}>
 
         {/* ── 헤더 ── */}
-        <div style={{ background: theme.headerGrad, padding:'20px 16px 16px', color:'#fff', flexShrink:0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'16px', paddingLeft:'16px', color:'#fff', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
             <button onClick={() => navigate(-1)}
               style={{ width:'32px', height:'32px', background:'transparent', border:'none',

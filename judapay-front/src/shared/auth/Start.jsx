@@ -30,7 +30,6 @@ export default function Start() {
   return (
     <div className="phone flex flex-col" style={{
       background: fullBg,
-      minHeight: '100vh',
       fontFamily: 'inherit',
       position: 'relative',
       overflow: 'hidden',
@@ -182,7 +181,8 @@ export default function Start() {
 
       {/* 약관 */}
       <div style={{
-        padding: '0 24px 32px',
+        padding: '0 24px',
+        paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
         textAlign: 'center',
         fontSize: '10px',
         color: 'rgba(255,255,255,0.25)',

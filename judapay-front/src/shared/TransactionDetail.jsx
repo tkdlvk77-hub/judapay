@@ -272,7 +272,7 @@ export default function TransactionDetail() {
         {/* ── 다크 그라데이션 헤더 (좌우 꽉, 라운드 없음) ─────── */}
         <div style={{
           background: theme.headerGrad,
-          paddingTop:'20px',
+          paddingTop:'max(20px, env(safe-area-inset-top))',
           paddingBottom:'24px',
         }}>
           {/* 상단 네비 — 뒤로 + 가운데 타이틀 */}
@@ -1062,7 +1062,7 @@ function StoreTransactionDetail({ id }) {
       <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* 다크 헤더 (일관된 디자인) */}
-        <div style={{ background: theme.headerGrad, padding:'24px 16px 28px', flexShrink:0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'28px', paddingLeft:'16px', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
             <button onClick={() => navigate(-1)}
               style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>

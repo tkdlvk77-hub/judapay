@@ -34,7 +34,7 @@ export default function DetailScreen({ thread, onBack }) {
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#F4F5F7' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: theme.headerGrad, paddingTop:'16px', flexShrink:0 }}>
+      <div style={{ background: theme.headerGrad, paddingTop:'max(16px, env(safe-area-inset-top))', flexShrink:0 }}>
 
         {/* 네비 */}
         <div style={{

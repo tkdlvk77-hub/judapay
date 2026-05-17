@@ -214,7 +214,7 @@ export default function PaymentDetail() {
           {/* ── 헤더 ── */}
           <div style={{
             background: theme.headerGrad,
-            padding:'20px 16px 18px',
+            paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'18px', paddingLeft:'16px',
             display:'flex', alignItems:'center', gap:'10px',
           }}>
             <button onClick={() => navigate(-1)}

@@ -26,7 +26,7 @@ function ExecuteBlockedView({ role }) {
   const isManager = role === 'manager'
   const isStaff   = role === 'staff'
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
       <div style={{ width:'72px', height:'72px', borderRadius:'22px', background: isManager ? '#E0F2FE' : isStaff ? '#FFF7ED' : '#FEE9E9', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px', fontSize:'32px' }}>
         {isManager ? '✅' : isStaff ? '👤' : '🔒'}
       </div>
@@ -74,7 +74,7 @@ export default function ExecuteBusinessMenu() {
   return (
     <PhoneShell>
       <div ref={scrollRef} style={{ flex:1, overflowY:'auto' }}>
-        <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'28px' }}>
+        <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'28px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 20px' }}>
             <button onClick={() => navigate('/home-business')} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>

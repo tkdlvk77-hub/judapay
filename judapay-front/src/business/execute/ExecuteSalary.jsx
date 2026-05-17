@@ -737,7 +737,7 @@ export default function ExecuteSalary() {
     return (
       <PhoneShell>
         <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-          <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'24px' }}>
+          <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
               <BackBtn onClick={() => setScreen('detail')} />
               <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>지급 로그</span>
@@ -786,7 +786,7 @@ export default function ExecuteSalary() {
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
 
             {/* 헤더 — 유리 카드 없음, 타이틀만 */}
-            <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
+            <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'20px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
                 <BackBtn onClick={() => setScreen('list')} />
                 <span style={{ fontSize:'15px', fontWeight:600, color:'#fff', flex:1 }}>
@@ -1111,7 +1111,7 @@ export default function ExecuteSalary() {
       <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
 
         {/* 헤더 — 원래 형태 그대로 유지 */}
-        <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
+        <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'20px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 14px' }}>
             <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'none', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>

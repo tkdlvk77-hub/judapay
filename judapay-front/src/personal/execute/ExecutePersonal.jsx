@@ -101,7 +101,7 @@ export default function ExecutePersonal() {
         {/* 다크 헤더 — theme 분기 자동 (개인=보라) */}
         <div style={{
           background: theme.headerGrad,
-          paddingTop:'20px',
+          paddingTop:'max(20px, env(safe-area-inset-top))',
           paddingBottom:'28px',
         }}>
           <div style={{

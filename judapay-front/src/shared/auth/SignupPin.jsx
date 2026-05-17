@@ -65,7 +65,7 @@ export default function SignupPin() {
 
   // Face ID
   if (phase === 'faceid') return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
       <Sbar />
       <div style={{ width:'100%', padding:'2px 20px 0', textAlign:'right', fontSize:'11px', color:'#C8C5BE' }}>PIN 설정 완료</div>
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 32px' }}>
@@ -98,7 +98,7 @@ export default function SignupPin() {
 
   // 가입 완료
   if (phase === 'done') return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
       <Sbar />
       <div style={{ height:'3px', background:'#E8622A' }} />
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'28px 32px 0' }}>
@@ -143,7 +143,7 @@ export default function SignupPin() {
 
   // PIN 입력
   return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
 
       <div style={{ padding:'2px 20px 0', textAlign:'right', fontSize:'11px', color:'#C8C5BE' }}>가입 완료 · 마지막 단계</div>
 

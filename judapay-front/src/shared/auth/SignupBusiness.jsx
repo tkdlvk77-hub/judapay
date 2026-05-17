@@ -40,7 +40,7 @@ export default function SignupBusiness() {
 
   // 1단계 — 사업자 확인
   if (step === 1) return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
       <Sbar />
       <BackRow title="기업 가입" onBack={() => navigate('/')} />
       <div style={{ padding:'0 24px', flex:1, overflowY:'auto' }}>
@@ -125,7 +125,7 @@ export default function SignupBusiness() {
 
   // 2단계 — 대표자 인증
   return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
       <Sbar />
       <BackRow title="기업 가입" onBack={() => setStep(1)} />
       <div style={{ padding:'0 24px', flex:1 }}>

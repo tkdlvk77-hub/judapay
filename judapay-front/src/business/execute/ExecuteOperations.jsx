@@ -102,7 +102,7 @@ export default function ExecuteOperations() {
       <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
 
         {/* ── 다크 헤더 — 다른 집행 화면과 동일 패턴 ── */}
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'28px' }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'28px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 20px' }}>
             <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'none', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>

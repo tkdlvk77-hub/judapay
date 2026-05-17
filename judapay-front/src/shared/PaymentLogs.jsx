@@ -130,7 +130,7 @@ function DarkHeader({ cardLabel, count, onBack, onJustify, selectMode }) {
   return (
     <div style={{
       background: theme.headerGrad,
-      paddingTop:'20px',
+      paddingTop:'max(20px, env(safe-area-inset-top))',
       paddingBottom:'18px',
     }}>
       <div style={{

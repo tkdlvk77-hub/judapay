@@ -73,7 +73,7 @@ export default function DoneStep({
         <div style={{
           position:'relative',
           background: headerGrad || GRADIENTS.header,
-          paddingTop:'40px',
+          paddingTop:'max(40px, env(safe-area-inset-top))',
           paddingBottom:'40px',
           textAlign:'center',
         }}>

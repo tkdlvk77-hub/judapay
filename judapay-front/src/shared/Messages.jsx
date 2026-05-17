@@ -15,6 +15,7 @@ import { THREADS, CHATS } from './messages/messagesData'
 import { getCurrentUserId, adaptStoreThread, adaptStoreChat, shortStatusLabel } from './messages/messagesUtils'
 import DetailScreen from './messages/DetailScreen'
 import { useStepHistory } from '../hooks/useStepHistory'
+import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 const ChatRoom = lazy(() => import('./messages/ChatRoom'))
 
@@ -67,6 +68,8 @@ export default function Messages() {
     setActiveThread(null)
   }
 
+  // 메시지 탭 루트 화면 — 스와이프 백 차단 (홈/알림/더보기와 동일하게 탭은 root로 동작)
+  useNoSwipeBack()
   // iOS 스와이프 백 (목록이 첫 단계, 채팅방/상세가 비첫 단계)
   useStepHistory(handleBack, !activeThread && !showDetail)
 

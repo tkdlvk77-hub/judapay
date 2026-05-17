@@ -53,7 +53,7 @@ export default function ExecuteBusiness() {
         {/* 다크 헤더 — 기업 네이비 그라데이션 */}
         <div style={{
           background: theme.headerGrad,
-          paddingTop:'20px',
+          paddingTop:'max(20px, env(safe-area-inset-top))',
           paddingBottom:'28px',
         }}>
           <div style={{

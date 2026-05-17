@@ -38,8 +38,8 @@ export default function Login() {
   }
 
   return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'48px 24px 0' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5' }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:'max(48px, calc(24px + env(safe-area-inset-top)))', paddingLeft:'24px', paddingRight:'24px', paddingBottom:0 }}>
         {/* 로고 */}
         <div style={{ width:'52px', height:'52px', background:'#111', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'14px' }}>
           <svg width="28" height="20" viewBox="0 0 38 26" fill="none">
@@ -96,7 +96,7 @@ export default function Login() {
         ))}
       </div>
 
-      <div style={{ paddingBottom:'32px', fontSize:'11px', color:'#2D6BB0', cursor:'pointer' }}>
+      <div style={{ paddingBottom:'max(32px, env(safe-area-inset-bottom))', fontSize:'11px', color:'#2D6BB0', cursor:'pointer' }}>
         PIN 분실 · 로그인 문제
       </div>
     </div>

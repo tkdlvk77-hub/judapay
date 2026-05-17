@@ -1283,7 +1283,7 @@ function DetailSheet({ item, theme, onClose, onApprove, onReject, onRequest }) {
       display:'flex', flexDirection:'column', background:'#F2F3F6' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: theme.headerGrad, paddingTop:'28px', paddingBottom:'20px', flexShrink:0 }}>
+      <div style={{ background: theme.headerGrad, paddingTop:'max(28px, env(safe-area-inset-top))', paddingBottom:'20px', flexShrink:0 }}>
         {/* 네비 */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'0 16px 18px' }}>
@@ -2519,7 +2519,7 @@ export default function ApprovalCenter() {
       <div style={{ flex:1, display:'flex', flexDirection:'column', position:'relative' }}>
 
         {/* ── 헤더 ── */}
-        <div style={{ background: theme.headerGrad, padding:'28px 16px 0', flexShrink:0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(28px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'0', paddingLeft:'16px', flexShrink:0 }}>
 
           {/* ── 1행: 뒤로가기 · 타이틀 · 배지 ── */}
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>

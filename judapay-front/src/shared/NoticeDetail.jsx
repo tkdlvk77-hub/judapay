@@ -10,7 +10,7 @@ function Header({ onBack, notice }) {
   const cat = NOTICE_CATEGORIES[notice.category] || NOTICE_CATEGORIES.general
 
   return (
-    <div style={{ background: theme.headerGrad, padding: '24px 16px 20px', flexShrink: 0 }}>
+    <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'20px', paddingLeft:'16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
         <button onClick={onBack}
           style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>

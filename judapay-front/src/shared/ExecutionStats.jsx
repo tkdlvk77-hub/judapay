@@ -606,7 +606,7 @@ function CategoryGroupDetail({ group, multi, txns, onBack, theme, initialPeriod 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
       {/* 헤더 */}
-      <div style={{ background: theme.headerGrad, paddingTop:'20px', flexShrink:0 }}>
+      <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', flexShrink:0 }}>
         {/* 네비 */}
         <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
           <button onClick={onBack}
@@ -741,7 +741,7 @@ function CategoryGroupDetail({ group, multi, txns, onBack, theme, initialPeriod 
 function TxnDetail({ txn, catLabel, catColor, onBack, theme }) {
   return (
     <div style={{ flex:1, overflowY:'auto', background: COLORS.bg }}>
-      <div style={{ background: theme.headerGrad, padding:'20px 0 28px' }}>
+      <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'0', paddingBottom:'28px', paddingLeft:'0' }}>
         <div style={{ display:'flex', alignItems:'center', padding:'4px 16px 18px', gap:'8px' }}>
           <button onClick={onBack} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -860,7 +860,7 @@ function WalletStatsDetail({ wallet, userType, displayGroups, groupTxns, onBack,
     <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
       {/* ── 헤더 ── */}
-      <div style={{ background: theme.headerGrad, paddingTop:'20px', flexShrink:0 }}>
+      <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', flexShrink:0 }}>
         {/* 네비 + 지갑 정보 */}
         <div style={{ display:'flex', alignItems:'center', padding:'4px 16px 12px', gap:'8px' }}>
           <button onClick={onBack}
@@ -1143,7 +1143,7 @@ export default function ExecutionStats() {
       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
 
         {/* 헤더 — 고정 */}
-        <div style={{ background: theme.headerGrad, paddingTop:'20px', paddingBottom:'16px', position:'relative', zIndex:10, flexShrink:0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'16px', position:'relative', zIndex:10, flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', padding:'0 16px 14px', gap:'4px' }}>
             <button type="button" onClick={(e) => { e.stopPropagation(); navigate(-1) }}
               style={{ width:'44px', height:'44px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>

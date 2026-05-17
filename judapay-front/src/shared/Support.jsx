@@ -332,7 +332,7 @@ function JudapaySection({ data, theme, navigate }) {
       <SectionHeader title="주다페이 운영 현황" sub="이번달 카드 집행 현황" action="전체 분석" onAction={() => navigate('/stats')} />
 
       {/* 총 집행액 */}
-      <div style={{ background: theme.headerGrad, borderRadius: '14px', padding: '14px 16px', marginBottom: '14px' }}>
+      <div style={{ background: theme.headerGrad, borderRadius: '14px', padding:'14px 16px 0', marginBottom: '14px' }}>
         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', marginBottom: '4px' }}>이번달 총 집행</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
           <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
@@ -456,7 +456,7 @@ export default function Support() {
     return (
       <PhoneShell>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ background: theme.headerGrad, padding: '24px 20px' }}>
+          <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'20px', paddingBottom:'0', paddingLeft:'20px' }}>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#fff' }}>지원</div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', marginTop: '3px' }}>자금 프로필 관리</div>
           </div>
@@ -477,7 +477,7 @@ export default function Support() {
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* 헤더 */}
-          <div style={{ background: theme.headerGrad, padding: '24px 20px 20px' }}>
+          <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'20px', paddingBottom:'20px', paddingLeft:'20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: '3px' }}>기업 대시보드</div>

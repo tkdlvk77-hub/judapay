@@ -751,7 +751,7 @@ export default function HelpFaq() {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         {/* 헤더 */}
-        <div style={{ background: theme.headerGrad, flexShrink: 0, paddingTop: '20px' }}>
+        <div style={{ background: theme.headerGrad, flexShrink: 0, paddingTop:'max(20px, env(safe-area-inset-top))' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 16px 14px' }}>
             <button
               onClick={() => navigate(-1)}

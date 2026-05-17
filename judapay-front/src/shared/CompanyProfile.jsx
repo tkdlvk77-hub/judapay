@@ -528,7 +528,7 @@ function PublicPreview({ theme, onClose }) {
 
   return (
     <div style={{ position:'absolute', inset:0, zIndex:50, background:COLORS.bg, display:'flex', flexDirection:'column', overflow:'clip' }}>
-      <div style={{ background:theme.headerGrad, padding:'24px 20px 20px', flexShrink:0 }}>
+      <div style={{ background:theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'20px', paddingBottom:'20px', paddingLeft:'20px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
           <button onClick={onClose}
             style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
@@ -826,7 +826,7 @@ export default function CompanyProfile() {
 
           {/* 헤더 — 고정 */}
           <div style={{ background:theme.headerGrad, flexShrink:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'24px 16px 14px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px' }}>
               <button onClick={() => navigate(-1)}
                 style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

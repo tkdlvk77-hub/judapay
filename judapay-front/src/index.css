@@ -27,21 +27,34 @@ input, textarea, [contenteditable] {
   -webkit-user-select: text;
 }
 
+/* ── 풀스크린 높이 체인 ──
+   html → body → #root → App wrapper → phone-stage 까지
+   height: 100% 체인이 완전히 이어져야 Capacitor 환경에서
+   safe area / 탭바 / 하단 여백이 정확히 동작함 */
+html {
+  height: 100%;
+  background: #1A0F3C; /* 안전 영역(노치 뒤) 배경 — 앱 전체 통일 */
+}
+
 body {
-  background: #1A0F3C; /* 모바일에서 safe area 여백이 앱 배경색과 일치 */
+  height: 100%;
+  margin: 0;
+  background: #1A0F3C; /* 모바일 safe area 여백 앱 배경색 */
   overscroll-behavior: none;
 }
 
 #root {
   display: flex;
   justify-content: center;
-  min-height: 100vh;
-  min-height: 100svh;
+  /* ✅ min-height → height 로 변경: 자식의 height:100% 가 올바르게 해석됨 */
+  height: 100%;
+  height: 100dvh; /* dvh: Capacitor/PWA 풀스크린에서 가장 안정적 */
 }
 
 /* App 최상위 래퍼 — 현재 App.jsx에서 inline style로 관리 */
 
 .phone {
+  /* 데스크탑 프리뷰: 390px 고정 중앙 정렬 */
   width: 390px;
   height: 100vh;
   height: 100svh;
@@ -54,17 +67,16 @@ body {
   flex-direction: column;
 }
 
-/* ── 모바일 실기기: 좌우 여백 없이 꽉 채움 ── */
+/* ── 모바일 / Capacitor: 좌우·상하 여백 없이 완전히 꽉 채움 ── */
 @media (max-width: 430px) {
-  body {
-    background: #1A0F3C;
-  }
   .phone {
     width: 100%;
     box-shadow: none;
-    height: 100vh;
-    height: 100svh;
-    /* 인라인 bg 없을 때 투명 → phone-stage #1A0F3C 다크 배경이 safe area에 보임 */
+    /* ✅ 100svh → 100% : html/body/#root 높이 체인에서 정확한 높이 상속
+       Capacitor WKWebView 에서 100svh 가 safe area 포함 여부가 기기마다 달라
+       부모 체인 height:100% 방식이 가장 안정적 */
+    height: 100%;
+    /* 투명: phone-stage(#1A0F3C 다크 퍼플) 가 노치·홈바 safe area 배경으로 노출 */
     background: transparent;
   }
 }
@@ -124,23 +136,26 @@ body {
   border-color: #5B4FE8;
 }
 
-/* ── 페이지 전환 무대 (AnimatePresence 역할) ── */
+/* ── 페이지 전환 무대 ── */
 .phone-stage {
+  /* 데스크탑 프리뷰: 390px 고정 */
   position: relative;
   width: 390px;
   height: 100vh;
   height: 100svh;
   overflow: hidden;
   flex-shrink: 0;
-  background: #F4F6FB; /* 화면 전환 중 빈 프레임 → 흰 배경 방지 */
+  /* ✅ 전환 중 노출 배경: #F4F6FB(라벤더) → 흰 배경 플래시 방지 */
+  background: #F4F6FB;
 }
 
 @media (max-width: 430px) {
   .phone-stage {
     width: 100%;
-    height: 100vh;   /* 최후 fallback */
-    height: 100svh;  /* 브라우저 UI 포함 최소 높이 → 버튼 잘림 방지 */
-    background: #1A0F3C; /* safe area 뒷배경을 앱 다크 퍼플로 통일 */
+    /* ✅ 100svh → 100% : 높이 체인 상속으로 Capacitor 안정화 */
+    height: 100%;
+    /* 노치·홈바 safe area 영역 배경 — 앱과 동일 다크 퍼플 */
+    background: #1A0F3C;
   }
 }
 

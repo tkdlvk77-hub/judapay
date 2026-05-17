@@ -43,7 +43,7 @@ export default function PinStep({
   if (bizType === 'business' && bizRole && BIZ_NO_EXECUTE.includes(bizRole)) {
     return (
       <PhoneShell>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
           <div style={{ fontSize:'48px', marginBottom:'18px' }}>🔒</div>
           <div style={{ fontSize:'17px', fontWeight:700, color:'#111827', marginBottom:'8px' }}>집행 권한이 없습니다</div>
           <div style={{ fontSize:'12px', color:'#9CA3AF', lineHeight:1.7, marginBottom:'28px' }}>
@@ -83,7 +83,7 @@ export default function PinStep({
         {/* 헤더 */}
         <div style={{
           background: headerGrad || GRADIENTS.header,
-          paddingTop:'20px',
+          paddingTop:'max(20px, env(safe-area-inset-top))',
           paddingBottom:'24px',
         }}>
           <div style={{

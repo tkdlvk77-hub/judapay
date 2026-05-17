@@ -168,7 +168,7 @@ const DEMO_TRANSACTIONS = [
 function Header({ onBack, step, totalSteps, title, sub }) {
   const theme = getAccountTheme()
   return (
-    <div style={{ background: theme.headerGrad, padding: '24px 16px 16px', flexShrink: 0 }}>
+    <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'16px', paddingLeft:'16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: step ? '14px' : '0' }}>
         <button onClick={onBack}
           style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
@@ -769,7 +769,7 @@ function Done({ type, txn, navigate }) {
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto', background: COLORS.bg }}>
       <div style={{
         background: theme.headerGrad,
-        paddingTop:'50px', paddingBottom:'40px', textAlign:'center',
+        paddingTop:'max(50px, env(safe-area-inset-top))', paddingBottom:'40px', textAlign:'center',
       }}>
         <div style={{
           width:'80px', height:'80px', borderRadius:'50%',

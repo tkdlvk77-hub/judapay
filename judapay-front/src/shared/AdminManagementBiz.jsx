@@ -152,7 +152,7 @@ function fmt(n) { return Number(Math.floor(n||0)).toLocaleString('ko-KR') }
 function Header({ onBack, title, sub, right }) {
   const theme = getAccountTheme()
   return (
-    <div style={{ background:theme.headerGrad, padding:'20px 16px 18px', flexShrink:0 }}>
+    <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'18px', paddingLeft:'16px', flexShrink:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
         <button onClick={onBack} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -253,7 +253,7 @@ function MainHub({ members, onNav, bizRole }) {
   return (
     <>
       {/* ── 헤더 (통일 그라디언트) */}
-      <div style={{ background:theme.headerGrad, padding:'20px 16px 22px' }}>
+      <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'22px', paddingLeft:'16px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'18px' }}>
           <button onClick={() => navigate(-1)}
             style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
@@ -1600,7 +1600,7 @@ function AccessDeniedView() {
   const bizRole  = sessionStorage.getItem('bizRole') || 'viewer'
   const roleInfo = ROLES[bizRole] || ROLES.viewer
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'32px 24px', background:'#F8F9FB', textAlign:'center' }}>
       <div style={{ width:'72px', height:'72px', borderRadius:'22px', background:'#FEE9E9', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'20px', fontSize:'32px' }}>
         🔒
       </div>

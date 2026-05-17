@@ -37,7 +37,7 @@ function StepHeader({ smallTitle, step, totalSteps, bigAmount, sub, onBack, head
   return (
     <div style={{
       background: headerGrad || GRADIENTS.header,
-      paddingTop:'20px',
+      paddingTop:'max(20px, env(safe-area-inset-top))',
       paddingBottom:'24px',
     }}>
       <div style={{

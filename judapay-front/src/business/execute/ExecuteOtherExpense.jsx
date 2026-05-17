@@ -594,7 +594,7 @@ export default function ExecuteOtherExpense() {
     return (
       <PhoneShell>
         <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-          <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'24px' }}>
+          <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 16px' }}>
               <button onClick={() => setScreen('detail')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -643,7 +643,7 @@ export default function ExecuteOtherExpense() {
       <PhoneShell>
         <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-            <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
+            <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
                 <button onClick={() => setScreen('list')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -768,7 +768,7 @@ export default function ExecuteOtherExpense() {
       <PhoneShell>
         <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
           <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
-            <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
+            <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'0' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
                 <button onClick={() => setScreen('list')} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -885,7 +885,7 @@ export default function ExecuteOtherExpense() {
       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
         <div style={{ flex:1, overflowY:'auto', background:COLORS.bg }}>
           {/* 헤더 */}
-          <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'0' }}>
+          <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'0' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'4px 16px 12px' }}>
               <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'none', border:'none', outline:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>

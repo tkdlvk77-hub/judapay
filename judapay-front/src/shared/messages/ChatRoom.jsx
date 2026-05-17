@@ -167,7 +167,7 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
       <div ref={scrollContainerRef} style={{ flex:1, overflowY:'auto' }}>
 
         {/* 채팅방 헤더 */}
-        <div style={{ background: theme.headerGrad, paddingTop:'16px' }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(16px, env(safe-area-inset-top))' }}>
           {/* 상단 네비 */}
           <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'4px 16px 14px' }}>
             <button onClick={onBack}
@@ -324,7 +324,7 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
                     <div style={{ margin:'8px 0' }}>
                       <div style={{ background: COLORS.bgCard, border:`1.5px solid ${isCancelled ? '#D1D5DB' : theme.brandDark+'30'}`,
                         borderRadius:'16px', overflow:'hidden', boxShadow: SHADOWS.card, opacity: isCancelled ? 0.65 : 1 }}>
-                        <div style={{ background: isCancelled ? '#6B7280' : theme.headerGrad, padding:'12px 16px', display:'flex', alignItems:'center', gap:'8px' }}>
+                        <div style={{ background: isCancelled ? '#6B7280' : theme.headerGrad, padding:'12px 16px 0', display:'flex', alignItems:'center', gap:'8px' }}>
                           <span style={{ fontSize:'16px' }}>{isCancelled ? '🚫' : '📋'}</span>
                           <span style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>{msg.contract.title}</span>
                           {isCancelled && <span style={{ marginLeft:'auto', padding:'2px 8px', background:'rgba(255,255,255,0.2)', borderRadius:'10px', fontSize:'10px', color:'#fff', fontWeight:700 }}>집행 취소됨</span>}
@@ -646,7 +646,7 @@ export default function ChatRoom({ thread, chat, onBack, onOpenDetail, userType,
                     onTouchStart={() => startLongPress(msg)} onTouchEnd={cancelLongPress}
                     onContextMenu={e => { e.preventDefault(); if(canDelete(msg)) setDeleteTarget({ id: msg.id, isMemo:false }) }}>
                     <div style={{ background:'#fff', borderRadius:'14px', overflow:'hidden', boxShadow:'0 2px 8px rgba(0,0,0,0.08)', border:`1.5px solid ${msg.card.borderColor}` }}>
-                      <div style={{ background: msg.card.headerGrad, padding:'10px 14px', display:'flex', alignItems:'center', gap:'8px' }}>
+                      <div style={{ background: msg.card.headerGrad, padding:'10px 14px 0', display:'flex', alignItems:'center', gap:'8px' }}>
                         <span style={{ fontSize:'16px' }}>{msg.card.emoji}</span>
                         <div style={{ flex:1 }}>
                           <div style={{ fontSize:'12px', fontWeight:800, color:'#fff' }}>{msg.card.title}</div>

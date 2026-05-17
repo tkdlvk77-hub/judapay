@@ -153,7 +153,7 @@ export default function SelectBusiness() {
   if (mode === 'result' && lookupResult?.status === 'normal') {
     const b = lookupResult.business
     return (
-      <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+      <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
         <StatusBar />
         <ExecuteHeader
           title="사업자 조회 결과"
@@ -239,7 +239,7 @@ export default function SelectBusiness() {
   if (mode === 'result' && lookupResult?.status === 'risk') {
     const b = lookupResult.business
     return (
-      <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+      <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
         <StatusBar />
         <ExecuteHeader
           title="사업자 조회 결과"
@@ -315,7 +315,7 @@ export default function SelectBusiness() {
   // 입력 화면 (디폴트)
   // ──────────────────────────────
   return (
-    <div className="phone flex flex-col" style={{ background:'#FAF8F5', minHeight:'100vh' }}>
+    <div className="phone flex flex-col" style={{ background:'#FAF8F5', paddingTop:'env(safe-area-inset-top)' }}>
       <StatusBar />
       <ExecuteHeader
         title="사업자에게"

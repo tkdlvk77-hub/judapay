@@ -157,7 +157,7 @@ function pct(used, total) { return total > 0 ? Math.min(100, Math.round((used/to
 function Header({ onBack, title, sub, right }) {
   const theme = getAccountTheme()
   return (
-    <div style={{ background:theme.headerGrad, padding:'20px 16px 18px', flexShrink:0 }}>
+    <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'18px', paddingLeft:'16px', flexShrink:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
         <button onClick={onBack}
           style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, flexShrink:0 }}>
@@ -279,7 +279,7 @@ function MainHub({ members, onNav, onInvite }) {
 
   return (
     <>
-      <div style={{ background:theme.headerGrad, paddingTop:'20px', paddingBottom:'20px' }}>
+      <div style={{ background:theme.headerGrad, paddingTop:'max(20px, env(safe-area-inset-top))', paddingBottom:'20px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'4px 16px 14px' }}>
           <button onClick={() => navigate(-1)} style={{ width:'32px', height:'32px', background:'transparent', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

@@ -69,7 +69,7 @@ export default function ExecuteToPersonal() {
         {/* 다크 헤더 — theme 분기 자동 (기업=네이비) */}
         <div style={{
           background: theme.headerGrad,
-          paddingTop:'20px',
+          paddingTop:'max(20px, env(safe-area-inset-top))',
           paddingBottom:'28px',
         }}>
           <div style={{

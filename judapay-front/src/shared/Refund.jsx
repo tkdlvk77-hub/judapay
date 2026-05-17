@@ -295,7 +295,7 @@ export default function Refund() {
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: COLORS.bg }}>
 
         {/* 헤더 */}
-        <div style={{ background: theme.headerGrad, padding: '24px 16px 20px', flexShrink: 0 }}>
+        <div style={{ background: theme.headerGrad, paddingTop:'max(24px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'20px', paddingLeft:'16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={() => navigate(-1)}
               style={{ width: '32px', height: '32px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
