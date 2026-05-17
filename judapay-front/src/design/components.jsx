@@ -4,9 +4,14 @@ import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING, TYPO, progressGradient } f
 // PhoneShell — 모든 화면의 최상위 컨테이너
 // 내부에서 자동으로 flex column + 배경 처리
 // ─────────────────────────────────────────────────────────
-export function PhoneShell({ children, bg = COLORS.bg, className = '' }) {
+export function PhoneShell({ children, bg, className = '' }) {
+  // bg를 명시적으로 넘기지 않으면 inline style 없음 → CSS .phone 배경 사용
+  // 모바일에서 CSS가 transparent를 적용하여 phone-stage 다크 배경이 safe area에 보임
   return (
-    <div className={`phone${className ? ' ' + className : ''}`} style={{ background: bg }}>
+    <div
+      className={`phone${className ? ' ' + className : ''}`}
+      style={bg ? { background: bg } : undefined}
+    >
       {children}
     </div>
   )

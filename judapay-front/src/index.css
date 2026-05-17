@@ -57,15 +57,15 @@ body {
 /* ── 모바일 실기기: 좌우 여백 없이 꽉 채움 ── */
 @media (max-width: 430px) {
   body {
-    background: #1A0F3C; /* safe area 여백을 앱 다크 배경과 통일 (흰 줄 방지) */
+    background: #1A0F3C;
   }
   .phone {
     width: 100%;
     box-shadow: none;
-    /* safe area 패딩은 GradientHeader(상단) / BottomTab(하단)에서 개별 처리
-       → 각 컴포넌트 배경색이 safe area 영역까지 자연스럽게 채워짐 */
     height: 100vh;
-    height: 100svh; /* 브라우저 UI 포함 최소 높이 → 버튼 잘림 방지 */
+    height: 100svh;
+    /* 인라인 bg 없을 때 투명 → phone-stage #1A0F3C 다크 배경이 safe area에 보임 */
+    background: transparent;
   }
 }
 
@@ -184,4 +184,13 @@ body {
 /* 뒤로 올 때: 왼쪽에서 살짝 스며들기 */
 .page-enter-left {
   animation: pageEnterLeft 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes pageExitRight {
+  from { transform: translateX(0%); }
+  to   { transform: translateX(100%); }
+}
+/* 뒤로가기 시: 현재 화면이 오른쪽으로 슬라이드 아웃 */
+.page-exit-right {
+  animation: pageExitRight 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
