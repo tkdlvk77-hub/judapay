@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useScrollRestore } from '../hooks/useScrollRestore'
+import { dialog } from '../components/Dialog'
 
 // ─── 케이스 데이터 ────────────────────────────────────────
 const REFUND_CASES = [
@@ -234,7 +235,7 @@ function ContactSheet({ onClose }) {
 
         {/* 카카오 채널 */}
         <button
-          onClick={() => alert('카카오 채널 연결')}
+          onClick={() => dialog.alert({ title: '카카오 채널', message: '카카오톡 채널로 연결됩니다.' })}
           style={{
             width: '100%', height: '52px',
             background: '#FEE500', color: '#3A1D1D',
@@ -252,7 +253,7 @@ function ContactSheet({ onClose }) {
 
         {/* 이메일 */}
         <button
-          onClick={() => alert('이메일: support@judapay.com')}
+          onClick={() => dialog.alert({ title: '이메일 문의', message: 'support@judapay.com' })}
           style={{
             width: '100%', height: '52px',
             background: COLORS.bgMuted, color: COLORS.t2,

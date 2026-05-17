@@ -6,6 +6,7 @@
 //   서브타이틀
 
 import { useNavigate } from 'react-router-dom'
+import { dialog } from './Dialog'
 
 export function StatusBar() {
   return null
@@ -20,18 +21,23 @@ export function ExecuteHeader({
   totalSteps,  // 총 단계
   onBack,
   onClose,     // 없으면 X 버튼 숨김
-  closeConfirmMessage = '정말 나가시겠어요?\n작성 중인 내용은 저장되지 않습니다.',
+  closeConfirmMessage = '작성 중인 내용은 저장되지 않습니다.',
 }) {
   const navigate = useNavigate()
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (onClose) {
       onClose()
       return
     }
-    if (window.confirm(closeConfirmMessage)) {
-      navigate('/home')
-    }
+    const ok = await dialog.confirm({
+      title: '나가시겠어요?',
+      message: closeConfirmMessage,
+      okText: '나가기',
+      cancelText: '계속 작성',
+      destructive: true,
+    })
+    if (ok) navigate('/home')
   }
 
   const badgeCfg = {

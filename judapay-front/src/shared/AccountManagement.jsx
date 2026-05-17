@@ -4,6 +4,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useScrollRestore } from '../hooks/useScrollRestore'
+import { dialog } from '../components/Dialog'
 
 // ─── 은행 메타 (로고 색·이니셜) ────────────────────────
 // 1차 MVP는 컬러 + 이니셜로 처리. 추후 실제 SVG 로고로 교체 가능.
@@ -542,7 +543,7 @@ export default function AccountManagement() {
 
             {/* 새 계좌 등록 — master/admin만 가능 */}
             {canManageAccount ? (
-              <AddAccountButton onClick={() => alert('1원 인증 흐름 (추후 구현)')} />
+              <AddAccountButton onClick={() => dialog.alert({ title: '1원 인증', message: '추후 구현될 기능입니다.' })} />
             ) : (
               <div style={{
                 width: '100%',

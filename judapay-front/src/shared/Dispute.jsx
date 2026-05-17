@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useScrollRestore } from '../hooks/useScrollRestore'
 import { useStepHistory } from '../hooks/useStepHistory'
+import { dialog } from '../components/Dialog'
 
 // ─── 분쟁 유형 ────────────────────────────────────────────
 const DISPUTE_TYPES = [
@@ -735,7 +736,7 @@ function Step4({ type, txn, content, onBack, onSubmit }) {
               💰 수수료: <strong>{type.bizModel.fee}</strong>
             </div>
 
-            <button onClick={() => { setShowBizModel(false); alert('서비스 신청 완료 — 고객센터에서 연락드립니다') }}
+            <button onClick={() => { setShowBizModel(false); dialog.alert({ title:'신청 완료', message:'고객센터에서 연락드립니다.' }) }}
               style={{
                 width:'100%', height:'52px',
                 background: theme.brand, color:'#fff',

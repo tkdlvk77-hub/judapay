@@ -5,6 +5,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import MccBlock, { DEFAULT_MCC } from './execute/MccBlock'
+import { dialog } from '../components/Dialog'
 
 function getUserType() {
   const s = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bizType') : null
@@ -651,7 +652,7 @@ export default function CardPayment() {
             <ActionGrid
               paused={cs.paused}
               onToggle={!isViewer ? () => updateCardState(card.id, { paused: !cs.paused }) : undefined}
-              onQR={!isViewer ? () => alert('QR 결제 (추후 구현)') : undefined}
+              onQR={!isViewer ? () => dialog.alert({ title: 'QR 결제', message: '추후 구현될 기능입니다.' }) : undefined}
               canToggle={!isViewer}
               canQR={!isViewer}
               canIssue={!isActionLocked}

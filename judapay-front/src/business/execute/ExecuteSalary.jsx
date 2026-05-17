@@ -5,6 +5,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { addTransaction } from '../../shared/transactionStore'
+import { dialog } from '../../components/Dialog'
 
 // ─── 상수 ─────────────────────────────────────────────────
 const INCOME_TAX_RATE   = 0.06
@@ -699,7 +700,7 @@ export default function ExecuteSalary() {
   const resendInvite = (empId) => {
     const newExpiry = new Date(Date.now() + 72*3600*1000).toISOString()
     setEditEmployees(prev => prev.map(e => e.id === empId ? { ...e, authStatus:'invited', inviteExpiresAt:newExpiry } : e))
-    alert('초대 링크가 재발송되었습니다. (유효기간 72시간)')
+    dialog.alert({ title: '초대 링크 재발송', message: '유효기간은 72시간입니다.' })
   }
 
   // ── 리스트용 집계 ──────────────────────────────────────

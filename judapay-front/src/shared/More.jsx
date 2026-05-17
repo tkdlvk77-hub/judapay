@@ -7,6 +7,7 @@ import { COLORS, RADIUS, SHADOWS, GRADIENTS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { LANGUAGES, getLang, setLang } from '../design/i18n'
 import { useScrollRestore } from '../hooks/useScrollRestore'
+import { dialog } from '../components/Dialog'
 import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
 
 // ─────────────────────────────────────────────────────────
@@ -123,18 +124,27 @@ export default function More() {
   }
 
   const todo = (label) => () => {
-    alert(`${label}\n\n개발 예정 기능입니다.`)
+    dialog.alert({ title: label, message: '개발 예정 기능입니다.' })
   }
 
-  const handleLogout = () => {
-    if (window.confirm('로그아웃하시겠어요?')) {
+  const handleLogout = async () => {
+    const ok = await dialog.confirm({
+      title: '로그아웃',
+      message: '주다페이에서 로그아웃할까요?',
+      okText: '로그아웃',
+      destructive: true,
+    })
+    if (ok) {
       logout()
       navigate('/')
     }
   }
 
   const handleWithdraw = () => {
-    alert('회원 탈퇴는 고객센터로 문의해주세요.\n\n진행 중인 거래·계약이 있으면 모두 정리된 후에만 탈퇴 가능합니다.')
+    dialog.alert({
+      title: '회원 탈퇴',
+      message: '회원 탈퇴는 고객센터로 문의해주세요.\n진행 중인 거래·계약이 있으면 모두 정리된 후에만 탈퇴 가능합니다.',
+    })
   }
 
   return (

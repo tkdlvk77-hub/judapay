@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useScrollRestore } from '../../hooks/useScrollRestore'
 import { StatusBar, ExecuteHeader } from '../../components/ExecuteHeader'
+import { dialog } from '../../components/Dialog'
 
 // 최근 거래 사업자 (실제는 백엔드)
 const RECENT_BUSINESSES = [
@@ -70,10 +71,15 @@ export default function SelectBusiness() {
     navigate('/execute/business')
   }
 
-  const handleClose = () => {
-    if (window.confirm('정말 나가시겠어요?\n조회를 멈추고 홈으로 돌아갑니다.')) {
-      navigate('/home')
-    }
+  const handleClose = async () => {
+    const ok = await dialog.confirm({
+      title: '나가시겠어요?',
+      message: '조회를 멈추고 홈으로 돌아갑니다.',
+      okText: '나가기',
+      cancelText: '계속 조회',
+      destructive: true,
+    })
+    if (ok) navigate('/home')
   }
 
   // 사업자 조회 시뮬레이션

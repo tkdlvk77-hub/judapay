@@ -5,6 +5,7 @@ import { PhoneShell } from '../design/components'
 import { getAccountTheme } from '../design/accountTokens'
 import { pushApprovalMsg } from './approvalMessageBus'
 import { useScrollRestore } from '../hooks/useScrollRestore'
+import { dialog } from '../components/Dialog'
 
 // ─── 유형 메타 ────────────────────────────────────────────
 const TYPE_META = {
@@ -1787,7 +1788,7 @@ function ApprovalCard({ item, theme, onApprove, onReject, onRequest, onDetail })
               style={{ flex:1, height:'36px', borderRadius:'10px', fontSize:'12px', fontWeight:600,
                 background:'#F4F5F7', color:'#374151', border:'none',
                 cursor:'pointer', fontFamily:'inherit' }}>상세보기</button>
-            <button onClick={() => alert('상위 관리자에게 처리 요청을 전달합니다.')}
+            <button onClick={() => dialog.alert({ title: '처리 요청 전달', message: '상위 관리자에게 처리 요청을 전달합니다.' })}
               style={{ flex:1, height:'36px', borderRadius:'10px', fontSize:'12px', fontWeight:600,
                 background:'#F5F3FF', color:'#5B21B6', border:'none',
                 cursor:'pointer', fontFamily:'inherit' }}>처리 요청</button>

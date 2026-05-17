@@ -4,6 +4,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { dialog } from '../../components/Dialog'
 
 // ─────────────────────────────────────
 // 사업자에게 지급 — 5개 메뉴
@@ -42,7 +43,7 @@ export default function ExecuteBusiness() {
     if (status === 'select') {
       navigate(`/execute/business/select-vendor?menu=${item.id}`)
     } else if (status === 'todo') {
-      alert(`${t(`execBiz.fund.${item.tKey}.label`)}는 준비 중입니다`)
+      dialog.alert({ title: t(`execBiz.fund.${item.tKey}.label`), message: '준비 중인 기능입니다.' })
     }
   }
 

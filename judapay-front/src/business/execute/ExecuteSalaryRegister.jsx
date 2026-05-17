@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import DarkHeader from '../../components/DarkHeader'
 import { useT } from '../../design/i18n'
+import { dialog } from '../../components/Dialog'
 
 const FREELANCE_RATE = 0.033  // 3.3%
 
@@ -96,7 +97,7 @@ export default function ExecuteSalaryRegister() {
                   <div style={{ fontSize:'13px', fontWeight:700, color: COLORS.t1, marginBottom:'2px' }}>지급일 (공통)</div>
                   <div style={{ fontSize:'12px', color: COLORS.t4 }}>매월 {payDay}일 자동 지급</div>
                 </div>
-                <button onClick={() => alert('지급일 변경')} style={{ padding:'6px 13px', background:`${theme.brandDark}10`, color: theme.brandDark, border:`1px solid ${theme.brandDark}20`, borderRadius:'8px', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                <button onClick={() => dialog.alert({ title: '지급일 변경', message: '추후 구현될 기능입니다.' })} style={{ padding:'6px 13px', background:`${theme.brandDark}10`, color: theme.brandDark, border:`1px solid ${theme.brandDark}20`, borderRadius:'8px', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
                   변경
                 </button>
               </div>

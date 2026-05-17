@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 import { ACCOUNT_THEMES } from '../../design/accountTokens'
+import { useStatusBarStyle } from '../../native/useStatusBarStyle'
 
 // 마지막 접속 계정 타입 읽기
 function getLastType() {
@@ -14,6 +15,9 @@ function getLastType() {
 export default function Start() {
   const navigate = useNavigate()
   const { login } = useUser()
+
+  // 다크 그라데이션 배경 — 상태바 글자 흰색
+  useStatusBarStyle('light')
 
   const lastType = getLastType()
   const theme = ACCOUNT_THEMES[lastType] || ACCOUNT_THEMES.personal

@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { useT } from '../design/i18n'
 import { useScrollRestore } from '../hooks/useScrollRestore'
+import { dialog } from '../components/Dialog'
 
 // 로그인된 기기 (데모)
 const INITIAL_DEVICES = [
@@ -152,16 +153,24 @@ export default function SecuritySettings() {
 
   const autoLockLabel = AUTO_LOCK_OPTIONS.find(o => o.value === autoLock)?.label || '1분 후'
 
-  const handleDeviceLogout = (id) => {
-    if (window.confirm('이 기기를 로그아웃할까요?')) {
-      setDevices(prev => prev.filter(d => d.id !== id))
-    }
+  const handleDeviceLogout = async (id) => {
+    const ok = await dialog.confirm({
+      title: '기기 로그아웃',
+      message: '이 기기에서 로그아웃할까요?',
+      okText: '로그아웃',
+      destructive: true,
+    })
+    if (ok) setDevices(prev => prev.filter(d => d.id !== id))
   }
 
-  const handleLogoutAll = () => {
-    if (window.confirm('현재 기기를 제외한 모든 기기에서 로그아웃할까요?\n\n작업 중인 다른 기기 세션이 즉시 종료됩니다.')) {
-      setDevices(prev => prev.filter(d => d.current))
-    }
+  const handleLogoutAll = async () => {
+    const ok = await dialog.confirm({
+      title: '다른 기기 모두 로그아웃',
+      message: '현재 기기를 제외한 모든 기기에서 로그아웃합니다.\n다른 기기의 세션이 즉시 종료됩니다.',
+      okText: '모두 로그아웃',
+      destructive: true,
+    })
+    if (ok) setDevices(prev => prev.filter(d => d.current))
   }
 
   return (
@@ -181,7 +190,7 @@ export default function SecuritySettings() {
           }}>
             {/* PIN 변경 */}
             <button
-              onClick={() => alert('PIN 변경 화면 (추후 구현)')}
+              onClick={() => dialog.alert({ title: 'PIN 변경', message: '추후 구현될 기능입니다.' })}
               style={{
                 width:'100%',
                 padding:'14px 16px',

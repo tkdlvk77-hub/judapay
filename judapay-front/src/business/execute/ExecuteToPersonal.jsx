@@ -3,6 +3,7 @@ import { PhoneShell } from '../../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../../design/tokens'
 import { getAccountTheme } from '../../design/accountTokens'
 import { useT } from '../../design/i18n'
+import { dialog } from '../../components/Dialog'
 
 // ─────────────────────────────────────
 // 출금 가능 자금 (5개)
@@ -50,7 +51,7 @@ export default function ExecuteToPersonal() {
   const theme = getAccountTheme()
   const t = useT()
   const navigate = useNavigate()
-  const todo = (label) => () => alert(`${label}\n\n개발 예정 기능입니다.`)
+  const todo = (label) => () => dialog.alert({ title: label, message: '개발 예정 기능입니다.' })
 
   const handleClick = (item) => () => {
     const status = MENU_STATUS[item.id]

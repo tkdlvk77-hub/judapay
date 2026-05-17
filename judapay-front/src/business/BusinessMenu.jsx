@@ -5,6 +5,7 @@ import { useT } from '../design/i18n'
 import BottomTab from '../components/BottomTab'
 import { useScrollRestore } from '../hooks/useScrollRestore'
 import { useNoSwipeBack } from '../hooks/useNoSwipeBack'
+import { dialog } from '../components/Dialog'
 
 // ─────────────────────────────────────
 // 데모 데이터
@@ -91,7 +92,7 @@ export default function BusinessMenu() {
   const t = useT()
   const navigate = useNavigate()
   const scrollRef = useScrollRestore()
-  const todo = (label) => () => alert(`${label}\n\n개발 예정 기능입니다.`)
+  const todo = (label) => () => dialog.alert({ title: label, message: '개발 예정 기능입니다.' })
 
   // 월말까지 추가 = SCHEDULED 합계
   const toGoTotal = SCHEDULED.reduce((sum, s) => sum + s.amount, 0)

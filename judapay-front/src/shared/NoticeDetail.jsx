@@ -3,6 +3,7 @@ import { PhoneShell } from '../design/components'
 import { COLORS, RADIUS, SHADOWS } from '../design/tokens'
 import { getAccountTheme } from '../design/accountTokens'
 import { NOTICES, NOTICE_CATEGORIES } from './noticesData'
+import { dialog } from '../components/Dialog'
 
 // ─── 헤더 (보라 그라데이션) ─────────────────────────
 function Header({ onBack, notice }) {
@@ -289,7 +290,7 @@ export default function NoticeDetail() {
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
           <button
-            onClick={() => alert('약관 동의 처리 (추후 구현)')}
+            onClick={() => dialog.alert({ title: '약관 동의', message: '추후 구현될 기능입니다.' })}
             style={{
               width: '100%', height: '52px',
               background: theme.brand, color: '#fff',
