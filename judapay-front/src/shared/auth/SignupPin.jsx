@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
+import { useStatusBarStyle } from '../../native/useStatusBarStyle'
 
 const KEYS = [1,2,3,4,5,6,7,8,9,null,0,'del']
 const SUB = {2:'ABC',3:'DEF',4:'GHI',5:'JKL',6:'MNO',7:'PQRS',8:'TUV',9:'WXYZ'}
@@ -9,7 +10,7 @@ function Sbar() { return null }
 
 function Keypad({ onKey }) {
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', padding:'0 28px', marginBottom:'20px' }}>
+    <div className="keypad-safe" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', paddingLeft:'28px', paddingRight:'28px' }}>
       {KEYS.map((k, i) => (
         <button key={i} onClick={() => onKey(k)}
           style={{
@@ -53,6 +54,9 @@ export default function SignupPin() {
   const userType = searchParams.get('type') === 'business' ? 'business' : 'personal'
   const [pin, setPin] = useState('')
   const [phase, setPhase] = useState('pin') // pin | faceid | done
+
+  // 흰/cream 배경 화면 — 상태바 글자 검정으로
+  useStatusBarStyle('dark')
 
   const handleKey = (k) => {
     if (k === 'del') { setPin(p => p.slice(0, -1)); return }

@@ -164,6 +164,17 @@ body {
   padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
+/* 키패드 / 화면 최하단 액션 영역 safe area — 홈 인디케이터 위로 떨어뜨림
+   safe-area 위에 추가로 28px 여유 — 홈 인디케이터·라운드 코너 와의 시각적 간격 확보 */
+.keypad-safe {
+  padding-bottom: calc(28px + env(safe-area-inset-bottom, 20px));
+}
+
+/* 페이지 최하단 버튼 (PIN 제외, 단순 다음 버튼 등) safe area */
+.bottom-action-safe {
+  padding-bottom: max(32px, calc(20px + env(safe-area-inset-bottom)));
+}
+
 /* GradientHeader safe area — 노치/Dynamic Island 영역까지 그라데이션 채움 */
 .gradient-header-safe {
   padding-top: max(20px, env(safe-area-inset-top));

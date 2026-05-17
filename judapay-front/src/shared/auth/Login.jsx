@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
+import { useStatusBarStyle } from '../../native/useStatusBarStyle'
 
 const KEYS = [1,2,3,4,5,6,7,8,9,'faceid',0,'del']
 const SUB = {2:'ABC',3:'DEF',4:'GHI',5:'JKL',6:'MNO',7:'PQRS',8:'TUV',9:'WXYZ'}
@@ -9,6 +10,9 @@ export default function Login() {
   const navigate = useNavigate()
   const { login, userType: existing } = useUser()
   const [pin, setPin] = useState('')
+
+  // cream 배경 화면 — 상태바 글자 검정
+  useStatusBarStyle('dark')
 
   const completeLogin = (type) => {
     login(type)

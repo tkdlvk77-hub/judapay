@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useStatusBarStyle } from '../../native/useStatusBarStyle'
 
 const S = { // 인라인 스타일 공통
   sbar: { display:'flex', justifyContent:'space-between', padding:'14px 22px 6px', fontSize:'12px', fontWeight:'600', color:'#111' },
@@ -29,6 +30,9 @@ export default function SignupPersonal() {
   const [step, setStep] = useState(1)
   const [authLoading, setAuthLoading] = useState(false)
   const [authDone, setAuthDone] = useState(false)
+
+  // cream 배경 화면 — 상태바 글자 검정
+  useStatusBarStyle('dark')
 
   const doAuth = () => {
     setAuthLoading(true)
