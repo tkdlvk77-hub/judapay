@@ -168,7 +168,7 @@ export default function App() {
         <div
           key={location.key}
           className={animClass}
-          style={{ position:'absolute', top:0, right:0, bottom:0, left:0, background:'#F4F6FB' }}
+          style={{ position:'absolute', top:0, right:0, bottom:0, left:0 }}
         >
           <Routes location={location}>
             {/* 공개 라우트 */}

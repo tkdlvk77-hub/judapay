@@ -23,9 +23,8 @@ export function StatusBar({ inverse = false }) {
 // ─────────────────────────────────────────────────────────
 export function GradientHeader({ children, paddingBottom = '24px', bg }) {
   return (
-    <div style={{
+    <div className="gradient-header-safe" style={{
       background: bg || GRADIENTS.header,
-      paddingTop: 'max(20px, env(safe-area-inset-top))',
       paddingBottom,
       position: 'relative',
     }}>

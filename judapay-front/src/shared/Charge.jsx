@@ -21,10 +21,10 @@ function fmt(n) { return n ? Number(n).toLocaleString('ko-KR') : '0' }
 // ─── 브랜드 헤더 ─────────────────────────────────────────
 function BrandHeader({ title, onBack, bg }) {
   return (
-    <div style={{
+    <div className="sticky-nav-safe" style={{
       background: bg,
       display:'flex', alignItems:'center',
-      paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px',
+      padding:'20px 16px 14px',
       gap:'4px', flexShrink:0,
     }}>
       <button onClick={onBack} style={{

@@ -400,11 +400,11 @@ export default function PersonalProfile() {
       <div ref={scrollRef} style={{ flex:1, overflowY:'auto', minHeight:0 }}>
 
         {/* ── ① Sticky 네비 바 ── */}
-        <div style={{
+        <div className="sticky-nav-safe" style={{
           position:'sticky', top:0, zIndex:10,
           background: NAV_COLOR,
           display:'flex', alignItems:'center', gap:'8px',
-          paddingTop:'max(20px, env(safe-area-inset-top))', paddingRight:'16px', paddingBottom:'14px', paddingLeft:'16px',
+          padding:'20px 16px 14px',
           overflow:'hidden',
         }}>
           <button onClick={() => navigate(-1)}
@@ -449,8 +449,8 @@ export default function PersonalProfile() {
         </div>
 
         {/* ── ③ Sticky 탭 바 ── */}
-        <div style={{
-          position:'sticky', top:'calc(max(66px, 46px + env(safe-area-inset-top)))', zIndex:9,
+        <div className="sticky-tabs-safe" style={{
+          position:'sticky', top:'66px', zIndex:9,
           background: NAV_COLOR,
           display:'flex', borderTop:'1px solid rgba(255,255,255,0.12)',
         }}>
